@@ -1,0 +1,155 @@
+/*Header*/
+.custom-header {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+  }
+  
+  
+  .navbar-light .navbar-nav .nav-link {
+    color: white;
+  }
+  
+  .dropdown-toggle::after {
+    display: none;
+  }
+  
+  .dropdown-menu {
+    background-color: #ffffff;
+  }
+  
+  .dropdown-item {
+    color: #388DE2;
+  }
+  
+  .dropdown-item:hover {
+    background-color: #f8f9fa;
+  }
+
+
+/* Sidebar */
+
+.main-sidebar {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+  }
+  
+  .nav-sidebar .nav-link {
+    color: white;
+  }
+  
+  .nav-sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .brand-link {
+    color: white;
+  }
+  
+  .brand-link:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .nav-item .nav-treeview {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+  }
+  
+  .nav-item.menu-open > .nav-treeview {
+    max-height: 500px;
+    transition: max-height 0.5s ease-in;
+  }
+
+  .nav-treeview .nav-item {
+    margin-bottom: 0.5rem; /* Espaciado entre las opciones del submenú */
+  }
+
+
+/* Content */
+.content-wrapper{
+  background-color: #fff;
+}
+
+.content {
+  flex: 1; 
+  padding: 20px; 
+  background-color: #ffffff;
+  border-radius: 5px; 
+  overflow: auto;
+}
+
+
+/* Footer */
+.main-footer {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+  }
+
+
+
+/* Login */
+/* src/components/Login.css */
+.hold-transition.login-page {
+    position: relative;
+    height: 100vh;
+}
+
+.login-box {
+    z-index: 2;
+    position: relative;
+    margin: auto;
+    max-width: 400px;
+    width: 400px;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.login-logo a {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
+
+.card {
+    border: none;
+}
+
+.form-control {
+    border-radius: 5px;
+}
+
+.btn-primary {
+    background-color: #257ED7;
+    border: none;
+}
+
+.mb-1 a,
+.mb-0 a {
+    color: #388DE2;
+}
+
+.mb-1 a:hover,
+.mb-0 a:hover {
+    text-decoration: underline;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1;
+}
+
+.login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.login-card-body {
+    padding: 20px;
+}

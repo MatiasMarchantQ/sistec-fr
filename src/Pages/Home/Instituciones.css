@@ -1,0 +1,133 @@
+/* Estilos para el bloque instituciones */
+.instituciones {
+    margin: 20px;
+}
+
+/* Título */
+.instituciones__title {
+    font-size: 2rem;
+    color: #388DE2;
+}
+
+/* Controles del bloque */
+.instituciones__controls {
+    margin-bottom: 20px;
+}
+
+/* Tarjeta del bloque */
+.instituciones__card {
+    margin-bottom: 20px;
+}
+
+/* Título de la tarjeta */
+.instituciones__card-title {
+    font-size: 1.5rem;
+}
+
+/* Tabla */
+.instituciones__table {
+    margin-bottom: 0;
+}
+
+/* Botones */
+.instituciones__btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer; /* Cambia el cursor al pasar sobre el botón */
+    transition: background-color 0.3s ease; /* Suaviza la transición del color de fondo */
+}
+
+/* Modificadores de botones */
+.instituciones__btn--primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.instituciones__btn--primary:hover {
+    background-color: #0056b3; /* Color de fondo al pasar el cursor */
+}
+
+.instituciones__btn--warning {
+    background-color: #ffc107;
+    color: white;
+}
+
+.instituciones__btn--warning:hover {
+    background-color: #e0a800; /* Color de fondo al pasar el cursor */
+}
+
+.instituciones__btn--spacing {
+    margin-right: 10px;
+}
+
+.instituciones__btn--danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.instituciones__btn--danger:hover {
+    background-color: #c82333; /* Color de fondo al pasar el cursor */
+}
+
+.instituciones__btn--success {
+    background-color: #28a745;
+    color: white;
+}
+
+.instituciones__btn--success:hover {
+    background-color: #218838; /* Color de fondo al pasar el cursor */
+}
+
+.instituciones__btn--secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.instituciones__btn--secondary:hover {
+    background-color: #5a6268; /* Color de fondo al pasar el cursor */
+}
+
+.instituciones__btn--info {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.instituciones__btn--info:hover {
+    background-color: #138496; /* Color de fondo al pasar el cursor */
+}
+
+/* Paginación */
+.instituciones__pagination {
+    margin-top: 20px;
+}
+
+/* Sección de volver */
+.instituciones__back {
+    margin-top: 20px;
+}
+
+
+/* Modal Registrar Inst */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1050;
+  }
+  
+  .modal-dialog {
+    position: relative;
+    margin: 10% auto;
+    max-width: 500px;
+  }
+  
+  .modal-content {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.3rem;
+  }
+  
