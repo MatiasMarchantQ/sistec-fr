@@ -1,11 +1,11 @@
 // FichaClinicaAdultoMayor.js
 import React from 'react';
 
-const FichaClinicaAdultoMayor = ({ onVolver, onIngresar }) => {
+const FichaClinicaAdulto = ({ onVolver, onIngresar }) => {
   return (
     <>
-      <h3>Ficha Clínica Adulto Mayor</h3>
-      {/* Aquí irá el contenido de la ficha clínica de adulto mayor */}
+      <h3>Ficha Clínica Adulto</h3>
+      {/* Aquí irá el contenido de la ficha clínica de adulto */}
       <div className="d-flex justify-content-center">
         <button className="btn btn-secondary mr-2" onClick={onVolver}>Volver</button>
         <button className="btn btn-primary" onClick={onIngresar}>Ingresar</button>
@@ -14,4 +14,4 @@ const FichaClinicaAdultoMayor = ({ onVolver, onIngresar }) => {
   );
 };
 
-export default FichaClinicaAdultoMayor;
+export default FichaClinicaAdulto;

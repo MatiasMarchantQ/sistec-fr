@@ -16,10 +16,14 @@
 
 .usuarios__select {
     border: 1px solid #ccc;
+    font-size: 0.875rem; 
+    padding: 5px; /* Menos padding */
+    height: auto;
 }
 
 .usuarios__btn {
-    padding: 10px 15px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
     border: none;
     border-radius: 5px;
     cursor: pointer;

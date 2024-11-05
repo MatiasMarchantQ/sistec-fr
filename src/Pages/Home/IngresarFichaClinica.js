@@ -25,7 +25,7 @@ const IngresarFichaClinica = () => {
         <label>Tipo de Ficha</label>
         <select className="form-control" value={tipoFicha} onChange={(e) => setTipoFicha(e.target.value)}>
           <option value="">Seleccione...</option>
-          <option value="adultoMayor">Adulto Mayor</option>
+          <option value="adultoMayor">Adulto</option>
           <option value="infantil">Infantil</option>
         </select>
       </div>

@@ -148,7 +148,6 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
 
   return (
     <div className="agenda-container">
-      {/* Semestre visible */}
       <div className="badge badge-info p-2 mb-4">
         {getSemester()}
       </div>

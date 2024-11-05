@@ -1,72 +1,113 @@
 .asignar-estudiantes {
     padding: 20px;
-  }
+}
   
-  .asignar-estudiantes h2 {
+.asignar-estudiantes h2 {
     margin-bottom: 20px;
-  }
+}
   
-  .asignar-estudiantes .card {
+.asignar-estudiantes .card {
     margin-bottom: 20px;
-  }
+}
   
-  .asignar-estudiantes .card-header {
+.asignar-estudiantes .card-header {
     background-color: #f8f9fa;
-  }
+}
   
-  .asignar-estudiantes .table {
+.asignar-estudiantes .table {
     margin-bottom: 0;
-  }
-  
-  .asignar-estudiantes .btn {
+}
+
+/* Estilos para la columna de selección y checkboxes */
+.asignar-estudiantes .table td:first-child,
+.asignar-estudiantes .table th:first-child {
+    width: 50px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.asignar-estudiantes .table .form-check {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.asignar-estudiantes .table .form-check-input {
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Resto de los estilos */
+.asignar-estudiantes .btn {
     margin-right: 10px;
-  }
+}
   
-  .asignar-estudiantes .input-group {
+.asignar-estudiantes .input-group {
     width: 300px;
-  }
+}
   
-  .asignar-estudiantes .pagination {
+.asignar-estudiantes .pagination {
     margin-bottom: 0;
-  }
+}
   
-  .asignar-estudiantes .modal-body .form-group {
+.asignar-estudiantes .modal-body .form-group {
     margin-bottom: 15px;
-  }
+}
   
-  .asignar-estudiantes .fas {
+.asignar-estudiantes .fas {
     margin-right: 5px;
-  }
+}
   
-  .asignar-estudiantes .btn-warning {
+.asignar-estudiantes .btn-warning {
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
-  }
+}
   
-  .asignar-estudiantes .mr-2 {
+.asignar-estudiantes .mr-2 {
     margin-right: 0.5rem;
-  }
+}
   
-  .asignar-estudiantes .mt-4 {
+.asignar-estudiantes .mt-4 {
     margin-top: 1.5rem;
-  }
+}
   
-  .asignar-estudiantes .d-flex {
+.asignar-estudiantes .d-flex {
     display: flex;
-  }
+}
   
-  .asignar-estudiantes .justify-content-between {
+.asignar-estudiantes .justify-content-between {
     justify-content: space-between;
-  }
+}
   
-  .asignar-estudiantes .align-items-center {
+.asignar-estudiantes .align-items-center {
     align-items: center;
-  }
+}
   
-  .asignar-estudiantes .mb-3 {
+.asignar-estudiantes .mb-3 {
     margin-bottom: 1rem;
-  }
+}
   
-  .asignar-estudiantes .text-center {
+.asignar-estudiantes .text-center {
     text-align: center;
-  }
+}
+
+/* Estilos para las filas seleccionadas */
+.asignar-estudiantes .table tr.selected {
+    background-color: #e3f2fd;
+}
+
+.asignar-estudiantes .table tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Estilos para mejorar la apariencia de los checkboxes */
+.asignar-estudiantes .form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.asignar-estudiantes .form-check-input:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}

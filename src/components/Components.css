@@ -1,11 +1,31 @@
+:root {
+  /* Paleta de colores */
+  --color-white: #ffffff;
+  --color-dark: #00171f;
+  --color-primary: #003459;
+  --color-secondary: #007ea7;
+  --color-accent: #00a8e8;
+}
+
 /*Header*/
 .custom-header {
-    background: linear-gradient(135deg, #007bff, #0056b3);
-  }
+  background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
+}
   
   
   .navbar-light .navbar-nav .nav-link {
     color: white;
+  }
+
+  .navbar-brand {
+    color: var(--color-white) !important;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-left: 1rem;
+  }
+  
+  .navbar-brand:hover {
+    color: var(--color-white) !important;
   }
   
   .dropdown-toggle::after {
@@ -13,26 +33,26 @@
   }
   
   .dropdown-menu {
-    background-color: #ffffff;
+    background-color: var(--color-white);
   }
   
   .dropdown-item {
-    color: #388DE2;
+    color: var(--color-accent);
   }
   
   .dropdown-item:hover {
-    background-color: #f8f9fa;
+    background-color: var(--color-white);
   }
 
 
 /* Sidebar */
 
 .main-sidebar {
-    background: linear-gradient(135deg, #007bff, #0056b3);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent));
   }
   
   .nav-sidebar .nav-link {
-    color: white;
+    color: var(--color-white);
   }
   
   .nav-sidebar .nav-link:hover {
@@ -40,7 +60,7 @@
   }
   
   .brand-link {
-    color: white;
+    color: var(--color-white);
   }
   
   .brand-link:hover {
@@ -65,13 +85,13 @@
 
 /* Content */
 .content-wrapper{
-  background-color: #fff;
+  background-color: var(--color-white);
 }
 
 .content {
   flex: 1; 
   padding: 20px; 
-  background-color: #ffffff;
+  background-color: var(--color-white);
   border-radius: 5px; 
   overflow: auto;
 }
@@ -79,14 +99,59 @@
 
 /* Footer */
 .main-footer {
-    background: linear-gradient(135deg, #007bff, #0056b3);
-    color: white;
-  }
-
+  background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
+  color: var(--color-white);
+}
 
 
 /* Login */
-/* src/components/Login.css */
+/* Estilos para el wrapper principal */
+.wrapper.login-page-wrapper {
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-left: 0 !important; /* Importante para anular cualquier margin del AdminLTE */
+  width: 100% !important;
+}
+
+/* Estilos para el header */
+.login-page-wrapper .main-header {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  width: 100% !important;
+  margin-left: 0 !important;
+  z-index: 1000;
+}
+
+/* Estilos para el contenido principal */
+.login-page-wrapper .hold-transition.login-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 60px;
+  padding-bottom: 60px;
+  width: 100% !important;
+  margin-left: 0 !important;
+}
+
+/* Estilos para el footer */
+.login-page-wrapper .main-footer {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
+  color: white;
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  width: 100% !important;
+  margin-left: 0 !important;
+  padding: 1rem;
+  z-index: 1000;
+}
 .hold-transition.login-page {
     position: relative;
     height: 100vh;
@@ -98,7 +163,7 @@
     margin: auto;
     max-width: 400px;
     width: 400px;
-    background-color: #ffffff;
+    background-color: var(--color-white);
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -107,8 +172,8 @@
 .login-logo a {
     font-size: 24px;
     font-weight: bold;
-    color: #333;
-}
+    color: var(--color-dark);
+  }
 
 .card {
     border: none;
@@ -119,13 +184,13 @@
 }
 
 .btn-primary {
-    background-color: #257ED7;
-    border: none;
+  background-color: var(--color-accent);
+  border: none;
 }
 
 .mb-1 a,
 .mb-0 a {
-    color: #388DE2;
+  color: var(--color-secondary);
 }
 
 .mb-1 a:hover,

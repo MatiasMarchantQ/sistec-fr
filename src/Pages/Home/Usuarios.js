@@ -1,60 +1,188 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Usuarios.css'; // Asegúrate de tener un archivo CSS para estilos adicionales si es necesario
+import axios from 'axios';
+import { useAuth } from '../../contexts/AuthContext';
+import './Usuarios.css';
 
 const Usuarios = () => {
   const navigate = useNavigate();
-  const [tipo, setTipo] = useState(''); // Estado para el tipo seleccionado
-  const [searchTerm, setSearchTerm] = useState(''); // Estado para la barra de búsqueda
-  const [currentPage, setCurrentPage] = useState(1); // Estado para la página actual
-  const limit = 2; // Límite de elementos por página
-  const totalElements = 5; // Total de elementos (esto puede venir de tu API)
-
-  // Estado para el modal
+  const { getToken } = useAuth();
+  const [usuarios, setUsuarios] = useState([]);
+  const [tipo, setTipo] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [nuevoUsuario, setNuevoUsuario] = useState({
-    primerNombre: '',
-    primerApellido: '',
-    segundoApellido: '',
+    nombres: '',
+    apellidos: '',
     rut: '',
     correo: '',
-    estado: ''
+    rol_id: '',
+    contrasena: ''
   });
+  const [editingId, setEditingId] = useState(null);
+  const [editedFields, setEditedFields] = useState({});
+  const [roles, setRoles] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [estadoFiltro, setEstadoFiltro] = useState('activos');
+  const limit = 10;
+  const totalPages = Math.ceil(totalElements / limit);
 
-  const totalPages = Math.ceil(totalElements / limit); // Calcula el total de páginas
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
+  const handleModalOpen = () => setModalOpen(true);
+  const handleModalClose = () => setModalOpen(false);
+  const goToPage = (page) => setCurrentPage(page);
+  const isFirstPage = currentPage === 1;
+  const isLastPage = currentPage === totalPages;
+
+  useEffect(() => {
+    obtenerPersonal();
+  }, [currentPage, tipo, searchTerm]);
+
+  useEffect(() => {
+    obtenerPersonal();
+  }, [currentPage, tipo, searchTerm, estadoFiltro]);
+
+  const obtenerRoles = async () => {
+    try {
+      const token = getToken();
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/obtener/roles`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      setRoles(response.data);
+    } catch (error) {
+      console.error('Error al obtener roles:', error);
+      if (error.response && error.response.status === 401) {
+        console.log('Sesión expirada o token inválido');
+      }
+    }
+  };
+
+  useEffect(() => {
+    obtenerRoles();
+  }, []);
+
+  const obtenerPersonal = async () => {
+    try {
+      const token = getToken();
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/personal`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        params: {
+          page: currentPage,
+          limit,
+          tipo,
+          search: searchTerm,
+          estado: estadoFiltro // Asegúrate de que esto esté presente
+        }
+      });
+      setUsuarios(response.data.usuarios);
+      setTotalElements(response.data.total);
+    } catch (error) {
+      console.error('Error al obtener personal:', error);
+    }
+  };
 
   const handleTipoChange = (e) => {
-    setTipo(e.target.value);
+    const selectedTipo = e.target.value;
+    setTipo(selectedTipo);
+    setCurrentPage(1); // Resetear a la primera página cuando cambia el tipo
   };
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
   };
 
-  const goToPage = (page) => {
-    setCurrentPage(page);
+  // const handleSearchSubmit = () => {
+  //   setCurrentPage(1);
+  //   obtenerPersonal();
+  // };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setTipo('');
+    setEstadoFiltro('todos');
+    setCurrentPage(1);
+    obtenerPersonal();
   };
-
-  const isFirstPage = currentPage === 1;
-  const isLastPage = currentPage === totalPages;
-
-  const handleModalOpen = () => setModalOpen(true);
-  const handleModalClose = () => setModalOpen(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNuevoUsuario({
-      ...nuevoUsuario,
-      [name]: value
-    });
+    setNuevoUsuario({ ...nuevoUsuario, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleEstadoChange = (e) => {
+    setEstadoFiltro(e.target.value);
+    setCurrentPage(1); // Resetear a la primera página cuando cambia el filtro
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Aquí puedes manejar la lógica para agregar el nuevo usuario
-    console.log('Nuevo Usuario:', nuevoUsuario);
-    // Cerrar el modal
-    handleModalClose();
+    try {
+      const token = getToken();
+      await axios.post(`${process.env.REACT_APP_API_URL}/personal`, nuevoUsuario, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      obtenerPersonal();
+      handleModalClose();
+    } catch (error) {
+      console.error('Error al crear usuario:', error);
+    }
+  };
+
+
+  const handleEdit = (usuarioId) => {
+    setEditingId(usuarioId);
+    setEditedFields({}); // Limpiar campos editados anteriormente
+  };
+  
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditedFields({});
+  };
+  
+  const handleFieldChange = (usuarioId, field, value) => {
+    setEditedFields(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveChanges = async (usuarioId) => {
+    try {
+      const token = getToken();
+      
+      // Solo enviar los campos que fueron modificados
+      if (Object.keys(editedFields).length === 0) {
+        handleCancelEdit();
+        return;
+      }
+  
+      await axios.put(
+        `${process.env.REACT_APP_API_URL}/personal/${usuarioId}`,
+        editedFields,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+  
+      // Actualizar la lista de usuarios
+      obtenerPersonal();
+      handleCancelEdit();
+    } catch (error) {
+      console.error('Error al actualizar usuario:', error);
+    }
   };
 
   const VolverHome = () => {
@@ -67,23 +195,44 @@ const Usuarios = () => {
 
       {/* Selector de tipo de usuario */}
       <div className="usuarios__controls d-flex justify-content-between mb-3">
-        <select
-          className="usuarios__select form-select w-auto"
-          value={tipo}
-          onChange={handleTipoChange}
-        >
-          <option value="">Seleccione un tipo</option>
-          <option value="DIRECTOR">Director</option>
-          <option value="DOCENTE">Docente</option>
-        </select>
+      <select
+        className="usuarios__select form-select col-2" style={{ width: '12%' }}
+        value={tipo}
+        onChange={handleTipoChange}
+      >
+        <option value="">Todos los tipos</option>
+        {roles.map(rol => (
+          <option key={rol.id} value={rol.id}>
+            {rol.nombre}
+          </option>
+        ))}
+      </select>
 
-        <input
+      <select
+        className="usuarios__select form-select w-auto"
+        value={estadoFiltro}
+        onChange={handleEstadoChange}
+      >
+        <option value="todos">Todos los estados</option>
+        <option value="activos">Activos</option>
+        <option value="inactivos">Inactivos</option>
+      </select>
+
+      <input
           type="text"
           className="form-control w-50 mx-2"
           placeholder="Buscar..."
           value={searchTerm}
           onChange={handleSearchChange}
         />
+
+        {/* <button className="usuarios__btn usuarios__btn--primary" onClick={handleSearchSubmit}>
+          <i className="fas fa-search"></i> Buscar
+        </button> */}
+
+        <button className="usuarios__btn usuarios__btn--secondary" onClick={handleClearSearch}>
+          <i className="fas fa-eraser"></i> Limpiar
+        </button>
 
         <button className="usuarios__btn usuarios__btn--primary" onClick={handleModalOpen}>
           <i className="fas fa-plus"></i> Añadir Usuario
@@ -92,79 +241,110 @@ const Usuarios = () => {
 
     {/* Modal para añadir nuevo usuario */}
     {modalOpen && (
-    <div className="usuarios-modal modal show" style={{ display: 'block' }}>
+      <div className="usuarios-modal modal show" style={{ display: 'block' }}>
         <div className="usuarios-modal__dialog modal-dialog">
-        <div className="usuarios-modal__content modal-content">
+          <div className="usuarios-modal__content modal-content">
             <div className="usuarios-modal__header modal-header">
-            <h5 className="usuarios-modal__title modal-title">Registrar Nuevo Usuario</h5>
-            <button type="button" className="close" onClick={handleModalClose}>
+              <h5 className="usuarios-modal__title modal-title">Registrar Nuevo Usuario</h5>
+              <button type="button" className="close" onClick={handleModalClose}>
                 <span>&times;</span>
-            </button>
+              </button>
             </div>
             <div className="usuarios-modal__body modal-body">
-            <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit}>
                 <div className="form-group">
-                <label>Primer Nombre</label>
-                <input
+                  <label>Nombres</label>
+                  <input
                     type="text"
-                    name="primerNombre"
+                    name="nombres"
                     className="form-control"
-                    value={nuevoUsuario.primerNombre}
+                    value={nuevoUsuario.nombres}
                     onChange={handleInputChange}
                     required
-                />
+                  />
                 </div>
                 <div className="form-group">
-                <label>Primer Apellido</label>
-                <input
+                  <label>Apellidos</label>
+                  <input
                     type="text"
-                    name="primerApellido"
+                    name="apellidos"
                     className="form-control"
-                    value={nuevoUsuario.primerApellido}
+                    value={nuevoUsuario.apellidos}
                     onChange={handleInputChange}
                     required
-                />
+                  />
                 </div>
                 <div className="form-group">
-                <label>Segundo Apellido</label>
-                <input
-                    type="text"
-                    name="segundoApellido"
-                    className="form-control"
-                    value={nuevoUsuario.segundoApellido}
-                    onChange={handleInputChange}
-                />
-                </div>
-                <div className="form-group">
-                <label>RUT</label>
-                <input
+                  <label>RUT (sin puntos con guión)</label>
+                  <input
                     type="text"
                     name="rut"
                     className="form-control"
                     value={nuevoUsuario.rut}
                     onChange={handleInputChange}
                     required
-                />
+                    pattern="\d{1,2}\.\d{3}\.\d{3}[-][0-9kK]{1}"
+                    title="Formato: 12.345.678-9"
+                  />
                 </div>
                 <div className="form-group">
-                <label>Correo</label>
-                <input
+                  <label>Correo</label>
+                  <input
                     type="email"
                     name="correo"
                     className="form-control"
                     value={nuevoUsuario.correo}
                     onChange={handleInputChange}
                     required
-                />
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Rol</label>
+                  <select
+                    name="rol_id"
+                    className="form-control"
+                    value={nuevoUsuario.rol_id}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">Seleccione un rol</option>
+                    {roles.map(rol => (
+                      <option key={rol.id} value={rol.id}>
+                        {rol.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Contraseña</label>
+                  <div className="input-group">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="contrasena"
+                      className="form-control"
+                      value={nuevoUsuario.contrasena}
+                      onChange={handleInputChange}
+                      required
+                    />
+                    <div className="input-group-append">
+                      <button 
+                        className="btn btn-outline-secondary" 
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <button type="submit" className="usuarios__btn usuarios__btn--success mt-3">
-                Registrar
+                  Registrar
                 </button>
-            </form>
+              </form>
             </div>
+          </div>
         </div>
-        </div>
-    </div>
+      </div>
     )}
 
       {/* Tabla de usuarios */}
@@ -176,35 +356,120 @@ const Usuarios = () => {
           <table className="usuarios__table table table-bordered table-striped">
             <thead>
               <tr>
-                <th>Primer Nombre</th>
-                <th>Primer Apellido</th>
-                <th>Segundo Apellido</th>
+                <th>Nombres</th>
+                <th>Apellidos</th>
                 <th>RUT</th>
                 <th>Correo</th>
+                <th>Rol</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {/* Ejemplo de fila de datos, puedes mapear aquí tus datos reales */}
-              {Array.from({ length: limit }).map((_, index) => (
-                <tr key={index}>
-                  <td>{`Nombre ${index + 1}`}</td>
-                  <td>{`Apellido ${index + 1}`}</td>
-                  <td>{`Segundo Apellido ${index + 1}`}</td>
-                  <td>{`RUT ${index + 1}`}</td>
-                  <td>{`correo${index + 1}@ejemplo.com`}</td>
-                  <td>{index % 2 === 0 ? 'Activo' : 'Inactivo'}</td>
-                  <td>
-                    <button className="usuarios__btn usuarios__btn--warning usuarios__btn--spacing btn btn-sm">
-                      <i className="fas fa-edit"></i>
-                    </button>
-                    <button className="usuarios__btn usuarios__btn--danger btn btn-sm">
-                      <i className="fas fa-trash"></i>
-                    </button>
-                  </td>
-                </tr>
-              ))}
+            {usuarios.map((usuario) => (
+              <tr key={usuario.id}>
+                <td>
+                  {editingId === usuario.id ? (
+                    <input
+                      type="text"
+                      className="form-control"
+                      defaultValue={usuario.nombres}
+                      onChange={(e) => handleFieldChange(usuario.id, 'nombres', e.target.value)}
+                    />
+                  ) : (
+                    usuario.nombres
+                  )}
+                </td>
+                <td>
+                  {editingId === usuario.id ? (
+                    <input
+                      type="text"
+                      className="form-control"
+                      defaultValue={usuario.apellidos}
+                      onChange={(e) => handleFieldChange(usuario.id, 'apellidos', e.target.value)}
+                    />
+                  ) : (
+                    usuario.apellidos
+                  )}
+                </td>
+                <td>{usuario.rut}</td> {/* El RUT no se puede editar */}
+                <td>
+                  {editingId === usuario.id ? (
+                    <input
+                      type="email"
+                      className="form-control"
+                      defaultValue={usuario.correo}
+                      onChange={(e) => handleFieldChange(usuario.id, 'correo', e.target.value)}
+                    />
+                  ) : (
+                    usuario.correo
+                  )}
+                </td>
+                <td>
+                  {editingId === usuario.id ? (
+                    <select
+                      className="form-control"
+                      defaultValue={usuario.rol_id}
+                      onChange={(e) => handleFieldChange(usuario.id, 'rol_id', e.target.value)}
+                    >
+                      {roles.map(rol => (
+                        <option key={rol.id} value={rol.id}>
+                          {rol.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    roles.find(rol => rol.id === usuario.rol_id)?.nombre
+                  )}
+                </td>
+                <td>
+                  <div className="custom-control custom-switch">
+                    <input
+                      type="checkbox"
+                      className="custom-control-input"
+                      id={`customSwitch${usuario.id}`}
+                      checked={editingId === usuario.id ? editedFields.estado ?? usuario.estado : usuario.estado}
+                      onChange={(e) => {
+                        if (editingId === usuario.id) {
+                          handleFieldChange(usuario.id, 'estado', e.target.checked);
+                        }
+                      }}
+                      disabled={editingId !== usuario.id}
+                    />
+                    <label className="custom-control-label" htmlFor={`customSwitch${usuario.id}`}>
+                      {editingId === usuario.id ? (editedFields.estado ?? usuario.estado ? 'Activo' : 'Inactivo') : (usuario.estado ? 'Activo' : 'Inactivo')}
+                    </label>
+                  </div>
+                </td>
+                <td>
+                  {editingId === usuario.id ? (
+                    <>
+                      <button 
+                        className="usuarios__btn usuarios__btn--success usuarios__btn--spacing btn btn-sm"
+                        onClick={() => handleSaveChanges(usuario.id)}
+                      >
+                        <i className="fas fa-save"></i>
+                      </button>
+                      <button 
+                        className="usuarios__btn usuarios__btn--secondary btn btn-sm"
+                        onClick={handleCancelEdit}
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        className="usuarios__btn usuarios__btn--warning usuarios__btn--spacing btn btn-sm"
+                        onClick={() => handleEdit(usuario.id)}
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
             </tbody>
           </table>
         </div>
@@ -251,11 +516,11 @@ const Usuarios = () => {
           </ul>
         </nav>
 
-        {/* Botones de guardar y volver */}
+        {/* Botones de guardar y volver
         <div className="usuarios__actions">
           <button className="usuarios__btn usuarios__btn--success btn me-2">Guardar Cambios</button>
           <button className="usuarios__btn usuarios__btn--secondary btn">Cancelar</button>
-        </div>
+        </div> */}
       </div>
       {/* Botón de volver al home */}
       <div className="instituciones__back text-center">

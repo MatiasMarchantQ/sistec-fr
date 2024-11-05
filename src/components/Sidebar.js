@@ -59,10 +59,10 @@ const Sidebar = ({ setActiveComponent }) => {
                 <i className="nav-icon fas fa-user"></i>
                 <p>
                   Usuarios
-                  <i className={`right fas fa-angle-${isUserMenuOpen ? 'down' : 'left'}`}></i>
+                  <i className={`right fas fa-angle-${isUserMenuOpen ? 'left' : 'left'}`}></i>
                 </p>
               </Link>
-              {isUserMenuOpen && ( // Renderiza el submenú si está abierto
+              {isUserMenuOpen && (
                 <ul className="nav nav-treeview">
                   <li className="nav-item">
                     <Link 
@@ -82,6 +82,16 @@ const Sidebar = ({ setActiveComponent }) => {
                     >
                       <i className="far fa-circle nav-icon"></i>
                       <p>Cargar Estudiantes</p>
+                    </Link>
+                  </li>
+                  <li className="nav-item">
+                    <Link 
+                      to="?component=listado-estudiantes"
+                      className="nav-link"
+                      onClick={() => handleSetActiveComponent('listado-estudiantes')}
+                    >
+                      <i className="far fa-circle nav-icon"></i>
+                      <p>Listado de Estudiantes</p>
                     </Link>
                   </li>
                   <li className="nav-item">

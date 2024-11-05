@@ -17,6 +17,7 @@ import CargarEstudiantes from './CargarEstudiantes';
 import AsignarEstudiantes from './AsignarEstudiantes';
 import FichaClinica from './FichaClinica';
 import IngresarFichaClinica from './IngresarFichaClinica';
+import ListadoEstudiantes from './ListadoEstudiantes';
 
 const Home = () => {
   const location = useLocation();
@@ -50,6 +51,8 @@ const Home = () => {
         return <CargarEstudiantes />;
       case 'asignar-estudiantes':
         return <AsignarEstudiantes />;
+      case 'listado-estudiantes':
+        return <ListadoEstudiantes />;
       case 'ingresar-ficha-clinica':
           return <IngresarFichaClinica />;
       default:

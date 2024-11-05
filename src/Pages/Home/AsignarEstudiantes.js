@@ -1,270 +1,412 @@
-import React, { useState } from 'react';
-import { Table, Button, Modal, Form, InputGroup, FormControl, Pagination, Card, Alert } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Table, Button, Modal, Form, InputGroup, FormControl, Card, Alert } from 'react-bootstrap';
+import axios from 'axios';
+import { useAuth } from '../../contexts/AuthContext';
 import './AsignarEstudiantes.css';
 
 const AsignarEstudiantes = () => {
-  const [showAsignarModal, setShowAsignarModal] = useState(false);
-  const [showAgregarModal, setShowAgregarModal] = useState(false);
+  const { getToken } = useAuth();
+  const [estudiantes, setEstudiantes] = useState([]);
+  const [tiposInstituciones, setTiposInstituciones] = useState([]);
+  const [instituciones, setInstituciones] = useState([]);
+  const [receptores, setReceptores] = useState([]);
   const [asignaciones, setAsignaciones] = useState([]);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showAsignarModal, setShowAsignarModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [estudianteBuscado, setEstudianteBuscado] = useState(null);
-  const [rut, setRut] = useState('');
-  const [tipoSeleccionado, setTipoSeleccionado] = useState('');
+  const [selectedEstudiantes, setSelectedEstudiantes] = useState([]);
+  const [isSelecting, setIsSelecting] = useState(null);
+  const [startEstudiante, setStartEstudiante] = useState(null);
+  const [tipoInstitucionSeleccionado, setTipoInstitucionSeleccionado] = useState(null);
+  const [institucionSeleccionada, setInstitucionSeleccionada] = useState(null);
+  const [receptorSeleccionado, setReceptorSeleccionado] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  const [showEditarModal, setShowEditarModal] = useState(false);
+  const [asignacionParaEditar, setAsignacionParaEditar] = useState(null);
+  const [totalAsignaciones, setTotalAsignaciones] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
 
+  useEffect(() => {
+    fetchData();
+  }, []);
 
+  const fetchData = async () => {
+    try {
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
 
-  const handleAsignar = () => {
-    // Lógica para asignar estudiantes
-    setShowAsignarModal(false);
+      const estudiantesRes = await axios.get(`${apiUrl}/estudiantes`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEstudiantes(estudiantesRes.data.estudiantes || []);
+
+      const tiposInstitucionesRes = await axios.get(`${apiUrl}/obtener/tipos-instituciones`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTiposInstituciones(tiposInstitucionesRes.data || []);
+
+      const asignacionesRes = await axios.get(`${apiUrl}/asignaciones`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAsignaciones(asignacionesRes.data.asignaciones || []);
+      setTotalAsignaciones(asignacionesRes.data.total);
+      setTotalPages(asignacionesRes.data.totalPages);
+      setCurrentPage(asignacionesRes.data.currentPage);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setErrorMessage("Error al cargar los datos. Por favor, intente de nuevo.");
+    }
   };
 
-  const buscarEstudiantePorRut = () => {
-    // Aquí deberías implementar la lógica para buscar al estudiante por RUT
-    // Por ahora, simularemos que encontramos un estudiante
-    const estudianteEncontrado = {
-      id: '1',
-      nombre: 'Juan Pérez',
-      tipo: 'Sin Asignar',
-      institucion: 'Sin Asignar',
-      periodo: 'Sin Asignar',
-      estado: 'Activo'
-    };
-    setEstudianteBuscado(estudianteEncontrado);
+  const handleTipoInstitucionChange = async (event) => {
+    const tipoId = event.target.value;
+    setTipoInstitucionSeleccionado(tipoId);
+    setInstitucionSeleccionada(null);
+    setReceptorSeleccionado(null);
+  
+    try {
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const response = await axios.get(`${apiUrl}/instituciones?tipoId=${tipoId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Filtrar las instituciones por el tipo seleccionado
+      const institucionesFiltradas = response.data.instituciones.filter(
+        institucion => institucion.tipo_id === parseInt(tipoId)
+      );
+      
+      setInstituciones(institucionesFiltradas);
+    } catch (error) {
+      console.error("Error al obtener instituciones:", error);
+      setErrorMessage("Error al obtener instituciones.");
+    }
   };
 
-  const handleAgregar = () => {
-    // Lógica para agregar asignación manualmente
-    setShowAgregarModal(false);
+  const handleInstitucionChange = async (event) => {
+    const institucionId = event.target.value;
+    setInstitucionSeleccionada(institucionId);
+    setReceptorSeleccionado(null);
+
+    try {
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const response = await axios.get(`${apiUrl}/obtener/receptores?institucionId=${institucionId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setReceptores(response.data || []);
+    } catch (error) {
+      console.error("Error al obtener receptores:", error);
+      setErrorMessage("Error al obtener receptores.");
+    }
   };
 
-  const handleEditar = (id) => {
-    // Lógica para editar asignación
+  const handleAsignarCentro = async () => {
+    if (!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin) {
+      setErrorMessage('Por favor, completa todos los campos.');
+      return;
+    }
+
+    try {
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const nuevasAsignaciones = await Promise.all(selectedEstudiantes.map(async (estudiante) => {
+        const response = await axios.post(`${apiUrl}/asignaciones`, {
+          estudiante_id: estudiante.id, // Asegúrate de que esto sea un número
+          institucion_id: parseInt(institucionSeleccionada), // Asegúrate de convertir a número
+          receptorId: parseInt(receptorSeleccionado), // Asegúrate de convertir a número
+          fecha_inicio: fechaInicio,
+          fecha_fin: fechaFin
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+      }));
+
+      setAsignaciones([...asignaciones, ...nuevasAsignaciones]);
+      setShowAsignarModal(false);
+      resetearFormulario();
+    } catch (error) {
+      console.error("Error al crear asignaciones:", error);
+      setErrorMessage("Error al crear las asignaciones. Por favor, intente de nuevo.");
+    }
   };
 
-  const handleEliminar = (id) => {
-    // Lógica para eliminar asignación
+  const handleEditarAsignacion = (asignacion) => {
+  setAsignacionParaEditar(asignacion);
+  setInstitucionSeleccionada(asignacion.institucion_id);
+  setReceptorSeleccionado(asignacion.receptor_id);
+  setFechaInicio(asignacion.fecha_inicio.split('T')[0]);
+  setFechaFin(asignacion.fecha_fin.split('T')[0]);
+  setShowEditarModal(true);
+};
+
+const handleEliminarAsignacion = async (asignacionId) => {
+  try {
+    const token = getToken();
+    const apiUrl = process.env.REACT_APP_API_URL;
+    await axios.delete(`${apiUrl}/asignaciones/${asignacionId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const asignacionesActualizadas = asignaciones.filter(a => a.id !== asignacionId);
+    setAsignaciones(asignacionesActualizadas);
+  } catch (error) {
+    console.error("Error al eliminar asignación:", error);
+    setErrorMessage("Error al eliminar la asignación. Por favor, intente de nuevo.");
+  }
+};
+
+  const toggleEstudianteSelection = (estudiante) => {
+    if (selectedEstudiantes.includes(estudiante)) {
+      setSelectedEstudiantes(selectedEstudiantes.filter(e => e !== estudiante));
+    } else {
+      setSelectedEstudiantes([...selectedEstudiantes, estudiante]);
+    }
   };
 
-  const handleGuardar = () => {
-    // Lógica para guardar cambios
+  const handleMouseDown = (estudiante) => {
+    setIsSelecting(true);
+    setStartEstudiante(estudiante);
+    const isInitiallySelected = selectedEstudiantes.includes(estudiante);
+    if (isInitiallySelected) {
+      setSelectedEstudiantes(prev => prev.filter(e => e.correo !== estudiante.correo));
+    } else {
+      setSelectedEstudiantes(prev => [...prev, estudiante]);
+    }
+    setIsSelecting(isInitiallySelected ? 'deselecting' : 'selecting');
+  };
+  
+  const handleMouseEnter = (estudiante) => {
+    if (isSelecting && startEstudiante) {
+      const startIndex = estudiantes.findIndex(e => e.correo === startEstudiante.correo);
+      const currentIndex = estudiantes.findIndex(e => e.correo === estudiante.correo);
+      const start = Math.min(startIndex, currentIndex);
+      const end = Math.max(startIndex, currentIndex);
+      const rangeSelection = estudiantes.slice(start, end + 1);
+      
+      if (isSelecting === 'deselecting') {
+        setSelectedEstudiantes(prev => 
+          prev.filter(e => !rangeSelection.some(rs => rs.correo === e.correo))
+        );
+      } else {
+        setSelectedEstudiantes(prev => {
+          const currentSelection = prev.filter(e => 
+            !rangeSelection.some(rs => rs.correo === e.correo)
+          );
+          return [...currentSelection, ...rangeSelection];
+        });
+      }
+    }
   };
 
-  const handleCancelar = () => {
-    // Lógica para cancelar cambios
+  const handleMouseUp = () => {
+    setIsSelecting(null);
+    setStartEstudiante(null);
   };
 
-  const handleVolverHome = () => {
-    // Lógica para volver al home
+  const resetearFormulario = () => {
+    setTipoInstitucionSeleccionado(null);
+    setInstitucionSeleccionada(null);
+    setReceptorSeleccionado(null);
+    setFechaInicio('');
+    setFechaFin('');
+    setErrorMessage('');
+    setAsignacionParaEditar(null);
   };
 
   return (
-    <div className="asignar-estudiantes">
-          <h2>Asignar Estudiantes</h2>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <Button variant="primary" onClick={() => setShowAsignarModal(true)} className="mr-2">
-                Asignar
-              </Button>
-              <InputGroup className="d-inline-flex" style={{width: 'auto'}}>
-                <FormControl
-                  placeholder="Buscar..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <InputGroup.Text>
-                  <i className="fas fa-search"></i>
-                </InputGroup.Text>
-              </InputGroup>
-            </div>
-            <Button variant="success" onClick={() => setShowAgregarModal(true)}>
-              Agregar Manualmente
-            </Button>
-          </div>
+    <div className="asignar-estudiantes" onMouseUp={handleMouseUp}>
+      <h2>Asignación de Estudiantes</h2>
+      
+      <InputGroup className="mb-3">
+        <InputGroup.Text id="basic-addon1">Buscar</InputGroup.Text>
+        <FormControl
+          placeholder="Nombre o apellido del estudiante"
+          aria-label="Buscar estudiante"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </InputGroup>
 
-         <Card>
-            <Card.Header>
-                <Card.Title>Asignaciones</Card.Title>
-            </Card.Header>
-          <Table striped bordered hover responsive>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Tipo</th>
-                <th>Institución</th>
-                <th>Periodo</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {asignaciones.map((asignacion) => (
-                <tr key={asignacion.id}>
-                  <td>{asignacion.id}</td>
-                  <td>{`${asignacion.primerNombre} ${asignacion.primerApellido} ${asignacion.segundoApellido}`}</td>
-                  <td>{asignacion.tipo}</td>
-                  <td>{asignacion.institucion}</td>
-                  <td>{asignacion.periodo}</td>
-                  <td>
-                    <Button variant="warning" onClick={() => handleEditar(asignacion.id)} className="mr-2">
-                      <i className="fas fa-edit"></i>
-                    </Button>
-                    <Button variant="danger" onClick={() => handleEliminar(asignacion.id)}>
-                      <i className="fas fa-trash"></i>
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-           </Table>
-          </Card>
-
-          <div className="d-flex justify-content-between align-items-center">
-            <Pagination>
-              <Pagination.First />
-              <Pagination.Prev />
-              <Pagination.Item active>{1}</Pagination.Item>
-              <Pagination.Next />
-              <Pagination.Last />
-            </Pagination>
-            <div>
-              <Button variant="success" onClick={handleGuardar} className="mr-2">
-                Guardar
-              </Button>
-              <Button variant="danger" onClick={handleCancelar}>
-                Cancelar
-              </Button>
-            </div>
-          </div>
-
-
-      <div className="text-center mt-4">
-        <Button variant="primary" onClick={handleVolverHome}>
-          Volver al Home
+      <Card>
+        <Card.Header>
+          <Card.Title>Estudiantes y sus Asignaciones</Card.Title>
+        </Card.Header>
+        <Table striped bordered hover>
+          <thead>
+            <tr>
+              <th>Seleccionar</th>
+              <th>Nombre</th>
+              <th>Apellidos</th>
+              <th>Correo</th>
+              <th>Asignaciones</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {estudiantes.filter(est => 
+              est.nombres.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              est.apellidos.toLowerCase().includes(searchTerm.toLowerCase())
+            ).map((estudiante, index) => (
+              <tr key={index}
+                  onMouseDown={() => handleMouseDown(estudiante)}
+                  onMouseEnter={() => handleMouseEnter(estudiante)}
+                  className={selectedEstudiantes.includes(estudiante) ? 'selected' : ''}
+              >
+                <td>
+                  <Form.Check 
+                    type="checkbox"
+                    checked={selectedEstudiantes.includes(estudiante)}
+                    onChange={() => toggleEstudianteSelection(estudiante)}
+                  />
+                </td>
+                <td>{estudiante.nombres}</td>
+                <td>{estudiante.apellidos}</td>
+                <td>{estudiante.correo}</td>
+                <td>
+  {asignaciones.filter(asig => asig.estudiante_id === estudiante.id).map((asignacion, idx) => (
+    <div key={idx} className="asignacion-item">
+      <div>
+        {asignacion.Institucion?.nombre || 'Institución no especificada'} - 
+        {asignacion.Institucion?.receptores?.map(receptor => receptor.nombre).join(', ') || 'Receptor no especificado'} <br/>
+        {new Date(asignacion.fecha_inicio).toLocaleDateString()} a {new Date(asignacion.fecha_fin).toLocaleDateString()}
+      </div>
+      <div>
+        <Button 
+          variant="outline-primary" 
+          size="sm" 
+          onClick={() => handleEditarAsignacion(asignacion)}
+        >
+          Editar
+        </Button>
+        {' '}
+        <Button 
+          variant="outline-danger" 
+          size="sm" 
+          onClick={() => handleEliminarAsignacion(asignacion.id)}
+        >
+          Eliminar
         </Button>
       </div>
+    </div>
+  ))}
+</td>
+                <td>
+                  <Button 
+                    variant="outline-success" 
+                    size="sm" 
+                    onClick={() => setShowAsignarModal(true)}
+                  >
+                    Agregar Asignación
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </Card>
+
+      <Button 
+        variant="primary" 
+        onClick={() => setShowAsignarModal(true)}
+        disabled={selectedEstudiantes.length === 0}
+      >
+        Asignar Institución y Receptor a Seleccionados ({selectedEstudiantes.length})
+      </Button>
 
       <Modal show={showAsignarModal} onHide={() => setShowAsignarModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Asignar Estudiantes</Modal.Title>
+          <Modal.Title>Asignar Institución y Receptor</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <Form.Group controlId="formNumeroEstudiantes">
-              <Form.Label>Número de Estudiantes</Form.Label>
-              <Form.Control type="number" />
+            <Form.Group className="mb ```javascript
+            -3">
+              <Form.Label>Tipo de Institución</Form.Label>
+              <Form.Select onChange={handleTipoInstitucionChange} required>
+                <option value="">Seleccione un tipo de institución</option>
+                {tiposInstituciones.map(tipo => (
+                  <option key={tipo.id} value={tipo.id}>{tipo.tipo}</option>
+                ))}
+              </Form.Select>
             </Form.Group>
-            <Form.Group controlId="formPeriodoInicio">
-              <Form.Label>Periodo Inicio</Form.Label>
-              <Form.Control type="date" />
+
+            <Form.Group className="mb-3">
+              <Form.Label>Institución</Form.Label>
+              <Form.Select onChange={handleInstitucionChange} required>
+                <option value="">Seleccione una institución</option>
+                {instituciones.map(institucion => (
+                  <option key={institucion.id} value={institucion.id}>{institucion.nombre}</option>
+                ))}
+              </Form.Select>
             </Form.Group>
-            <Form.Group controlId="formPeriodoFin">
-              <Form.Label>Periodo Fin</Form.Label>
-              <Form.Control type="date" />
+
+            <Form.Group className="mb-3">
+              <Form.Label>Receptor</Form.Label>
+              <Form.Select onChange={(e) => setReceptorSeleccionado(e.target.value)} required>
+                <option value="">Seleccione un receptor</option>
+                {receptores.map(receptor => (
+                  <option key={receptor.id} value={receptor.id}>{receptor.nombre}</option>
+                ))}
+              </Form.Select>
             </Form.Group>
-            <Form.Group controlId="formTipo">
-              <Form.Label>Tipo</Form.Label>
-              <Form.Control as="select">
-                <option value="">Seleccione un tipo</option>
-                {/* Opciones de tipo */}
-              </Form.Control>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Fecha Inicio</Form.Label>
+              <Form.Control
+                type="date"
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+                required
+              />
             </Form.Group>
-            <Form.Group controlId="formInstituciones">
-              <Form.Label>Instituciones</Form.Label>
-              <Form.Control as="select" multiple>
-                {/* Opciones de instituciones */}
-              </Form.Control>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Fecha Fin</Form.Label>
+              <Form.Control
+                type="date"
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
+                required
+              />
             </Form.Group>
+
+            {errorMessage && (
+              <Alert variant="danger">{errorMessage}</Alert>
+            )}
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="primary" onClick={handleAsignar}>
-            Asignar
-          </Button>
           <Button variant="secondary" onClick={() => setShowAsignarModal(false)}>
             Cancelar
-          </ Button>
-        </Modal.Footer>
-      </Modal>
-
-      <Modal show={showAgregarModal} onHide={() => setShowAgregarModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Agregar Asignación Manualmente</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group controlId="formRut">
-              <Form.Label>RUT</Form.Label>
-              <InputGroup>
-                <Form.Control 
-                  type="text" 
-                  value={rut} 
-                  onChange={(e) => setRut(e.target.value)} 
-                  placeholder="Ingrese RUT del estudiante"
-                />
-                <Button variant="outline-secondary" onClick={buscarEstudiantePorRut}>
-                  Buscar
-                </Button>
-              </InputGroup>
-            </Form.Group>
-
-            {estudianteBuscado && (
-              <Alert variant="warning">
-                <Alert.Heading>Datos del Estudiante</Alert.Heading>
-                <p><strong>ID:</strong> {estudianteBuscado.id}</p>
-                <p><strong>Nombre:</strong> {estudianteBuscado.nombre}</p>
-                <p><strong>Tipo:</strong> {estudianteBuscado.tipo}</p>
-                <p><strong>Institución:</strong> {estudianteBuscado.institucion}</p>
-                <p><strong>Periodo:</strong> {estudianteBuscado.periodo}</p>
-                <p><strong>Estado:</strong> {estudianteBuscado.estado}</p>
-              </Alert>
-            )}
-
-            <Form.Group controlId="formPeriodoInicio">
-              <Form.Label>Fecha de Inicio</Form.Label>
-              <Form.Control type="date" />
-            </Form.Group>
-
-            <Form.Group controlId="formPeriodoFin">
-              <Form.Label>Fecha de Fin</Form.Label>
-              <Form.Control type="date" />
-            </Form.Group>
-
-            <Form.Group controlId="formTipo">
-              <Form.Label>Tipo</Form.Label>
-              <Form.Control 
-                as="select" 
-                value={tipoSeleccionado} 
-                onChange={(e) => setTipoSeleccionado(e.target.value)}
-              >
-                <option value="">Seleccione un tipo</option>
-                {/* Opciones de tipo */}
-              </Form.Control>
-            </Form.Group>
-
-            {tipoSeleccionado && (
-              <Form.Group controlId="formInstitucion">
-                <Form.Label>Institución</Form.Label>
-                <Form.Control 
-                  as="select" 
-                  value={''} 
-                  onChange={(e) => console.log(e.target.value)}
-                >
-                  <option value="">Seleccione una institución</option>
-                  {/* Opciones de instituciones dependiendo del tipo seleccionado */}
-                </Form.Control>
-              </Form.Group>
-            )}
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="primary" onClick={handleAgregar}>
-            Agregar
           </Button>
-          <Button variant="secondary" onClick={() => setShowAgregarModal(false)}>
-            Cancelar
+          <Button 
+            variant="primary" 
+            onClick={handleAsignarCentro}
+            disabled={!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin}
+          >
+            Asignar
           </Button>
         </Modal.Footer>
       </Modal>
+
+      <style jsx>{`
+        .asignacion-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+          padding: 5px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+        }
+        .asignacion-item:last-child {
+          margin-bottom: 0;
+        }
+      `}</style>
     </div>
   );
 };

@@ -1,88 +1,98 @@
+:root {
+  /* Paleta de colores */
+  --color-white: #ffffff;
+  --color-dark: #00171f;
+  --color-primary: #003459;
+  --color-secondary: #007ea7;
+  --color-accent: #00a8e8;
+}
+
 /* Estilos generales para la página de la Agenda */
 .agenda-container {
-    padding: 20px;
+  padding: 20px;
+}
+
+/* Header de cada card, con colores de gradiente */
+.card-header {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent));
+  color: var(--color-white);
+  padding: 10px;
+  border-radius: 5px 5px 0 0;
+}
+
+/* Cards de los centros clínicos */
+.card {
+  border: none;
+  border-radius: 8px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  margin-bottom: 0;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Subcards para centros clínicos dentro de cada card principal */
+.card-secondary {
+  border-radius: 6px;
+  border: 1px solid var(--color-secondary);
+}
+
+.card-secondary .card-header {
+  background-color: var(--color-secondary);
+  color: var(--color-white);
+}
+
+/* Estilos para el texto del semestre */
+.badge-info {
+  font-size: 1.1rem;
+  font-weight: 600;
+  background-color: var(--color-accent);
+  padding: 8px 12px;
+  border-radius: 5px;
+  color: var(--color-white);
+}
+
+/* Listado de estudiantes */
+ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+ul li {
+  padding: 4px 0;
+  font-size: 0.95rem;
+  color: var(--color-dark);
+}
+
+/* Iconos y texto alineados en las cards */
+.card-header .fas {
+  margin-right: 8px;
+}
+
+.card-header h6 {
+  margin-bottom: 0;
+}
+
+/* Aviso de advertencia */
+.alert-warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border-color: #ffeeba;
+}
+
+.alert-warning strong {
+  font-size: 1rem;
+}
+
+/* Responsividad: Cards en pantallas más pequeñas */
+@media (max-width: 768px) {
+  .agenda-container .row {
+    flex-direction: column;
   }
-  
-  /* Header de cada card, con colores de gradiente */
-  .card-header {
-    background: linear-gradient(135deg, #007bff, #0056b3);
-    color: white;
-    padding: 10px;
-    border-radius: 5px 5px 0 0;
+
+  .col-lg-4, .col-md-6, .col-sm-12 {
+    margin-bottom: 20px;
   }
-  
-  /* Cards de los centros clínicos */
-  .card {
-    border: none;
-    border-radius: 8px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    margin-bottom: 0;
-  }
-  
-  .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Subcards para centros clínicos dentro de cada card principal */
-  .card-secondary {
-    border-radius: 6px;
-    border: 1px solid #ced4da;
-  }
-  
-  .card-secondary .card-header {
-    background-color: #6c757d;
-    color: white;
-  }
-  
-  /* Estilos para el texto del semestre */
-  .badge-info {
-    font-size: 1.1rem;
-    font-weight: 600;
-    background-color: #17a2b8;
-    padding: 8px 12px;
-    border-radius: 5px;
-  }
-  
-  /* Listado de estudiantes */
-  ul {
-    list-style-type: none;
-    padding-left: 0;
-  }
-  
-  ul li {
-    padding: 4px 0;
-    font-size: 0.95rem;
-  }
-  
-  /* Iconos y texto alineados en las cards */
-  .card-header .fas {
-    margin-right: 8px;
-  }
-  
-  .card-header h6 {
-    margin-bottom: 0;
-  }
-  
-  /* Aviso de advertencia */
-  .alert-warning {
-    background-color: #fff3cd;
-    color: #856404;
-    border-color: #ffeeba;
-  }
-  
-  .alert-warning strong {
-    font-size: 1rem;
-  }
-  
-  /* Responsividad: Cards en pantallas más pequeñas */
-  @media (max-width: 768px) {
-    .agenda-container .row {
-      flex-direction: column;
-    }
-  
-    .col-lg-4, .col-md-6, .col-sm-12 {
-      margin-bottom: 20px;
-    }
-  }
-  
+}
