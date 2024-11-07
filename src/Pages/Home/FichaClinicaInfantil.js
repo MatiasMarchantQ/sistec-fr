@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const FichaClinicaInfantil = ({ onVolver, onIngresar }) => {
-  const [datosNino, setDatosNino] = useState({
+const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
+    const [datosNino, setDatosNino] = useState({
     fechaNacimiento: '',
     nombres: '',
     apellidos: '',
@@ -11,7 +13,11 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar }) => {
     telefonoPrincipal: '',
     telefonoSecundario: ''
   });
-  
+
+  const { user, getToken } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [puntajeDPM, setPuntajeDPM] = useState('');
   const [diagnosticoDSM, setDiagnosticoDSM] = useState('');
   const [padres, setPadres] = useState([{ nombre: '', escolaridad: '', ocupacion: '' }]);
@@ -35,7 +41,37 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar }) => {
 
   const [otraTipoFamilia, setOtraTipoFamilia] = useState('');
   const [otraCicloVital, setOtraCicloVital] = useState('');
+  const [nivelesEscolaridad, setNivelesEscolaridad] = useState([]);
+  const [ciclosVitalesFamiliares, setCiclosVitalesFamiliares] = useState([]);
+  const [tiposFamilia, setTiposFamilia] = useState([]);
   const [errores, setErrores] = useState({});
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        const token = getToken();
+        const [nivelesRes, ciclosRes, tiposRes] = await Promise.all([
+          axios.get(`${process.env.REACT_APP_API_URL}/obtener/niveles-escolaridad`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${process.env.REACT_APP_API_URL}/obtener/ciclos-vitales-familiares`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${process.env.REACT_APP_API_URL}/obtener/tipos-familia`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+  
+        setNivelesEscolaridad(nivelesRes.data);
+        setCiclosVitalesFamiliares(ciclosRes.data);
+        setTiposFamilia(tiposRes.data);
+      } catch (error) {
+        console.error("Error al cargar datos:", error);
+      }
+    };
+  
+    cargarDatos();
+  }, []);
 
   const handleAddPadre = () => {
     setPadres([...padres, { nombre: '', escolaridad: '', ocupacion: '' }]);
@@ -44,6 +80,20 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar }) => {
   const handleRemovePadre = (index) => {
     const newPadres = padres.filter((_, i) => i !== index);
     setPadres(newPadres);
+  };
+
+  const validarFormulario = () => {
+    const erroresValidacion = {};
+    
+    if (!datosNino.fechaNacimiento) erroresValidacion.fechaNacimiento = 'La fecha de nacimiento es requerida';
+    if (!datosNino.nombres) erroresValidacion.nombres = 'Los nombres son requeridos';
+    if (!datosNino.apellidos) erroresValidacion.apellidos = 'Los apellidos son requeridos';
+    if (!datosNino.rut) erroresValidacion.rut = 'El RUT es requerido';
+    if (!datosNino.edad) erroresValidacion.edad = 'La edad es requerida';
+    if (!datosNino.telefonoPrincipal) erroresValidacion.telefonoPrincipal = 'El teléfono principal es requerido';
+  
+    setErrores(erroresValidacion);
+    return Object.keys(erroresValidacion).length === 0;
   };
 
   const validarCampo = (nombre, valor) => {
@@ -60,6 +110,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar }) => {
         return '';
     }
   };
+  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -70,6 +121,94 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar }) => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const factoresRiesgoNinoArray = Object.entries(factoresRiesgoNino)
+  .filter(([_, value]) => value)
+  .map(([key]) => key);
+
+  const factoresRiesgoFamiliaresArray = Object.entries(factoresRiesgoFamiliares)
+    .filter(([key, value]) => value && key !== 'otras')
+    .map(([key]) => key);
+
+  if (factoresRiesgoFamiliares.otras) {
+    factoresRiesgoFamiliaresArray.push({
+      tipo: 'otras',
+      descripcion: factoresRiesgoFamiliares.otras
+    });
+  }
+
+  const handleSubmit = async () => {
+    if (!validarFormulario()) {
+      return;
+    }
+  
+    setIsSubmitting(true);
+    setSubmitError('');
+    setSuccessMessage('');
+  
+    const datosParaEnviar = {
+      fechaNacimiento: datosNino.fechaNacimiento,
+      nombres: datosNino.nombres,
+      apellidos: datosNino.apellidos,
+      rut: datosNino.rut,
+      edad: datosNino.edad,
+      telefonoPrincipal: datosNino.telefonoPrincipal,
+      telefonoSecundario: datosNino.telefonoSecundario,
+      puntajeDPM,
+      diagnosticoDSM,
+      padres: padres.map(padre => ({
+        ...padre,
+        escolaridad: parseInt(padre.escolaridad)
+      })),
+      conQuienVive,
+      tipoFamilia: tipoFamilia === 'Otra' ? otraTipoFamilia : parseInt(tipoFamilia),
+      cicloVitalFamiliar: parseInt(cicloVitalFamiliar),
+      localidad,
+      factoresRiesgoNino: factoresRiesgoNinoArray,
+      factoresRiesgoFamiliares: factoresRiesgoFamiliaresArray,
+      estudiante_id: user.estudiante_id,
+      usuario_id: user.id,
+      institucion_id: institucionId
+    };
+  
+    try {
+      const token = getToken();
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/fichas-clinicas/infantil`,
+        datosParaEnviar,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+  
+      if (response.data.success) {
+        setSuccessMessage('Ficha clínica infantil creada exitosamente');
+        onIngresar(response.data.data);
+        // Limpiar el formulario
+        setDatosNino({
+          fechaNacimiento: '',
+          nombres: '',
+          apellidos: '',
+          rut: '',
+          edad: '',
+          telefonoPrincipal: '',
+          telefonoSecundario: ''
+        });
+        setPuntajeDPM('');
+        setDiagnosticoDSM('');
+        setPadres([{ nombre: '', escolaridad: '', ocupacion: '' }]);
+        setSuccessMessage('Ficha clínica infantil creada exitosamente');
+        onIngresar(response.data.data);
+      } else {
+        setSubmitError('Error al crear la ficha clínica infantil');
+      }
+    } catch (error) {
+      console.error('Error al crear la ficha clínica infantil:', error);
+      setSubmitError(error.response?.data?.message || 'Error al crear la ficha clínica infantil');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -265,9 +404,9 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar }) => {
                       }}
                     >
                       <option value="">Seleccione...</option>
-                      <option value="basica">Básica</option>
-                      <option value="media">Media</option>
-                      <option value="universitaria">Universitaria</option>
+                      {nivelesEscolaridad.map(nivel => (
+                        <option key={nivel.id} value={nivel.id}>{nivel.nivel}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -320,7 +459,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar }) => {
             <div className="col-md-6">
               <div className="form-group">
               <label>Tipo de familia</label>
-                <select 
+              <select 
                   className="form-control"
                   value={tipoFamilia}
                   onChange={(e) => {
@@ -331,11 +470,9 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar }) => {
                   }}
                 >
                   <option value="">Seleccione...</option>
-                  <option value="Nuclear">Nuclear</option>
-                  <option value="Extensa">Extensa</option>
-                  <option value="Unipersonal">Unipersonal</option>
-                  <option value="Nuclear reconstituida">Nuclear reconstituida</option>
-                  <option value="Monoparental">Monoparental</option>
+                  {tiposFamilia.map(tipo => (
+                    <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>
+                  ))}
                   <option value="Otra">Otra</option>
                 </select>
               </div>
@@ -360,23 +497,12 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar }) => {
                 <select 
                   className="form-control"
                   value={cicloVitalFamiliar}
-                  onChange={(e) => {
-                    setCicloVitalFamiliar(e.target.value);
-                    if (e.target.value !== 'Otra') {
-                      setOtraCicloVital('');
-                    }
-                  }}
+                  onChange={(e) => setCicloVitalFamiliar(e.target.value)}
                 >
                   <option value="">Seleccione...</option>
-                  <option value="Formación de pareja">Formación de pareja</option>
-                  <option value="Cambio de diada a tríada">Cambio de diada a tríada</option>
-                  <option value="Con hijos preescolares">Con hijos preescolares</option>
-                  <option value="Con hijos escolares">Con hijos escolares</option>
-                  <option value="Con hijos adolescentes">Con hijos adolescentes</option>
-                  <option value="Plataforma de lanzamiento">Plataforma de lanzamiento</option>
-                  <option value="En edad madura">En edad madura</option>
-                  <option value="Familia Anciana">Familia Anciana</option>
-                  {/* <option value="Otra">Otra</option> */}
+                  {ciclosVitalesFamiliares.map(ciclo => (
+                    <option key={ciclo.id} value={ciclo.id}>{ciclo.ciclo}</option>
+                  ))}
                 </select>
               </div>
               {/* {cicloVitalFamiliar === 'Otra' && (
@@ -546,13 +672,34 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar }) => {
       </div>
 
       <div className="d-flex justify-content-center mt-5 mb-5">
-        <button className="btn btn-primary px-4 mx-2" onClick={onIngresar}>
-          Ingresar Ficha Clínica
+        <button 
+          className="btn btn-primary px-4 mx-2" 
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Ingresando...' : 'Ingresar Ficha Clínica'}
         </button>
         <button className="btn btn-secondary px-4 mx-2" onClick={onVolver}>
           Volver
         </button>
       </div>
+      {successMessage && (
+        <div className="alert alert-success alert-dismissible fade show" role="alert">
+          <strong><i className="icon fas fa-check"></i> ¡Éxito!</strong> {successMessage}
+          <button type="button" className="close" data-dismiss="alert" aria-label="Close" onClick={() => setSuccessMessage('')}>
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      )}
+
+      {submitError && (
+        <div className="alert alert-danger alert-dismissible fade show" role="alert">
+          <strong><i className="icon fas fa-ban"></i> Error:</strong> {submitError}
+          <button type="button" className="close" data-dismiss="alert" aria-label="Close" onClick={() => setSubmitError('')}>
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      )}
     </>
   );
 };

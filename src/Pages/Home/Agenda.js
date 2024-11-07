@@ -265,101 +265,128 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
               </div>
               
               <div className="timeline-content">
-                {rotacion.instituciones.map((institucion) => {
-                  const uniqueId = `${index}-${institucion.id}`;
-                  const canAccessInstitution = user.rol_id === 1 || user.rol_id === 2 || 
-                    (user.rol_id === 3 && institucion.estudiantes.includes(`${user.nombres} ${user.apellidos}`));
-                  
-                  return (
-                    <div 
-                      key={institucion.id} 
-                      className="institucion-row shadow-sm"
-                      onClick={() => handleCentroClick(index, institucion.id)}
-                    >
-                      <div className="institucion-info">
-                        <div className="institucion-nombre">
-                          <i className="fas fa-hospital mr-2"></i>
-                          {institucion.nombre}
-                        </div>
-                        <div className="institucion-receptor text-muted">
-                          <i className="fas fa-user-md mr-2"></i>
-                          Receptora: {institucion.receptora}
-                        </div>
-                      </div>
-                      
-                      <div className="estudiantes-chips">
-                        {institucion.estudiantes.map((estudiante, idx) => (
-                          <span key={idx} className="estudiante-chip">
-                            <i className="fas fa-user-graduate mr-2"></i>
-                            {estudiante}
-                          </span>
-                        ))}
-                      </div>
-                      
-                      {selectedCentro === uniqueId && (
-                        <div className="acciones">
-                          <h6 className="border-bottom pb-2 text-primary">
-                            <i className="fas fa-file-medical-alt mr-2"></i>
-                            Fichas Clínicas
-                          </h6>
-                          {loading ? (
-                            <div className="text-center py-3">
-                              <div className="spinner-border text-primary" role="status">
-                                <span className="sr-only">Cargando...</span>
-                              </div>
-                            </div>
-                          ) : institucion.fichasClinicas && institucion.fichasClinicas.length > 0 ? (
-                            <div className="fichas-list">
-                              {institucion.fichasClinicas.slice(0, 3).map((ficha) => (
-                                <div 
-                                  key={ficha.id}
-                                  className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
-                                  onClick={() => handleFichaClick(ficha.id)}
-                                >
-                                  <div className="d-flex justify-content-between align-items-center">
-                                    <div>
-                                      <i className="fas fa-clipboard-list mr-2"></i>
-                                      <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong>
-                                    </div>
-                                    <small className="text-muted">
-                                      {new Date(ficha.fecha).toLocaleDateString('es-CL')}
-                                    </small>
-                                  </div>
-                                  <div className="mt-1 text-muted small">
-                                    {ficha.diagnostico}
-                                  </div>
-                                </div>
-                              ))}
-                              {institucion.fichasClinicas.length > 1 && (
-                                <button 
-                                  className="btn btn-info btn-sm mt-2"
-                                  onClick={() => handleVerMasFichas(institucion.fichasClinicas)}
-                                >
-                                  Ver más fichas clínicas
-                                </button>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="alert alert-info text-center mt-2">
-                              <i className="fas fa-info-circle mr-2"></i>
-                              No hay fichas clínicas registradas para este centro
-                            </div>
-                          )}
-                          <button 
-                            className="btn btn-primary btn-sm mt-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleIngresarFicha(institucion.id);
-                            }}
-                          >
-                            <i className="fas fa-plus mr-2"></i>
-                            Ingresar Nueva Ficha Clínica
-                          </button>
-                        </div>
-                      )}
+              {rotacion.instituciones.map((institucion) => {
+  const uniqueId = `${index}-${institucion.id}`;
+  const isExpanded = selectedCentro === uniqueId;
+  
+  return (
+    <div 
+      key={institucion.id} 
+      className="institucion-row shadow-sm"
+      onClick={() => handleCentroClick(index, institucion.id)}
+    >
+      <div className="institucion-info">
+        <div className="institucion-nombre">
+          <i className="fas fa-hospital mr-2"></i>
+          {institucion.nombre}
+        </div>
+        <div className="institucion-receptor text-muted">
+          <i className="fas fa-user-md mr-2"></i>
+          Receptora: {institucion.receptora}
+        </div>
+      </div>
+      
+      <div className="estudiantes-chips">
+        {institucion.estudiantes.map((estudiante, idx) => (
+          <span key={idx} className="estudiante-chip">
+            <i className="fas fa-user-graduate mr-2"></i>
+            {estudiante}
+          </span>
+        ))}
+      </div>
+
+      {/* Botones que solo son visibles cuando la card no está expandida */}
+      {!isExpanded && (
+        <div className="acciones mt-2">
+          <button 
+            className="btn btn-info btn-sm mr-2"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleVerMasFichas(institucion.fichasClinicas || []);
+            }}
+          >
+            Ver fichas clínicas
+          </button>
+          <button 
+            className="btn btn-primary btn-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleIngresarFicha(institucion.id);
+            }}
+          >
+            <i className="fas fa-plus mr-2"></i>
+            Ingresar Nueva Ficha Clínica
+          </button>
+        </div>
+      )}
+      
+      {isExpanded && (
+        <div className="acciones">
+          <h6 className="border-bottom pb-2 text-primary">
+            <i className="fas fa-file-medical-alt mr-2"></i>
+            Fichas Clínicas
+          </h6>
+          {loading ? (
+            <div className="text-center py-3">
+              <div className="spinner-border text-primary" role="status">
+                <span className="sr-only">Cargando...</span>
+              </div>
+            </div>
+          ) : institucion.fichasClinicas && institucion.fichasClinicas.length > 0 ? (
+            <div className="fichas-list">
+              {institucion.fichasClinicas.slice(0, 2).map((ficha) => (
+                <div 
+                  key={ficha.id}
+                  className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
+                  onClick={() => handleFichaClick(ficha.id)}
+                >
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <i className="fas fa-clipboard-list mr-2"></i>
+                      <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong>
                     </div>
-                  );
-                })}
+                    <small className="text-muted">
+                      {new Date(ficha.fecha).toLocaleDateString('es-CL')}
+                    </small>
+                  </div>
+                  <div className="mt-1 text-muted small">
+                    {ficha.diagnostico}
+                  </div>
+                </div>
+              ))}
+              {institucion.fichasClinicas.length > 2 && (
+                <button 
+                  className="btn btn-info btn-sm mt-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleVerMasFichas(institucion.fichasClinicas);
+                  }}
+                >
+                  Ver más fichas clínicas
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="alert alert-info text-center mt-2">
+              <i className="fas fa-info-circle mr-2"></i>
+              No hay fichas clínicas registradas para este centro
+            </div>
+          )}
+          <button 
+            className="btn btn-primary btn-sm mt-2"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleIngresarFicha(institucion.id);
+            }}
+          >
+            <i className="fas fa-plus mr-2"></i>
+            Ingresar Nueva Ficha Clínica
+          </button>
+        </div>
+      )}
+    </div>
+  );
+})}
               </div>
             </div>
           ))}
