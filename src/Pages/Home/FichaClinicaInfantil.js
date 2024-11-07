@@ -5,73 +5,105 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
     const [datosNino, setDatosNino] = useState({
-    fechaNacimiento: '',
-    nombres: '',
-    apellidos: '',
-    rut: '',
-    edad: '',
-    telefonoPrincipal: '',
-    telefonoSecundario: ''
-  });
+        fechaNacimiento: '',
+        nombres: '',
+        apellidos: '',
+        rut: '',
+        edad: '',
+        telefonoPrincipal: '',
+        telefonoSecundario: ''
+    });
 
-  const { user, getToken } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [puntajeDPM, setPuntajeDPM] = useState('');
-  const [diagnosticoDSM, setDiagnosticoDSM] = useState('');
-  const [padres, setPadres] = useState([{ nombre: '', escolaridad: '', ocupacion: '' }]);
-  const [conQuienVive, setConQuienVive] = useState('');
-  const [tipoFamilia, setTipoFamilia] = useState('');
-  const [cicloVitalFamiliar, setCicloVitalFamiliar] = useState('');
-  const [localidad, setLocalidad] = useState('');
-  const [factoresRiesgoNino, setFactoresRiesgoNino] = useState({
-    prematurez: false,
-    desnutricion: false,
-    enfermedadesCronicas: false,
-    neurodivergencia: false
-  });
-  const [factoresRiesgoFamiliares, setFactoresRiesgoFamiliares] = useState({
-    migrantes: false,
-    bajosRecursos: false,
-    adicciones: false,
-    depresionMaterna: false,
-    otras: ''
-  });
+    const { user, getToken } = useAuth();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const [puntajeDPM, setPuntajeDPM] = useState('');
+    const [diagnosticoDSM, setDiagnosticoDSM] = useState('');
+    const [padres, setPadres] = useState([{ nombre: '', escolaridad: '', ocupacion: '' }]);
+    const [conQuienVive, setConQuienVive] = useState('');
+    const [tipoFamilia, setTipoFamilia] = useState('');
+    const [cicloVitalFamiliar, setCicloVitalFamiliar] = useState('');
+    const [localidad, setLocalidad] = useState('');
+    
+    // Lista de factores de riesgo disponibles
+    const [factoresRiesgoNinoDisponibles, setFactoresRiesgoNinoDisponibles] = useState([]);
+    const [factoresRiesgoFamiliaresDisponibles, setFactoresRiesgoFamiliaresDisponibles] = useState([]);
+    
+    // Estados para las selecciones de factores de riesgo
+    const [factoresRiesgoNino, setFactoresRiesgoNino] = useState({});
+    const [factoresRiesgoFamiliares, setFactoresRiesgoFamiliares] = useState({
+        otras: ''
+    });
 
-  const [otraTipoFamilia, setOtraTipoFamilia] = useState('');
-  const [otraCicloVital, setOtraCicloVital] = useState('');
-  const [nivelesEscolaridad, setNivelesEscolaridad] = useState([]);
-  const [ciclosVitalesFamiliares, setCiclosVitalesFamiliares] = useState([]);
-  const [tiposFamilia, setTiposFamilia] = useState([]);
-  const [errores, setErrores] = useState({});
+    const [otraTipoFamilia, setOtraTipoFamilia] = useState('');
+    const [otraCicloVital, setOtraCicloVital] = useState('');
+    const [nivelesEscolaridad, setNivelesEscolaridad] = useState([]);
+    const [ciclosVitalesFamiliares, setCiclosVitalesFamiliares] = useState([]);
+    const [tiposFamilia, setTiposFamilia] = useState([]);
+    const [errores, setErrores] = useState({});
 
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        const token = getToken();
-        const [nivelesRes, ciclosRes, tiposRes] = await Promise.all([
-          axios.get(`${process.env.REACT_APP_API_URL}/obtener/niveles-escolaridad`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          axios.get(`${process.env.REACT_APP_API_URL}/obtener/ciclos-vitales-familiares`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          axios.get(`${process.env.REACT_APP_API_URL}/obtener/tipos-familia`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-        ]);
-  
-        setNivelesEscolaridad(nivelesRes.data);
-        setCiclosVitalesFamiliares(ciclosRes.data);
-        setTiposFamilia(tiposRes.data);
-      } catch (error) {
-        console.error("Error al cargar datos:", error);
-      }
-    };
-  
-    cargarDatos();
-  }, []);
+
+    useEffect(() => {
+      const cargarDatos = async () => {
+          try {
+              const token = getToken();
+              const [
+                  nivelesRes, 
+                  ciclosRes, 
+                  tiposRes, 
+                  factoresNinoRes, 
+                  factoresFamiliarRes
+              ] = await Promise.all([
+                  axios.get(`${process.env.REACT_APP_API_URL}/obtener/niveles-escolaridad`, {
+                      headers: { Authorization: `Bearer ${token}` }
+                  }),
+                  axios.get(`${process.env.REACT_APP_API_URL}/obtener/ciclos-vitales-familiares`, {
+                      headers: { Authorization: `Bearer ${token}` }
+                  }),
+                  axios.get(`${process.env.REACT_APP_API_URL}/obtener/tipos-familia`, {
+                      headers: { Authorization: `Bearer ${token}` }
+                  }),
+                  axios.get(`${process.env.REACT_APP_API_URL}/obtener/factores-riesgo-nino`, {
+                      headers: { Authorization: `Bearer ${token}` }
+                  }),
+                  axios.get(`${process.env.REACT_APP_API_URL}/obtener/factores-riesgo-familiar`, {
+                      headers: { Authorization: `Bearer ${token}` }
+                  })
+              ]);
+
+              setNivelesEscolaridad(nivelesRes.data);
+              setCiclosVitalesFamiliares(ciclosRes.data);
+              setTiposFamilia(tiposRes.data);
+              
+              // Configurar factores de riesgo del niño
+              const factoresNino = factoresNinoRes.data;
+              setFactoresRiesgoNinoDisponibles(factoresNino);
+              const inicialFactoresNino = {};
+              factoresNino.forEach(factor => {
+                  inicialFactoresNino[factor.nombre] = false;
+              });
+              setFactoresRiesgoNino(inicialFactoresNino);
+
+              // Configurar factores de riesgo familiares
+              const factoresFamiliar = factoresFamiliarRes.data;
+              setFactoresRiesgoFamiliaresDisponibles(factoresFamiliar);
+              const inicialFactoresFamiliar = { otras: '' };
+              factoresFamiliar.forEach(factor => {
+                  if (factor.nombre !== 'Otras') {
+                      inicialFactoresFamiliar[factor.nombre] = false;
+                  }
+              });
+              setFactoresRiesgoFamiliares(inicialFactoresFamiliar);
+
+          } catch (error) {
+              console.error("Error al cargar datos:", error);
+              setSubmitError("Error al cargar los datos iniciales");
+          }
+      };
+
+      cargarDatos();
+  }, [getToken]);
 
   const handleAddPadre = () => {
     setPadres([...padres, { nombre: '', escolaridad: '', ocupacion: '' }]);
@@ -157,16 +189,15 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
       telefonoSecundario: datosNino.telefonoSecundario,
       puntajeDPM,
       diagnosticoDSM,
-      padres: padres.map(padre => ({
-        ...padre,
-        escolaridad: parseInt(padre.escolaridad)
-      })),
+      padres,
       conQuienVive,
-      tipoFamilia: tipoFamilia === 'Otra' ? otraTipoFamilia : parseInt(tipoFamilia),
-      cicloVitalFamiliar: parseInt(cicloVitalFamiliar),
+      tipoFamilia,
+      cicloVitalFamiliar,
       localidad,
-      factoresRiesgoNino: factoresRiesgoNinoArray,
-      factoresRiesgoFamiliares: factoresRiesgoFamiliaresArray,
+      factoresRiesgoNino: Object.keys(factoresRiesgoNino).filter(key => factoresRiesgoNino[key]),
+      factoresRiesgoFamiliares: Object.keys(factoresRiesgoFamiliares)
+        .filter(key => factoresRiesgoFamiliares[key] && key !== 'otras'),
+      otrosFactoresRiesgoFamiliares: factoresRiesgoFamiliares.otras,
       estudiante_id: user.estudiante_id,
       usuario_id: user.id,
       institucion_id: institucionId
@@ -195,9 +226,42 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
           telefonoPrincipal: '',
           telefonoSecundario: ''
         });
+        
+        // Limpiar evaluación psicomotora
         setPuntajeDPM('');
         setDiagnosticoDSM('');
+        
+        // Limpiar información familiar
         setPadres([{ nombre: '', escolaridad: '', ocupacion: '' }]);
+        
+        // Limpiar información adicional
+        setConQuienVive('');
+        setTipoFamilia('');
+        setCicloVitalFamiliar('');
+        setLocalidad('');
+        setOtraTipoFamilia('');
+        setOtraCicloVital('');
+        
+        // Limpiar factores de riesgo del niño
+        const resetFactoresNino = {};
+        factoresRiesgoNinoDisponibles.forEach(factor => {
+          resetFactoresNino[factor.nombre] = false;
+        });
+        setFactoresRiesgoNino(resetFactoresNino);
+        
+        // Limpiar factores de riesgo familiares
+        const resetFactoresFamiliares = { otras: '' };
+        factoresRiesgoFamiliaresDisponibles.forEach(factor => {
+            if (factor.nombre !== 'Otras') {
+                resetFactoresFamiliares[factor.nombre] = false;
+            }
+        });
+        setFactoresRiesgoFamiliares(resetFactoresFamiliares);
+                
+        // Limpiar errores y mensajes
+        setErrores({});
+        
+        // Mostrar mensaje de éxito
         setSuccessMessage('Ficha clínica infantil creada exitosamente');
         onIngresar(response.data.data);
       } else {
@@ -345,11 +409,31 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
             <div className="col-md-6">
               <div className="form-group">
                 <label>Puntaje DPM o TEPSI</label>
-                <select className="form-control" value={puntajeDPM} onChange={(e) => setPuntajeDPM(e.target.value)}>
+                <select 
+                  className="form-control" 
+                  value={puntajeDPM} 
+                  onChange={(e) => {
+                    setPuntajeDPM(e.target.value);
+                    // Actualizar el diagnóstico DSM basado en la selección
+                    switch(e.target.value) {
+                      case "Menor a 30":
+                        setDiagnosticoDSM("Retraso");
+                        break;
+                      case "Entre 30 y 40":
+                        setDiagnosticoDSM("Riesgo");
+                        break;
+                      case "Mayor a 40":
+                        setDiagnosticoDSM("Normal");
+                        break;
+                      default:
+                        setDiagnosticoDSM("");
+                    }
+                  }}
+                >
                   <option value="">Seleccione...</option>
-                  <option value="menor30">Menor a 30</option>
-                  <option value="entre30y40">Entre 30 y 40</option>
-                  <option value="mayor40">Mayor a 40</option>
+                  <option value="Menor a 30">Menor a 30</option>
+                  <option value="Entre 30 y 40">Entre 30 y 40</option>
+                  <option value="Mayor a 40">Mayor a 40</option>
                 </select>
               </div>
             </div>
@@ -360,9 +444,8 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
                   type="text"
                   className="form-control"
                   value={diagnosticoDSM}
-                  onChange={(e) => setDiagnosticoDSM(e.target.value)}
-                  placeholder={puntajeDPM ? "Ingrese el diagnóstico DSM" : "Seleccione Puntaje DPM o TEPSI"}
-                  disabled={!puntajeDPM}
+                  readOnly
+                  placeholder={puntajeDPM ? diagnosticoDSM : "Seleccione Puntaje DPM o TEPSI"}
                 />
               </div>
             </div>
@@ -473,10 +556,9 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
                   {tiposFamilia.map(tipo => (
                     <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>
                   ))}
-                  <option value="Otra">Otra</option>
                 </select>
               </div>
-              {tipoFamilia === 'Otra' && (
+              {tipoFamilia === 'Otras' && (
                 <div className="form-group">
                   <label>Especifique</label>
                   <input 
@@ -541,135 +623,69 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
         <div className="card-body">
           <h5>Factores de Riesgo del Niño/a</h5>
           <div className="row mb-3">
-            <div className="col-md-3">
-              <div className="form-check">
-                <input 
-                  type="checkbox" 
-                  className="form-check-input" 
-                  id="prematurez"
-                  checked={factoresRiesgoNino.prematurez}
-                  onChange={(e) => setFactoresRiesgoNino({...factoresRiesgoNino, prematurez: e.target.checked})}
-                />
-                <label className="form-check-label" htmlFor="prematurez">Prematurez</label>
+            {factoresRiesgoNinoDisponibles.map(factor => (
+              <div className="col-md-3" key={factor.id}>
+                <div className="form-check">
+                  <input 
+                    type="checkbox" 
+                    className="form-check-input" 
+                    id={`nino-${factor.id}`}
+                    checked={factoresRiesgoNino[factor.nombre] || false}
+                    onChange={(e) => setFactoresRiesgoNino({...factoresRiesgoNino, [factor.nombre]: e.target.checked})}
+                  />
+                  <label className="form-check-label" htmlFor={`nino-${factor.id}`}>{factor.nombre}</label>
+                </div>
               </div>
-            </div>
-            <div className="col-md-3">
-              <div className="form-check">
-                <input 
-                  type="checkbox" 
-                  className="form-check-input" 
-                  id="desnutricion"
-                  checked={factoresRiesgoNino.desnutricion}
-                  onChange={(e) => setFactoresRiesgoNino({...factoresRiesgoNino, desnutricion: e.target.checked})}
-                />
-                <label className="form-check-label" htmlFor="desnutricion">Desnutrición</label>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div className="form-check">
-                <input 
-                  type="checkbox" 
-                  className="form-check-input" 
-                  id="enfermedadesCronicas"
-                  checked={factoresRiesgoNino.enfermedadesCronicas}
-                  onChange={(e) => setFactoresRiesgoNino({...factoresRiesgoNino, enfermedadesCronicas: e.target.checked})}
-                />
-                <label className="form-check-label" htmlFor="enfermedadesCronicas">Enfermedades Crónicas</label>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div className="form-check">
-                <input 
-                  type="checkbox" 
-                  className="form-check-input" 
-                  id="neurodivergencia"
-                  checked={factoresRiesgoNino.neurodivergencia}
-                  onChange={(e) => setFactoresRiesgoNino({...factoresRiesgoNino, neurodivergencia: e.target.checked})}
-                />
-                <label className="form-check-label" htmlFor="neurodivergencia">Neurodivergencia (CEA)</label>
-              </div>
-            </div>
+            ))}
+          </div>
           </div>
 
           <h5>Factores de Riesgo Familiar</h5>
           <div className="row">
+            {factoresRiesgoFamiliaresDisponibles.map(factor => (
+              factor.nombre !== 'Otras' ? (
+                <div className="col-md-3" key={factor.id}>
+                  <div className="form-check">
+                    <input 
+                      type="checkbox" 
+                      className="form-check-input" 
+                      id={`familiar-${factor.id}`}
+                      checked={factoresRiesgoFamiliares[factor.nombre] || false}
+                      onChange={(e) => setFactoresRiesgoFamiliares({...factoresRiesgoFamiliares, [factor.nombre]: e.target.checked})}
+                    />
+                    <label className="form-check-label" htmlFor={`familiar-${factor.id}`}>{factor.nombre}</label>
+                  </div>
+                </div>
+              ) : null
+            ))}
             <div className="col-md-3">
               <div className="form-check">
                 <input 
                   type="checkbox" 
                   className="form-check-input" 
-                  id="migrantes"
-                  checked={factoresRiesgoFamiliares.migrantes}
-                  onChange={(e) => setFactoresRiesgoFamiliares({...factoresRiesgoFamiliares, migrantes: e.target.checked})}
+                  id="otrasRiesgos"
+                  checked={factoresRiesgoFamiliares.otras !== ''}
+                  onChange={(e) => setFactoresRiesgoFamiliares({...factoresRiesgoFamiliares, otras: e.target.checked ? ' ' : ''})}
                 />
-                <label className="form-check-label" htmlFor="migrantes">Migrantes</label>
+                <label className="form-check-label" htmlFor="otrasRiesgos">Otras</label>
               </div>
             </div>
-            <div className="col-md-3">
-              <div className="form-check">
-                <input 
-                  type="checkbox" 
-                  className="form-check-input" 
-                  id="bajosRecursos"
-                  checked={factoresRiesgoFamiliares.bajosRecursos}
-                  onChange={(e) => setFactoresRiesgoFamiliares({...factoresRiesgoFamiliares, bajosRecursos: e.target.checked})}
-                />
-                <label className="form-check-label" htmlFor="bajosRecursos">Bajos recursos</label>
+            {factoresRiesgoFamiliares.otras !== '' && (
+              <div className="col-md-12 mt-3">
+                <div className="form-group">
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    id="otrosRiesgosFamiliaresTexto" 
+                    placeholder="Especifique otros riesgos familiares"
+                    value={factoresRiesgoFamiliares.otras}
+                    onChange={(e) => setFactoresRiesgoFamiliares({...factoresRiesgoFamiliares, otras: e.target.value})}
+                  />
+                </div>
               </div>
-            </div>
-            <div className="col-md-3">
-              <div className="form-check">
-                <input 
-                  type="checkbox" 
-                  className="form-check-input" 
-                  id="adicciones"
-                  checked={factoresRiesgoFamiliares.adicciones}
-                  onChange={(e) => setFactoresRiesgoFamiliares({...factoresRiesgoFamiliares, adicciones: e.target.checked})}
-                />
-                <label className="form-check-label" htmlFor="adicciones">Adicciones</label>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div className="form-check">
-                <input 
-                  type="checkbox" 
-                  className="form-check-input" 
-                  id="depresionMaterna"
-                  checked={factoresRiesgoFamiliares.depresionMaterna}
-                  onChange={(e) => setFactoresRiesgoFamiliares({...factoresRiesgoFamiliares, depresionMaterna: e.target.checked})}
-                />
-                <label className="form-check-label" htmlFor="depresionMaterna">Depresión materna</label>
-              </div>
-            </div>
-            <div className="col-md-3">
-            <div className="form-check">
-              <input 
-                type="checkbox" 
-                className="form-check-input" 
-                id="otrasRiesgos"
-                checked={factoresRiesgoFamiliares.otrasRiesgos}
-                onChange={(e) => setFactoresRiesgoFamiliares({...factoresRiesgoFamiliares, otrasRiesgos: e.target.checked, otras: e.target.checked ? factoresRiesgoFamiliares.otras : ''})}
-              />
-              <label className="form-check-label" htmlFor="otrasRiesgos">Otras</label>
-            </div>
-          </div>
-          {factoresRiesgoFamiliares.otrasRiesgos && (
-            <div className="col-md-12 mt-3">
-              <div className="form-group">
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  id="otrosRiesgosFamiliaresTexto" 
-                  placeholder="Especifique otros riesgos familiares"
-                  value={factoresRiesgoFamiliares.otras}
-                  onChange={(e) => setFactoresRiesgoFamiliares({...factoresRiesgoFamiliares, otras: e.target.value})}
-                />
-              </div>
-            </div>
-          )}
+            )}
           </div>
         </div>
-      </div>
 
       <div className="d-flex justify-content-center mt-5 mb-5">
         <button 
