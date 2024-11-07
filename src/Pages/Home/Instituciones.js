@@ -104,7 +104,6 @@ const Instituciones = () => {
     e.preventDefault();
     try {
       const token = getToken();
-      console.log('Token:', token); // Verificar el token
   
       const institucionData = {
         nombre: nuevaInstitucion.nombre,
@@ -112,9 +111,6 @@ const Instituciones = () => {
         receptores: nuevaInstitucion.receptores.filter(r => r.nombre && r.cargo)
       };
       
-      console.log('Enviando datos:', institucionData);
-      console.log('URL:', `${process.env.REACT_APP_API_URL}/instituciones`);
-  
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/instituciones`,
         institucionData,

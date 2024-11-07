@@ -46,14 +46,17 @@ const CargarEstudiantes = () => {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
-  
+    
         const formattedData = jsonData.map((student, index) => {
-          const formattedRut = student['RUT'] ? student['RUT'].replace(/\D/g, '') : '';          
+          const formattedRut = student['RUT'] ? 
+            student['RUT'].includes('-') ? 
+              student['RUT'].split('-')[0].replace(/\D/g, '') : 
+              student['RUT'].replace(/\D/g, '') : '';
           const symbols = '!#$%&*+?';
           const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
           
           const contrasena = `UCM${formattedRut}${randomSymbol}`;
-  
+    
           return {
             id: index + 1,
             nombres: student['Nombres'] || '',
@@ -64,12 +67,12 @@ const CargarEstudiantes = () => {
             debe_cambiar_contrasena: true,
             estado: 'Activo',
             contador_registros: 0,
-            anos_cursados: year,
+            anos_cursados: year.toString(),
             semestre: semester,
             rol_id: 3,
           };
         });
-  
+    
         setStudents(formattedData);
         setAlertMessage('Estudiantes cargados con éxito.');
       } catch (error) {
@@ -93,8 +96,9 @@ const CargarEstudiantes = () => {
 
   const handleAddStudent = () => {
     if (newStudent.nombres && newStudent.apellidos && newStudent.rut && newStudent.correo) {
-      // Asegurarse de que el RUT tenga el formato correcto
-      const formattedRut = newStudent.rut.replace(/\D/g, '');
+      const formattedRut = newStudent.rut.includes('-') ? 
+        newStudent.rut.split('-')[0].replace(/\D/g, '') : 
+        newStudent.rut.replace(/\D/g, '');
       const symbols = '!#$%&*+?';
       const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
       const contrasena = `UCM${formattedRut}${randomSymbol}`;
@@ -103,12 +107,11 @@ const CargarEstudiantes = () => {
         // Edición
         const updatedStudents = students.map(student =>
           student.id === newStudent.id ? 
-          { ...newStudent, rut: formattedRut, contrasena } : 
+          { ...newStudent, rut: formattedRut, contrasena, anos_cursados: year.toString() } : 
           student
         );
         setStudents(updatedStudents);
         
-        // Actualizar failedStudents
         setFailedStudents(prevFailedStudents => {
           const newFailedStudents = new Set(prevFailedStudents);
           newFailedStudents.delete(formattedRut);
@@ -124,7 +127,7 @@ const CargarEstudiantes = () => {
           debe_cambiar_contrasena: true,
           estado: 'Activo',
           contador_registros: 0,
-          anos_cursados: year,
+          anos_cursados: year.toString(),
           semestre: semester,
           rol_id: 3,
         };
@@ -146,7 +149,7 @@ const CargarEstudiantes = () => {
     }
   };
 
-  const handleSaveStudents = async () => {
+const handleSaveStudents = async () => {
     try {
         // Primero, verificar duplicados internos
         const rutCounts = {};
@@ -176,7 +179,6 @@ const CargarEstudiantes = () => {
                 </div>
             );
 
-            // Marcar los estudiantes con RUTs duplicados
             setFailedStudents(new Set(duplicadosInternos));
             return;
         }
@@ -192,44 +194,72 @@ const CargarEstudiantes = () => {
             }
         );
 
-        if (response.data.errores && response.data.errores.length > 0) {
-            let errorMessage = '';
-            let existentesEnBD = [];
+        // Crear resumen de resultados
+        const resumen = {
+            nuevos: [],
+            actualizados: [],
+            errores: []
+        };
 
-            response.data.errores.forEach(error => {
-                const estudiante = students.find(s => s.rut === error.rut);
-                existentesEnBD.push(`${error.rut} (${estudiante?.nombres} ${estudiante?.apellidos})`);
-            });
+        response.data.resultados?.forEach(resultado => {
+            const estudiante = students.find(s => s.rut === resultado.rut);
+            if (resultado.mensaje.includes('creado')) {
+                resumen.nuevos.push(`${resultado.rut} (${estudiante?.nombres} ${estudiante?.apellidos})`);
+            } else if (resultado.mensaje.includes('actualizado')) {
+                resumen.actualizados.push(`${resultado.rut} (${estudiante?.nombres} ${estudiante?.apellidos})`);
+            }
+        });
 
-            setAlertMessage(
-                <div>
-                    <p className="text-danger">No se pudo completar la carga:</p>
-                    <p>RUTs que ya existen en la base de datos:</p>
-                    <ul>
-                        {existentesEnBD.map((info, index) => (
-                            <li key={index}>{info}</li>
-                        ))}
-                    </ul>
-                    <p>Por favor, corrija los RUTs existentes y vuelva a intentar.</p>
-                </div>
-            );
+        response.data.errores?.forEach(error => {
+            const estudiante = students.find(s => s.rut === error.rut);
+            resumen.errores.push(`${error.rut} (${estudiante?.nombres} ${estudiante?.apellidos})`);
+        });
 
-            // Marcar los estudiantes con error
-            const failedRuts = new Set(response.data.errores.map(error => error.rut));
-            setFailedStudents(failedRuts);
+        setAlertMessage(
+            <div>
+                <h4>Resumen de la carga:</h4>
+                {resumen.nuevos.length > 0 && (
+                    <div className="text-success">
+                        <p>Estudiantes nuevos registrados ({resumen.nuevos.length}):</p>
+                        <ul>
+                            {resumen.nuevos.map((info, index) => (
+                                <li key={index}>{info}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                {resumen.actualizados.length > 0 && (
+                    <div className="text-info">
+                        <p>Estudiantes actualizados ({resumen.actualizados.length}):</p>
+                        <ul>
+                            {resumen.actualizados.map((info, index) => (
+                                <li key={index}>{info}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                {resumen.errores.length > 0 && (
+                    <div className="text-warning">
+                        <p>Errores encontrados ({resumen.errores.length}):</p>
+                        <ul>
+                            {resumen.errores.map((info, index) => (
+                                <li key={index}>{info}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                <p className="mt-3">Total procesados: {response.data.total_procesados}</p>
+            </div>
+        );
 
-        } else {
-            setAlertMessage(
-                <div>
-                    <p>✅ ¡Estudiantes cargados exitosamente!</p>
-                    <p>Total de estudiantes procesados: {response.data.exitosos}</p>
-                </div>
-            );
+        if (resumen.errores.length === 0) {
             setStudents([]);
             setFailedStudents(new Set());
+        } else {
+            setFailedStudents(new Set(response.data.errores.map(error => error.rut)));
         }
 
-      } catch (error) {
+    } catch (error) {
         console.error('Error al guardar estudiantes:', error);
         setAlertMessage(
             <div className="text-danger">
@@ -273,14 +303,14 @@ const handleCancel = () => {
             <h3 className="card-title">Seleccionar Año y Semestre</h3>
           </div>
           <div className="card-body">
-            <Form.Group controlId="formYear">
-              <Form.Label>Año</Form.Label>
-              <Form.Control 
-                type="number" 
-                value={year}
-                onChange={(e) => setYear(parseInt(e.target.value))}
-              />
-            </Form.Group>
+          <Form.Group controlId="formYear">
+            <Form.Label>Año</Form.Label>
+            <Form.Control 
+              type="number" 
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value))}
+            />
+          </Form.Group>
             <Form.Group controlId="formSemester">
               <Form.Label>Semestre</Form.Label>
               <Form.Control 
@@ -340,6 +370,7 @@ const handleCancel = () => {
                   <th>Apellidos</th>
                   <th>Correo</th>
                   <th>Contraseña</th>
+                  <th>Años Cursado</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
@@ -357,6 +388,7 @@ const handleCancel = () => {
                       <td>{student.nombres}</td>
                       <td>{student.apellidos}</td>
                       <td>{student.correo}</td>
+                      <td>{student.anos_cursados}</td>
                       <td>{student.contrasena}</td>
                       <td>
                         {hasError ? 

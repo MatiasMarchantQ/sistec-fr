@@ -17,30 +17,28 @@ export const AuthProvider = ({ children }) => {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Limpiar el almacenamiento
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          sessionStorage.removeItem('accessToken');
-          sessionStorage.removeItem('refreshToken');
-          localStorage.removeItem('userData');
-          sessionStorage.removeItem('userData');
-          
-          // Actualizar el estado
-          setToken(null);
-          setUser(null);
-          
-          // Redirigir al login
-          window.location.href = '/';
-          
-          // Opcional: Mostrar mensaje
-          setError('Su sesión ha expirado. Por favor, inicie sesión nuevamente.');
+          // Si no estamos en la página de cambiar contraseña
+          if (!window.location.pathname.includes('/cambiar-contrasena') && window.location.pathname !== '/') {
+            sessionStorage.removeItem('userData');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            sessionStorage.removeItem('accessToken');
+            sessionStorage.removeItem('refreshToken');
+            localStorage.removeItem('userData');
+            sessionStorage.removeItem('userData');
+            
+            setToken(null);
+            setUser(null);
+                        
+            setError('Su sesión ha expirado. Por favor, inicie sesión nuevamente.');
+          }
         }
         return Promise.reject(error);
       }
     );
 
     // Verificar token existente
-    const initializeAuth = () => {
+      const initializeAuth = () => {
       const storedToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
       const storedUserData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
 
@@ -65,13 +63,15 @@ export const AuthProvider = ({ children }) => {
           let userData = {
             id: decoded.id,
             rol: decoded.rol,
+            estudiante_id: decoded.estudiante_id // Añadir estudiante_id desde el token
           };
 
           if (storedUserData) {
             const parsedUserData = JSON.parse(storedUserData);
             userData = {
               ...userData,
-              nombres: parsedUserData.nombres
+              nombres: parsedUserData.nombres,
+              estudiante_id: parsedUserData.estudiante_id // También lo guardamos aquí por si acaso
             };
           }
 
@@ -102,7 +102,7 @@ export const AuthProvider = ({ children }) => {
         rememberMe
       });
   
-      const { accessToken, refreshToken, nombres } = response.data;
+      const { accessToken, refreshToken, nombres, estudiante_id } = response.data;
       const storage = rememberMe ? localStorage : sessionStorage;
       
       storage.setItem('accessToken', accessToken);
@@ -114,8 +114,12 @@ export const AuthProvider = ({ children }) => {
       const userData = {
         id: decoded.id,
         rol: decoded.rol,
-        nombres: nombres || decoded.nombres
+        nombres: nombres || decoded.nombres,
+        estudiante_id: estudiante_id || decoded.estudiante_id // Añadir estudiante_id
       };
+  
+      // Guardar userData en storage
+      storage.setItem('userData', JSON.stringify(userData));
   
       setUser(userData);
       setError('');
@@ -131,6 +135,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('userData');
       setLoading(true);
       if (token) {
         await axios.post(`${process.env.REACT_APP_API_URL}/auth/logout`, {}, {

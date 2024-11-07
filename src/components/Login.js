@@ -20,10 +20,8 @@ const Login = () => {
       console.log('Login exitoso:', response);
 
       if (response.debe_cambiar_contrasena) {
-        console.log('Usuario debe cambiar contraseña, redirigiendo...');
         navigate('/cambiar-contrasena');
       } else {
-        console.log('Redirigiendo a home...');
         navigate('/home');
       }
       
@@ -31,7 +29,6 @@ const Login = () => {
       setTimeout(() => {
         const targetPath = response.debe_cambiar_contrasena ? '/cambiar-contrasena' : '/home';
         if (window.location.pathname !== targetPath) {
-          console.log('Navigate falló, intentando con window.location...');
           window.location.href = targetPath;
         }
       }, 100);

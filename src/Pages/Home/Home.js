@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, Route, Routes } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'admin-lte/dist/css/adminlte.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -24,18 +24,24 @@ const Home = () => {
   const [activeComponent, setActiveComponent] = useState('agenda');
   const [selectedFichaId, setSelectedFichaId] = useState(null);
 
-
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const component = params.get('component');
-    if (component) {
-      setActiveComponent(component);
+    // Obtener el componente de los parámetros de la URL
+    const searchParams = new URLSearchParams(location.search);
+    const componentFromURL = searchParams.get('component');
+
+    if (componentFromURL) {
+      setActiveComponent(componentFromURL);
+    } else if (location.state && location.state.component) {
+      setActiveComponent(location.state.component);
+    }
+
+    if (location.state && location.state.fichaId) {
+      setSelectedFichaId(location.state.fichaId);
     }
   }, [location]);
 
   const renderContent = () => {
     switch (activeComponent) {
-      case 'home':
       case 'agenda':
         return <Agenda 
           onFichaSelect={setSelectedFichaId} 
@@ -54,12 +60,12 @@ const Home = () => {
       case 'listado-estudiantes':
         return <ListadoEstudiantes />;
       case 'ingresar-ficha-clinica':
-          return <IngresarFichaClinica />;
+        return <IngresarFichaClinica />;
       default:
-          return <Agenda 
-            onFichaSelect={setSelectedFichaId} 
-            setActiveComponent={setActiveComponent}
-          />;
+        return <Agenda 
+          onFichaSelect={setSelectedFichaId} 
+          setActiveComponent={setActiveComponent}
+        />;
     }
   };
 

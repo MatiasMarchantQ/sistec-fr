@@ -11,7 +11,6 @@ const ProtectedRoute = ({ children }) => {
   console.log('Token exists:', !!hasToken);
   
   if (!hasToken) {
-    console.log('No token found, redirecting to login');
     return <Navigate to="/" replace />;
   }
 

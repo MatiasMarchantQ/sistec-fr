@@ -11,7 +11,6 @@ const AsignarEstudiantes = () => {
   const [instituciones, setInstituciones] = useState([]);
   const [receptores, setReceptores] = useState([]);
   const [asignaciones, setAsignaciones] = useState([]);
-  const [showImportModal, setShowImportModal] = useState(false);
   const [showAsignarModal, setShowAsignarModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEstudiantes, setSelectedEstudiantes] = useState([]);
@@ -26,39 +25,59 @@ const AsignarEstudiantes = () => {
   const [showEditarModal, setShowEditarModal] = useState(false);
   const [asignacionParaEditar, setAsignacionParaEditar] = useState(null);
   const [totalAsignaciones, setTotalAsignaciones] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const limit = 10; // o el número que prefieras
+  const totalPages = Math.ceil(totalElements / limit);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(currentPage);
+  }, [currentPage, searchTerm]);
 
-  const fetchData = async () => {
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Los meses en JS son 0-11
+    const year = date.getUTCFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  const fetchData = async (page = currentPage) => {
     try {
       const token = getToken();
       const apiUrl = process.env.REACT_APP_API_URL;
-
+  
       const estudiantesRes = await axios.get(`${apiUrl}/estudiantes`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        params: {
+          page: page,
+          limit: limit,
+          search: searchTerm
+        }
       });
       setEstudiantes(estudiantesRes.data.estudiantes || []);
-
+      setTotalElements(estudiantesRes.data.total);
+      setCurrentPage(page);
+  
       const tiposInstitucionesRes = await axios.get(`${apiUrl}/obtener/tipos-instituciones`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTiposInstituciones(tiposInstitucionesRes.data || []);
-
+  
       const asignacionesRes = await axios.get(`${apiUrl}/asignaciones`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAsignaciones(asignacionesRes.data.asignaciones || []);
       setTotalAsignaciones(asignacionesRes.data.total);
-      setTotalPages(asignacionesRes.data.totalPages);
-      setCurrentPage(asignacionesRes.data.currentPage);
     } catch (error) {
       console.error("Error fetching data:", error);
       setErrorMessage("Error al cargar los datos. Por favor, intente de nuevo.");
     }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
   };
 
   const handleTipoInstitucionChange = async (event) => {
@@ -144,6 +163,40 @@ const AsignarEstudiantes = () => {
   setShowEditarModal(true);
 };
 
+const handleGuardarEdicion = async () => {
+  if (!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin) {
+    setErrorMessage('Por favor, completa todos los campos.');
+    return;
+  }
+
+  try {
+    const token = getToken();
+    const apiUrl = process.env.REACT_APP_API_URL;
+    const response = await axios.put(`${apiUrl}/asignaciones/${asignacionParaEditar.id}`, {
+      institucion_id: parseInt(institucionSeleccionada),
+      receptor_id: parseInt(receptorSeleccionado),
+      fecha_inicio: fechaInicio,
+      fecha_fin: fechaFin
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    // Actualizar el estado local inmediatamente con los datos del servidor
+    setAsignaciones(prevAsignaciones => 
+      prevAsignaciones.map(a => 
+        a.id === asignacionParaEditar.id ? response.data : a
+      )
+    );
+
+    // Cerrar el modal y limpiar el formulario
+    setShowEditarModal(false);
+    resetearFormulario();
+  } catch (error) {
+    console.error("Error al actualizar asignación:", error);
+    setErrorMessage("Error al actualizar la asignación. Por favor, intente de nuevo.");
+  }
+};
+
 const handleEliminarAsignacion = async (asignacionId) => {
   try {
     const token = getToken();
@@ -158,6 +211,7 @@ const handleEliminarAsignacion = async (asignacionId) => {
     setErrorMessage("Error al eliminar la asignación. Por favor, intente de nuevo.");
   }
 };
+
 
   const toggleEstudianteSelection = (estudiante) => {
     if (selectedEstudiantes.includes(estudiante)) {
@@ -267,33 +321,33 @@ const handleEliminarAsignacion = async (asignacionId) => {
                 <td>{estudiante.apellidos}</td>
                 <td>{estudiante.correo}</td>
                 <td>
-  {asignaciones.filter(asig => asig.estudiante_id === estudiante.id).map((asignacion, idx) => (
-    <div key={idx} className="asignacion-item">
-      <div>
-        {asignacion.Institucion?.nombre || 'Institución no especificada'} - 
-        {asignacion.Institucion?.receptores?.map(receptor => receptor.nombre).join(', ') || 'Receptor no especificado'} <br/>
-        {new Date(asignacion.fecha_inicio).toLocaleDateString()} a {new Date(asignacion.fecha_fin).toLocaleDateString()}
-      </div>
-      <div>
-        <Button 
-          variant="outline-primary" 
-          size="sm" 
-          onClick={() => handleEditarAsignacion(asignacion)}
-        >
-          Editar
-        </Button>
-        {' '}
-        <Button 
-          variant="outline-danger" 
-          size="sm" 
-          onClick={() => handleEliminarAsignacion(asignacion.id)}
-        >
-          Eliminar
-        </Button>
-      </div>
-    </div>
-  ))}
-</td>
+                    {asignaciones.filter(asig => asig.estudiante_id === estudiante.id).map((asignacion, idx) => (
+                      <div key={idx} className="asignacion-item">
+                        <div>
+                          {asignacion.Institucion?.nombre || 'Institución no especificada'} - 
+                          {asignacion.Institucion?.receptores?.map(receptor => receptor.nombre).join(', ') || 'Receptor no especificado'} <br/>
+                          {formatDate(asignacion.fecha_inicio)} a {formatDate(asignacion.fecha_fin)}
+                          </div>
+                        <div>
+                        <Button 
+                          variant="outline-primary" 
+                            size="sm" 
+                            onClick={() => handleEditarAsignacion(asignacion)}
+                            className="me-2"
+                          >
+                            <i className="fas fa-edit"></i>
+                          </Button>
+                          <Button 
+                            variant="outline-danger" 
+                            size="sm" 
+                            onClick={() => handleEliminarAsignacion(asignacion.id)}
+                          >
+                            <i className="fas fa-trash"></i>
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </td>
                 <td>
                   <Button 
                     variant="outline-success" 
@@ -309,6 +363,48 @@ const handleEliminarAsignacion = async (asignacionId) => {
         </Table>
       </Card>
 
+      {/* Paginación */}
+      <div className="asignar-estudiantes__pagination d-flex justify-content-between align-items-center mb-3">
+        <nav aria-label="Page navigation">
+          <ul className="pagination pagination-sm">
+            {/* Botón de página anterior */}
+            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+              <button 
+                className="page-link" 
+                onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+              >
+                Anterior
+              </button>
+            </li>
+
+            {/* Páginas */}
+            {[...Array(totalPages)].map((_, index) => (
+              <li 
+                key={index} 
+                className={`page-item ${currentPage === index + 1 ? 'active' : ''}`}
+              >
+                <button 
+                  className="page-link" 
+                  onClick={() => setCurrentPage(index + 1)}
+                >
+                  {index + 1}
+                </button>
+              </li>
+            ))}
+
+            {/* Botón de página siguiente */}
+            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+              <button 
+                className="page-link" 
+                onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
+              >
+                Siguiente
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
       <Button 
         variant="primary" 
         onClick={() => setShowAsignarModal(true)}
@@ -323,8 +419,7 @@ const handleEliminarAsignacion = async (asignacionId) => {
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <Form.Group className="mb ```javascript
-            -3">
+            <Form.Group className="mb-3">
               <Form.Label>Tipo de Institución</Form.Label>
               <Form.Select onChange={handleTipoInstitucionChange} required>
                 <option value="">Seleccione un tipo de institución</option>
@@ -389,6 +484,88 @@ const handleEliminarAsignacion = async (asignacionId) => {
             disabled={!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin}
           >
             Asignar
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal de Edición */}
+      <Modal show={showEditarModal} onHide={() => setShowEditarModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Editar Asignación</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Tipo de Institución</Form.Label>
+              <Form.Select 
+                onChange={handleTipoInstitucionChange} 
+                value={tipoInstitucionSeleccionado || ''}
+              >
+                <option value="">Seleccione un tipo de institución</option>
+                {tiposInstituciones.map(tipo => (
+                  <option key={tipo.id} value={tipo.id}>{tipo.tipo}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Institución</Form.Label>
+              <Form.Select 
+                onChange={handleInstitucionChange} 
+                value={institucionSeleccionada || ''}
+              >
+                <option value="">Seleccione una institución</option>
+                {instituciones.map(institucion => (
+                  <option key={institucion.id} value={institucion.id}>{institucion.nombre}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Receptor</Form.Label>
+              <Form.Select 
+                onChange={(e) => setReceptorSeleccionado(e.target.value)} 
+                value={receptorSeleccionado || ''}
+              >
+                <option value="">Seleccione un receptor</option>
+                {receptores.map(receptor => (
+                  <option key={receptor.id} value={receptor.id}>{receptor.nombre}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Fecha Inicio</Form.Label>
+              <Form.Control
+                type="date"
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Fecha Fin</Form.Label>
+              <Form.Control
+                type="date"
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
+              />
+            </Form.Group>
+
+            {errorMessage && (
+              <Alert variant="danger">{errorMessage}</Alert>
+            )}
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowEditarModal(false)}>
+            <i className="fas fa-times"></i> Cancelar
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={() => handleGuardarEdicion()}
+          >
+            <i className="fas fa-save"></i> Guardar Cambios
           </Button>
         </Modal.Footer>
       </Modal>

@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import axios from 'axios';
+import { Modal, Form, InputGroup } from 'react-bootstrap';
 import './Agenda.css';
 
 const Agenda = ({ onFichaSelect, setActiveComponent }) => {
+  const { user, getToken } = useAuth();
   const currentDate = new Date();
   const navigate = useNavigate();
   const [month, setMonth] = useState(currentDate.getMonth());
-  const [year, setYear] = useState(currentDate.getFullYear());
-
+  const [year, setYear] = useState(currentDate.getFullYear());  
+  const [showAllFichasModal, setShowAllFichasModal] = useState(false);
+  const [allFichas, setAllFichas] = useState([]);
+  const [asignaciones, setAsignaciones] = useState([]);
   const [selectedCentro, setSelectedCentro] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const getMonthName = (monthIndex) => {
     const monthNames = [
@@ -18,9 +26,84 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
     return monthNames[monthIndex];
   };
 
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  useEffect(() => {
+    fetchAsignaciones();
+  }, []);
+
+  const fetchAsignaciones = async () => {
+    try {
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const response = await axios.get(`${apiUrl}/asignaciones`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Agrupar asignaciones por período
+      const asignacionesAgrupadas = agruparAsignacionesPorPeriodo(response.data.asignaciones);
+      setAsignaciones(asignacionesAgrupadas);
+    } catch (error) {
+      console.error("Error fetching asignaciones:", error);
+    }
+  };
+
+  const agruparAsignacionesPorPeriodo = (asignaciones) => {
+    const grupos = asignaciones.reduce((acc, asignacion) => {
+      const periodo = `${formatDate(asignacion.fecha_inicio)} al ${formatDate(asignacion.fecha_fin)}`;
+      
+      if (!acc[periodo]) {
+        acc[periodo] = {
+          periodo,
+          instituciones: {}
+        };
+      }
+  
+      // Agrupar por institución dentro de cada período
+      const institucionId = asignacion.institucion_id;
+      if (!acc[periodo].instituciones[institucionId]) {
+        acc[periodo].instituciones[institucionId] = {
+          id: institucionId,
+          nombre: asignacion.Institucion.nombre,
+          receptora: asignacion.Institucion.receptores[0]?.nombre || 'Sin receptor',
+          estudiantes: [],
+          fichasClinicas: [] // Si tienes fichas clínicas, las puedes agregar aquí
+        };
+      }
+  
+      // Agregar estudiante a la institución
+      acc[periodo].instituciones[institucionId].estudiantes.push(
+        `${asignacion.Estudiante.nombres} ${asignacion.Estudiante.apellidos}`
+      );
+  
+      return acc;
+    }, {});
+  
+    // Convertir el objeto de grupos a array
+    return Object.values(grupos).map(grupo => ({
+      ...grupo,
+      instituciones: Object.values(grupo.instituciones)
+    }));
+  };
+
   const handleFichaClick = (fichaId) => {
-    onFichaSelect(fichaId);
-    setActiveComponent('ficha-clinica');
+    navigate('/home', { 
+      state: { 
+        component: 'ficha-clinica',
+        fichaId: fichaId
+      }
+    });
+  };
+
+  const handleVerMasFichas = (fichas) => {
+    setAllFichas(fichas);
+    setShowAllFichasModal(true);
   };
 
   const handlePrevMonth = () => {
@@ -59,171 +142,295 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
     return month === 11 ? getMonthName(0) : getMonthName(month + 1);
   };
 
-  const handleCentroClick = (centroId) => {
-    // Si ya está seleccionado, lo deseleccionamos; si no, lo seleccionamos
-    setSelectedCentro(selectedCentro === centroId ? null : centroId);
+  const fetchFichasClinicas = async (institucionId) => {
+    try {
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const response = await axios.get(
+        `${apiUrl}/fichas-clinicas/institucion/${institucionId}`,
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+      return response.data.data || [];
+    } catch (error) {
+      console.error("Error obteniendo fichas clínicas:", error);
+      return [];
+    }
   };
 
-  // Datos de ejemplo
-  const rotaciones = [
-    {
-      periodo: '01/10 al 15/10 del 2024',
-      instituciones: [
-        {
-          id: 1,
-          nombre: 'CESFAM Carlos Trupp',
-          receptora: 'Enf. Pérez',
-          estudiantes: ['Juan Díaz', 'María López'],
-          fichasClinicas: [
-            {
-              id: 'F001',
-              paciente: 'Pedro González',
-              fecha: '01/10/2024',
-              diagnosticoDSM: 'Riesgo',
-            },
-            {
-              id: 'F002',
-              paciente: 'Ana Martínez',
-              fecha: '03/10/2024',
-              diagnosticoDSM: 'Retraso',
-            },
-          ],
-        },
-        {
-          id: 2,
-          nombre: 'Clínica Lircay',
-          receptora: 'Lic. Gómez',
-          estudiantes: ['Carlos Pérez', 'Elena Ramírez'],
-          fichasClinicas: [
-            {
-              id: 'F003',
-              paciente: 'María Rodríguez',
-              fecha: '05/10/2024',
-              diagnosticoDSM: 'Retraso',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      periodo: '16/10 al 31/10 del 2024',
-      instituciones: [
-        {
-          id: 3,
-          nombre: 'Hospital de San Javier',
-          receptora: 'Dr. Castillo',
-          estudiantes: ['Luis García', 'Carmen Rivera'],
-          fichasClinicas: [
-            {
-              id: 'F004',
-              paciente: 'Luis Suárez',
-              fecha: '17/10/2024',
-              diagnosticoDSM: 'Riesgo',
-            },
-            {
-              id: 'F005',
-              paciente: 'Carmen Rivera',
-              fecha: '18/10/2024',
-              diagnosticoDSM: 'Riesgo',
-            },
-          ],
-        },
-        {
-          id: 4,
-          nombre: 'Clínica San Fernando',
-          receptora: 'Lic. Morales',
-          estudiantes: ['Gabriela Torres', 'Manuel Castillo'],
-          fichasClinicas: [
-            {
-              id: 'F006',
-              paciente: 'Gabriela Torres',
-              fecha: '20/10/2024',
-              diagnosticoDSM: 'Riesgo',
-            },
-          ],
-        },
-      ],
-    },
-  ];
+  const handleCentroClick = async (periodoId, centroId) => {
+    const uniqueId = `${periodoId}-${centroId}`;
+    if (selectedCentro === uniqueId) {
+      setSelectedCentro(null);
+    } else {
+      setSelectedCentro(uniqueId);
+      setLoading(true);
+      
+      try {
+        // Obtener fichas clínicas del centro
+        const response = await fetchFichasClinicas(centroId);
+        const fichas = response || [];
+        
+        console.log('Fichas obtenidas:', fichas); // Para depuración
+        
+        // Actualizar asignaciones con las fichas
+        setAsignaciones(prevAsignaciones => 
+          prevAsignaciones.map(rotacion => ({
+            ...rotacion,
+            instituciones: rotacion.instituciones.map(inst => 
+              inst.id === centroId 
+                ? { ...inst, fichasClinicas: fichas }
+                : inst
+            )
+          }))
+        );
+      } catch (error) {
+        console.error('Error al obtener fichas:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Función para filtrar fichas basadas en el término de búsqueda
+  const filteredFichas = allFichas.filter(ficha => 
+    `${ficha.paciente?.nombres} ${ficha.paciente?.apellidos}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  const filtrarAsignacionesPorMes = (asignaciones) => {
+    return asignaciones.filter(rotacion => {
+      const [fechaInicioStr] = rotacion.periodo.split(' al ');
+      const [dia, mes, anio] = fechaInicioStr.split('-');
+      const fechaInicio = new Date(anio, mes - 1, dia);
+      
+      // Crear fecha del mes y año seleccionados
+      const primerDiaMes = new Date(year, month, 1);
+      const ultimoDiaMes = new Date(year, month + 1, 0);
+  
+      return fechaInicio >= primerDiaMes && fechaInicio <= ultimoDiaMes;
+    });
+  };
+
+  const ordenarAsignacionesPorFecha = (asignaciones) => {
+    return asignaciones.sort((a, b) => {
+      const fechaA = new Date(a.periodo.split(' al ')[0].split('-').reverse().join('-'));
+      const fechaB = new Date(b.periodo.split(' al ')[0].split('-').reverse().join('-'));
+      return fechaA - fechaB;
+    });
+  };
+
+  const handleIngresarFicha = (institucionId) => {
+    navigate('/home?component=ingresar-ficha-clinica', { 
+      state: { 
+        component: 'ingresar-ficha-clinica',
+        usuarioId: user.id,
+        estudianteId: user.estudiante_id,
+        institucionId: institucionId
+      }
+    });
+  };
 
   return (
     <div className="agenda-container">
-      <div className="badge badge-info p-2 mb-4">
-        {getSemester()}
-      </div>
-
-      {/* Navegación entre meses */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <button className="btn btn-secondary" onClick={handlePrevMonth}>
-          <i className="fas fa-chevron-left"></i> {getPrevMonth()}
+        <h2 className="text-primary font-weight-bold">Agenda</h2>
+        <div className="badge badge-info">
+          {getSemester()}
+        </div>
+      </div>
+  
+      <div className="alert alert-warning mb-4">
+        <i className="fas fa-exclamation-triangle mr-2"></i>
+        <strong>Importante:</strong> No se asisten los fines de semana ni feriados irrenunciables.
+      </div>
+  
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <button className="btn btn-outline-primary" onClick={handlePrevMonth}>
+          <i className="fas fa-chevron-left mr-2"></i> {getPrevMonth()}
         </button>
-        <h3 style={{ color: '#388DE2' }}>{getMonthName(month)} {year}</h3>
-        <button className="btn btn-secondary" onClick={handleNextMonth}>
-          {getNextMonth()} <i className="fas fa-chevron-right"></i>
+        <h3 className="text-primary">{getMonthName(month)} {year}</h3>
+        <button className="btn btn-outline-primary" onClick={handleNextMonth}>
+          {getNextMonth()} <i className="fas fa-chevron-right ml-2"></i>
         </button>
       </div>
-
-      {/* Cards de rotación agrupadas */}
-      <div className="row">
-        {rotaciones.map((rotacion, index) => (
-          <div key={index} className="col-lg-6 col-md-12 mb-4">
-            <div className="card card-primary shadow-lg">
-              <div className="card-header bg-gradient-primary">
-                <h5 className="card-title">{rotacion.periodo}</h5>
+  
+      {filtrarAsignacionesPorMes(asignaciones).length > 0 ? (
+        <div className="timeline-view">
+          {ordenarAsignacionesPorFecha(filtrarAsignacionesPorMes(asignaciones)).map((rotacion, index) => (
+            <div key={index} className="timeline-item">
+              <div className="timeline-date">
+                <div className="date-marker"></div>
+                <h6 className="mb-0">{rotacion.periodo}</h6>
               </div>
-              <div className="card-body">
-                {rotacion.instituciones.map((institucion) => (
-                  <div
-                    key={institucion.id}
-                    className="card card-secondary mb-3 shadow-sm"
-                    onClick={() => handleCentroClick(institucion.id)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div className="card-header d-flex justify-content-between align-items-center">
-                      <h6 className="card-title">
-                        <i className="fas fa-hospital-alt mr-2"></i> {institucion.nombre}
-                      </h6>
-                      <span><i className="fas fa-user-md"></i> {institucion.receptora}</span>
-                    </div>
-                    <div className="card-body p-2">
-                      <strong>Estudiantes asignados:</strong>
-                      <ul>
-                        {institucion.estudiantes.map((estudiante, index) => (
-                          <li key={index}>
-                            <i className="fas fa-user-graduate"></i> {estudiante}
-                          </li>
+              
+              <div className="timeline-content">
+                {rotacion.instituciones.map((institucion) => {
+                  const uniqueId = `${index}-${institucion.id}`;
+                  const canAccessInstitution = user.rol_id === 1 || user.rol_id === 2 || 
+                    (user.rol_id === 3 && institucion.estudiantes.includes(`${user.nombres} ${user.apellidos}`));
+                  
+                  return (
+                    <div 
+                      key={institucion.id} 
+                      className="institucion-row shadow-sm"
+                      onClick={() => handleCentroClick(index, institucion.id)}
+                    >
+                      <div className="institucion-info">
+                        <div className="institucion-nombre">
+                          <i className="fas fa-hospital mr-2"></i>
+                          {institucion.nombre}
+                        </div>
+                        <div className="institucion-receptor text-muted">
+                          <i className="fas fa-user-md mr-2"></i>
+                          Receptora: {institucion.receptora}
+                        </div>
+                      </div>
+                      
+                      <div className="estudiantes-chips">
+                        {institucion.estudiantes.map((estudiante, idx) => (
+                          <span key={idx} className="estudiante-chip">
+                            <i className="fas fa-user-graduate mr-2"></i>
+                            {estudiante}
+                          </span>
                         ))}
-                      </ul>
-                      {/* Mostrar fichas clínicas solo si el centro ha sido seleccionado */}
-                      {selectedCentro === institucion.id && (
-                        <div className="fichas-clinicas mt-3">
-                          <h6><i className="fas fa-file-medical-alt"></i> Fichas Clínicas:</h6>
-                          <ul>
-                            {institucion.fichasClinicas.map((ficha) => (
-                             <li
-                                key={ficha.id}
-                                onClick={() => handleFichaClick(ficha.id)}
-                                style={{ cursor: 'pointer' }}
-                              >
-                                {ficha.paciente} - {ficha.fecha}: {ficha.diagnosticoDSM}
-                              </li>
-                            ))}
-                          </ul>
+                      </div>
+                      
+                      {selectedCentro === uniqueId && (
+                        <div className="acciones">
+                          <h6 className="border-bottom pb-2 text-primary">
+                            <i className="fas fa-file-medical-alt mr-2"></i>
+                            Fichas Clínicas
+                          </h6>
+                          {loading ? (
+                            <div className="text-center py-3">
+                              <div className="spinner-border text-primary" role="status">
+                                <span className="sr-only">Cargando...</span>
+                              </div>
+                            </div>
+                          ) : institucion.fichasClinicas && institucion.fichasClinicas.length > 0 ? (
+                            <div className="fichas-list">
+                              {institucion.fichasClinicas.slice(0, 3).map((ficha) => (
+                                <div 
+                                  key={ficha.id}
+                                  className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
+                                  onClick={() => handleFichaClick(ficha.id)}
+                                >
+                                  <div className="d-flex justify-content-between align-items-center">
+                                    <div>
+                                      <i className="fas fa-clipboard-list mr-2"></i>
+                                      <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong>
+                                    </div>
+                                    <small className="text-muted">
+                                      {new Date(ficha.fecha).toLocaleDateString('es-CL')}
+                                    </small>
+                                  </div>
+                                  <div className="mt-1 text-muted small">
+                                    {ficha.diagnostico}
+                                  </div>
+                                </div>
+                              ))}
+                              {institucion.fichasClinicas.length > 1 && (
+                                <button 
+                                  className="btn btn-info btn-sm mt-2"
+                                  onClick={() => handleVerMasFichas(institucion.fichasClinicas)}
+                                >
+                                  Ver más fichas clínicas
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="alert alert-info text-center mt-2">
+                              <i className="fas fa-info-circle mr-2"></i>
+                              No hay fichas clínicas registradas para este centro
+                            </div>
+                          )}
+                          <button 
+                            className="btn btn-primary btn-sm mt-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleIngresarFicha(institucion.id);
+                            }}
+                          >
+                            <i className="fas fa-plus mr-2"></i>
+                            Ingresar Nueva Ficha Clínica
+                          </button>
                         </div>
                       )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="alert alert-info text-center">
+          <i className="fas fa-calendar-times mr-2"></i>
+          No hay asignaciones programadas para {getMonthName(month)} {year}
+        </div>
+      )}
 
-      {/* Aviso final */}
-      <div className="alert alert-warning mt-4 shadow-lg">
-        <i className="fas fa-exclamation-triangle"></i> <strong>Importante:</strong> No se asisten los fines de semana ni feriados irrenunciables.
-      </div>
+      {/* Modal para mostrar todas las fichas clínicas */}
+      {/* Modal para mostrar todas las fichas clínicas */}
+      <Modal 
+        show={showAllFichasModal} 
+        onHide={() => {
+          setShowAllFichasModal(false);
+          setSearchTerm('');
+        }}
+        size="lg"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Todas las Fichas Clínicas</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <InputGroup>
+              <InputGroup.Text>
+                <i className="fas fa-search"></i>
+              </InputGroup.Text>
+              <Form.Control
+                type="text"
+                placeholder="Buscar paciente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </InputGroup>
+          </Form.Group>
+          <div className="fichas-list">
+            {filteredFichas.map((ficha) => (
+              <div 
+                key={ficha.id}
+                className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
+                onClick={() => {
+                  handleFichaClick(ficha.id);
+                  setShowAllFichasModal(false);
+                  setSearchTerm('');
+                }}
+              >
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <i className="fas fa-clipboard-list mr-2"></i>
+                    <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong>
+                  </div>
+                  <small className="text-muted">
+                    {new Date(ficha.fecha).toLocaleDateString('es-CL')}
+                  </small>
+                </div>
+                <div className="mt-1 text-muted small">
+                  {ficha.diagnostico}
+                </div>
+              </div>
+            ))}
+            {filteredFichas.length === 0 && (
+              <div className="alert alert-info text-center">
+                No se encontraron fichas clínicas que coincidan con la búsqueda.
+              </div>
+            )}
+          </div>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };

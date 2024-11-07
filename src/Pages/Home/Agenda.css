@@ -1,5 +1,4 @@
 :root {
-  /* Paleta de colores */
   --color-white: #ffffff;
   --color-dark: #00171f;
   --color-primary: #003459;
@@ -7,45 +6,42 @@
   --color-accent: #00a8e8;
 }
 
-/* Estilos generales para la página de la Agenda */
 .agenda-container {
-  padding: 20px;
+  padding: 20px 40px 20px 20px;
+  color: var(--color-dark);
 }
 
-/* Header de cada card, con colores de gradiente */
-.card-header {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent));
+.agenda-container .card-header {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-accent));
   color: var(--color-white);
   padding: 10px;
   border-radius: 5px 5px 0 0;
 }
 
-/* Cards de los centros clínicos */
-.card {
+.agenda-container .card {
   border: none;
   border-radius: 8px;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   margin-bottom: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.card:hover {
+.agenda-container .card:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Subcards para centros clínicos dentro de cada card principal */
-.card-secondary {
+.agenda-container .card-secondary {
   border-radius: 6px;
   border: 1px solid var(--color-secondary);
 }
 
-.card-secondary .card-header {
+.agenda-container .card-secondary .card-header {
   background-color: var(--color-secondary);
   color: var(--color-white);
 }
 
-/* Estilos para el texto del semestre */
-.badge-info {
+.agenda-container .badge-info {
   font-size: 1.1rem;
   font-weight: 600;
   background-color: var(--color-accent);
@@ -54,45 +50,183 @@
   color: var(--color-white);
 }
 
-/* Listado de estudiantes */
-ul {
+.agenda-container ul {
   list-style-type: none;
   padding-left: 0;
 }
 
-ul li {
+.agenda-container ul li {
   padding: 4px 0;
   font-size: 0.95rem;
   color: var(--color-dark);
 }
 
-/* Iconos y texto alineados en las cards */
-.card-header .fas {
+.agenda-container .card-header .fas {
   margin-right: 8px;
 }
 
-.card-header h6 {
+.agenda-container .card-header h6 {
   margin-bottom: 0;
 }
 
-/* Aviso de advertencia */
-.alert-warning {
+.agenda-container .alert-warning {
   background-color: #fff3cd;
   color: #856404;
   border-color: #ffeeba;
 }
 
-.alert-warning strong {
+.agenda-container .alert-warning strong {
   font-size: 1rem;
 }
 
-/* Responsividad: Cards en pantallas más pequeñas */
+.agenda-container .mb-0 {
+  width: 7rem;
+  color: var(--color-accent);
+}
+
+.agenda-container .asignaciones-scroll-container {
+  overflow-x: auto;
+  padding: 0 20px 20px;
+  margin: 0 -20px;
+}
+
+.agenda-container .asignaciones-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 20px;
+}
+
+.agenda-container .asignacion-card {
+  flex: 0 0 auto;
+  width: 300px;
+  transition: transform 0.2s ease;
+}
+
+.agenda-container .asignacion-card:hover {
+  transform: translateY(-5px);
+}
+
+.agenda-container .cursor-pointer {
+  cursor: pointer;
+}
+
+.agenda-container .hover-bg-light:hover {
+  background-color: var(--color-white);
+}
+
+.agenda-container .asignaciones-scroll-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.agenda-container .asignaciones-scroll-container::-webkit-scrollbar-track {
+  background: var(--color-white);
+  border-radius: 4px;
+}
+
+.agenda-container .asignaciones-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--color-secondary);
+  border-radius: 4px;
+}
+
+.agenda-container .asignaciones-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+.agenda-container .timeline-view {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.agenda-container .timeline-item {
+  display: flex;
+  margin-bottom: 2rem;
+}
+
+.agenda-container .timeline-date {
+  width: 200px;
+  position: relative;
+  padding-right: 2rem;
+}
+
+.agenda-container .timeline-content {
+  flex: 1;
+  border-left: 2px solid var(--color-secondary);
+  padding-left: 2rem;
+}
+
+.agenda-container .institucion-row {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--color-secondary);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.agenda-container .institucion-row:hover {
+  background-color: var(--color-white);
+  transform: translateX(5px);
+}
+
+.agenda-container .estudiantes-chips {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0 1rem;
+}
+
+.agenda-container .estudiante-chip {
+  padding: 0.25rem 0.75rem;
+  background-color: var(--color-accent);
+  color: var(--color-white);
+  border-radius: 16px;
+  font-size: 0.875rem;
+}
+
 @media (max-width: 768px) {
   .agenda-container .row {
     flex-direction: column;
   }
 
-  .col-lg-4, .col-md-6, .col-sm-12 {
+  .agenda-container .col-lg-4,
+  .agenda-container .col-md-6,
+  .agenda-container .col-sm-12 {
     margin-bottom: 20px;
   }
+}
+
+.agenda-container .btn-outline-primary {
+  background-color: var(--color-secondary);
+  color: var(--color-white);
+  border-color: var(--color-accent);
+}
+
+.agenda-container .btn-outline-primary:hover {
+  color: var(--color-white);
+  background-color: var(--color-accent);
+}
+
+.agenda-container .text-primary {
+  color: var(--color-accent) !important;
+}
+
+.agenda-container .text-muted {
+  color: var(--color-dark) !important;
+}
+
+.agenda-container .alert-info {
+  background-color: var(--color-accent);
+  color: var(--color-white);
+  border-color: var(--color-secondary);
+}
+
+.checkbox-group {
+  padding-left: 20px;
+}
+
+.form-check:hover {
+  background-color: #f8f9fa;
 }

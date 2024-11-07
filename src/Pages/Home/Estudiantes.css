@@ -224,8 +224,6 @@
   
   /* Estilos para inputs en modo edición */
   .estudiantes td input {
-    width: 100%;
-    padding: 6px 12px;
     border: 1px solid #ced4da;
     border-radius: 4px;
   }

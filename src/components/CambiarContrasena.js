@@ -13,18 +13,16 @@ const CambiarContrasena = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
+  
     if (nuevaContrasena !== confirmarContrasena) {
       setError('Las contraseñas no coinciden');
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
-      const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
-      console.log('Token:', token); // Para verificar que el token existe
-          
+      const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');          
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/auth/cambiar-contrasena`,
         {
@@ -37,8 +35,18 @@ const CambiarContrasena = () => {
           }
         }
       );
-    
-      console.log('Respuesta:', response.data);
+  
+      console.log('Respuesta del servidor:', response.data);
+  
+      // Actualizar el almacenamiento local
+      const storage = localStorage.getItem('accessToken') ? localStorage : sessionStorage;
+      let userData = JSON.parse(storage.getItem('userData') || '{}');
+      userData = {
+        ...userData,
+        debe_cambiar_contrasena: false
+      };
+      storage.setItem('userData', JSON.stringify(userData));
+  
       navigate('/home');
     } catch (error) {
       console.error('Error completo:', error);
@@ -47,6 +55,8 @@ const CambiarContrasena = () => {
         error.response?.data?.details ||
         'Error al cambiar la contraseña. Por favor, intente nuevamente.'
       );
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -59,7 +59,6 @@ const Usuarios = () => {
     } catch (error) {
       console.error('Error al obtener roles:', error);
       if (error.response && error.response.status === 401) {
-        console.log('Sesión expirada o token inválido');
       }
     }
   };
