@@ -116,6 +116,17 @@ const Sidebar = ({ setActiveComponent }) => {
                   <p>Ingresar ficha clínica</p>
                 </Link>
               </li>
+
+              <li className="nav-item">
+              <Link 
+                to="?component=listado-fichas-clinicas"
+                className="nav-link"
+                onClick={() => handleSetActiveComponent('listado-fichas-clinicas')} 
+              >
+                <i className="nav-icon fas fa-notes-medical"></i>
+                <p>Listado Fichas Clínicas</p>
+              </Link>
+            </li>
             </li>
           </ul>
         </nav>

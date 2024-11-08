@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Tabs, Tab, Container } from 'react-bootstrap';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './FichaClinica.css';
+
+import SeguimientoInfantil from './SeguimientoInfantil';
+import SeguimientoAdulto from './SeguimientoAdulto';
 
 const FichaClinicaAdulto = ({ fichaClinica }) => {
   return (
@@ -317,6 +321,8 @@ const FichaClinica = () => {
   const [fichaClinica, setFichaClinica] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('informacion');
+
 
   useEffect(() => {
     const fetchFichaClinica = async () => {
@@ -330,7 +336,6 @@ const FichaClinica = () => {
           }
         );
   
-        // Usa response.data.data en lugar de response.data
         const formattedData = tipo === 'adulto' 
           ? formatearFichaAdulto(response.data.data) 
           : formatearFichaInfantil(response.data.data);
@@ -361,12 +366,18 @@ const FichaClinica = () => {
   }
 
   return (
-    <div className="container mt-4">
-      {fichaClinica ? (
-        <>
-          <h2 className="mb-4 text-center">
-          Ficha Clínica - {fichaClinica.paciente?.nombres} {fichaClinica.paciente?.apellidos}
-          </h2>
+    <Container fluid className="mt-4">
+      <h2 className="mb-4 text-center">
+        Ficha Clínica - {fichaClinica.paciente?.nombres} {fichaClinica.paciente?.apellidos}
+      </h2>
+      
+      <Tabs 
+        id="ficha-clinica-tabs"
+        activeKey={activeTab}
+        onSelect={(k) => setActiveTab(k)}
+        className="mb-3"
+      >
+        <Tab eventKey="informacion" title="Información del Paciente">
           <div className="card mb-4">
             <div className="card-header text-white bg-primary">
               <i className="fas fa-user-circle me-2"></i>Información del Paciente
@@ -379,11 +390,23 @@ const FichaClinica = () => {
               )}
             </div>
           </div>
-        </>
-      ) : (
-        <div className="alert alert-warning">No se encontró la ficha clínica.</div>
-      )}
-    </div>
+        </Tab>
+        
+        <Tab eventKey="seguimiento" title="Seguimiento">
+          {tipo === 'infantil' ? (
+            <SeguimientoInfantil 
+              pacienteId={fichaClinica.paciente.id} 
+              fichaId={fichaId} 
+            />
+          ) : (
+            <SeguimientoAdulto 
+              pacienteId={fichaClinica.paciente.id} 
+              fichaId={fichaId} 
+            />
+          )}
+        </Tab>
+      </Tabs>
+    </Container>
   );
 };
 

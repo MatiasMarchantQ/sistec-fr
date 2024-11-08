@@ -18,6 +18,7 @@ import AsignarEstudiantes from './AsignarEstudiantes';
 import FichaClinica from './FichaClinica';
 import IngresarFichaClinica from './IngresarFichaClinica';
 import ListadoEstudiantes from './ListadoEstudiantes';
+import ListadoFichasClinicas from './ListadoFichasClinicas';
 
 const Home = () => {
   const location = useLocation();
@@ -61,6 +62,8 @@ const Home = () => {
         return <ListadoEstudiantes />;
       case 'ingresar-ficha-clinica':
         return <IngresarFichaClinica />;
+        case 'listado-fichas-clinicas':
+          return <ListadoFichasClinicas />;
       default:
         return <Agenda 
           onFichaSelect={setSelectedFichaId} 
