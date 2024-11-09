@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Container, Row, Col, Form, Button, Table, Card, 
+  Container, Form, Button, Table, Card, 
   Accordion, Modal, Alert 
 } from 'react-bootstrap';
 import axios from 'axios';
@@ -209,14 +209,13 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
   const [seguimiento, setSeguimiento] = useState({
     fecha: new Date().toISOString().split('T')[0],
     pacienteId: pacienteId,
-    edadMeses: 4,
     grupoEdad: '4-5 meses',
     areaDPM: {
-      motorGrueso: [],
-      motorFino: [],
-      comunicacion: [],
-      cognoscitivo: [],
-      socioemocional: []
+      motorGrueso: null,
+      motorFino: null,
+      cognoscitivo: null,
+      comunicacion: null,
+      socioemocional: null
     },
     recomendaciones: {
       areaMotora: '',
@@ -280,25 +279,44 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
       );
   
       // Normalizar la estructura de los seguimientos
-      const seguimientosNormalizados = response.data.seguimientos.map(seg => ({
-        ...seg,
-        // Parsear los campos de área DPM que están como strings
-        areaDPM: {
-          motorGrueso: seg.area_motor_grueso ? JSON.parse(seg.area_motor_grueso) : [],
-          motorFino: seg.area_motor_fino ? JSON.parse(seg.area_motor_fino) : [],
-          comunicacion: seg.area_comunicacion ? JSON.parse(seg.area_comunicacion) : [],
-          cognoscitivo: seg.area_cognoscitivo ? JSON.parse(seg.area_cognoscitivo) : [],
-          socioemocional: seg.area_socioemocional ? JSON.parse(seg.area_socioemocional) : []
-        },
-        grupoEdad: seg.grupo_edad,
-        edadMeses: seg.edad_meses,
-        recomendaciones: {
-          areaMotora: seg.recomendacion_motora,
-          areaLenguaje: seg.recomendacion_lenguaje,
-          areaSocioemocional: seg.recomendacion_socioemocional,
-          areaCognitiva: seg.recomendacion_cognitiva
-        }
-      }));
+      const seguimientosNormalizados = response.data.seguimientos.map(seg => {
+        // Generar recomendaciones en el cliente basadas en el grupo de edad
+        const mapeoRangos = {
+          '4-5 meses': '4-5 meses',
+          '6-7 meses': '6-7 meses',
+          '8-9 meses': '8-11 meses',
+          '10-11 meses': '8-11 meses',
+          '12-14 meses': '12-18 meses',
+          '15-17 meses': '12-18 meses',
+          '18-23 meses': '12-18 meses',
+          '2 años': '2-4 años',
+          '3 años': '2-4 años',
+          '4 años': '2-4 años'
+        };
+  
+        const rangoRecomendaciones = mapeoRangos[seg.grupo_edad] || seg.grupo_edad;
+        const recomendacionesEdad = RECOMENDACIONES[rangoRecomendaciones] || {};
+  
+        return {
+          ...seg,
+          numero_llamado: seg.numero_llamado || null,
+          areaDPM: {
+            motorGrueso: seg.area_motor_grueso === 1,
+            motorFino: seg.area_motor_fino === 1,
+            cognoscitivo: seg.area_cognoscitivo === 1,
+            comunicacion: seg.area_comunicacion === 1,
+            socioemocional: seg.area_socioemocional === 1
+          },
+          grupoEdad: seg.grupo_edad,
+          // Generar recomendaciones en el cliente
+          recomendaciones: {
+            areaMotora: recomendacionesEdad.areaMotora || '',
+            areaLenguaje: recomendacionesEdad.areaLenguaje || '',
+            areaSocioemocional: recomendacionesEdad.areaSocioemocional || '',
+            areaCognitiva: recomendacionesEdad.areaCognitiva || ''
+          }
+        };
+      });
   
       setSeguimientosAnteriores(seguimientosNormalizados);
     } catch (error) {
@@ -307,73 +325,14 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
     }
   };
 
-  const ModalSeguimientoAnterior = () => {
-    return (
-      <Modal 
-        show={!!selectedSeguimiento} 
-        onHide={() => setSelectedSeguimiento(null)}
-        size="lg"
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Seguimiento - {selectedSeguimiento?.fecha}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedSeguimiento && (
-            <div>
-              <p><strong>Edad:</strong> {selectedSeguimiento.edad_meses} meses</p>
-              
-              <h5>Hitos Cumplidos</h5>
-              <h5>Hitos Cumplidos</h5>
-              {Object.entries(selectedSeguimiento.areaDPM || {}).map(([area, hitos]) => {
-                // Verificar que el área exista en los hitos de desarrollo
-                const hitosDesarrolloArea = HITOS_DESARROLLO[selectedSeguimiento.grupoEdad]?.[area] || [];
-                
-                return (
-                  <div key={area}>
-                    <strong>{area}:</strong>
-                    <ul>
-                      {hitos.map((cumplido, index) => {
-                        // Verificar que el hito exista antes de mostrarlo
-                        const descripcionHito = hitosDesarrolloArea[index]?.descripcion;
-                        return cumplido && descripcionHito ? (
-                          <li key={index}>
-                            {descripcionHito}
-                          </li>
-                        ) : null;
-                      })}
-                    </ul>
-                  </div>
-                );              
-              })}
-
-              <h5>Recomendaciones</h5>
-              <p>
-                <strong>Área Motora:</strong> {selectedSeguimiento.recomendaciones?.areaMotora || 'No hay recomendaciones'}
-              </p>
-              <p>
-                <strong>Área de Lenguaje:</strong> {selectedSeguimiento.recomendaciones?.areaLenguaje || 'No hay recomendaciones'}
-              </p>
-              <p>
-                <strong>Área Socioemocional:</strong> {selectedSeguimiento.recomendaciones?.areaSocioemocional || 'No hay recomendaciones'}
-              </p>
-              <p>
-                <strong>Área Cognitiva:</strong> {selectedSeguimiento.recomendaciones?.areaCognitiva || 'No hay recomendaciones'}
-              </p>
-            </div>
-          )}
-        </Modal.Body>
-      </Modal>
-    );
-  };
-
-  const handleHitoCumplido = (e, area, index) => {
-    const { checked } = e.target;
-    setSeguimiento(prev => {
-      const newAreaDPM = { ...prev.areaDPM };
-      if (!newAreaDPM[area]) newAreaDPM[area] = [];
-      newAreaDPM[area][index] = checked;
-      return { ...prev, areaDPM: newAreaDPM };
-    });
+  const handleHitoCumplido = (valor, area) => {
+    setSeguimiento(prev => ({
+      ...prev,
+      areaDPM: {
+        ...prev.areaDPM,
+        [area]: valor
+      }
+    }));
   };
 
   const guardarSeguimiento = async () => {
@@ -382,13 +341,17 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
       const seguimientoParaEnviar = {
         pacienteId: pacienteIdValor,
         fecha: seguimiento.fecha,
-        edadMeses: seguimiento.edadMeses,
         grupoEdad: seguimiento.grupoEdad,
-        areaDPM: seguimiento.areaDPM,
-        recomendaciones: seguimiento.recomendaciones,
+        areaDPM: {
+          motorGrueso: seguimiento.areaDPM.motorGrueso ? 1 : 0,
+          motorFino: seguimiento.areaDPM.motorFino ? 1 : 0,
+          comunicacion: seguimiento.areaDPM.comunicacion ? 1 : 0,
+          cognoscitivo: seguimiento.areaDPM.cognoscitivo ? 1 : 0,
+          socioemocional: seguimiento.areaDPM.socioemocional ? 1 : 0
+        },
         tipo_paciente: 'infantil'
       };
-
+  
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/seguimientos/infantil`,
         seguimientoParaEnviar,
@@ -396,7 +359,11 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
       );
       
       alert('Seguimiento guardado correctamente');
-      setSeguimientosAnteriores(prev => [...prev, response.data]);
+      setSeguimientosAnteriores(prev => [...prev, {
+        ...response.data,
+        // Generar recomendaciones en el cliente
+        recomendaciones: seguimiento.recomendaciones
+      }]);
     } catch (error) {
       console.error('Error al guardar seguimiento', error);
       alert(`Error: ${error.response?.data?.message || error.message}`);
@@ -426,8 +393,6 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
     setSeguimiento(prev => ({
       ...prev,
       grupoEdad,
-      // Extraer los primeros números como edad en meses
-      edadMeses: parseInt(grupoEdad.split('-')[0] || grupoEdad.split(' ')[0]),
       // Reiniciar los hitos de desarrollo
       areaDPM: {
         motorGrueso: [],
@@ -455,10 +420,7 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
       '4 años': '4 años'
     };
   
-    // Obtener el rango correcto de hitos
     const rangoHitos = mapeoRangos[grupoEdad] || grupoEdad;
-    
-    // Buscar hitos
     const hitosGrupo = HITOS_DESARROLLO[rangoHitos];
     
     // Verificación de seguridad
@@ -472,21 +434,35 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
           <Accordion.Item key={index} eventKey={index.toString()}>
             <Accordion.Header>{area}</Accordion.Header>
             <Accordion.Body>
-              <Table striped bordered>
-                <tbody>
-                  {hitos.map((hito, hitoIndex) => (
-                    <tr key={hitoIndex}>
-                      <td>
-                        <Form.Check 
-                          type="checkbox"
-                          label={hito.descripcion}
-                          onChange={(e) => handleHitoCumplido(e, area, hitoIndex)}
+              <Form>
+                {hitos.map((hito, hitoIndex) => (
+                  <div key={hitoIndex} className="mb-3">
+                    <Form.Group>
+                      <Form.Label>{hito.descripcion}</Form.Label>
+                      <div>
+                        <Form.Check
+                          inline
+                          type="radio"
+                          label="Sí"
+                          name={`${area}-${hitoIndex}`}
+                          checked={seguimiento.areaDPM[area] === true}
+                          onChange={() => handleHitoCumplido(true, area)}
+                          id={`${area}-${hitoIndex}-si`}
                         />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
+                        <Form.Check
+                          inline
+                          type="radio"
+                          label="No"
+                          name={`${area}-${hitoIndex}`}
+                          checked={seguimiento.areaDPM[area] === false}
+                          onChange={() => handleHitoCumplido(false, area)}
+                          id={`${area}-${hitoIndex}-no`}
+                        />
+                      </div>
+                    </Form.Group>
+                  </div>
+                ))}
+              </Form>
             </Accordion.Body>
           </Accordion.Item>
         ))}
@@ -608,7 +584,8 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
             <thead>
               <tr>
                 <th>Fecha</th>
-                <th>Edad (meses)</th>
+                <th>Nombre completo</th>
+                <th>Edad</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -616,8 +593,17 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
               {Array.isArray(seguimientosAnteriores) && seguimientosAnteriores.length > 0 ? (
                 seguimientosAnteriores.map((seguimiento, index) => (
                   <tr key={index}>
+                    <td>
+                      {seguimiento.numero_llamado !== undefined 
+                        ? `Llamado ${seguimiento.numero_llamado}` 
+                        : 'Sin número de llamado'}
+                    </td>
                     <td>{seguimiento.fecha}</td>
-                    <td>{seguimiento.edadMeses}</td>
+                    <td>
+                      {seguimiento.paciente_infantil?.nombres || 'N/A'} {' '}
+                      {seguimiento.paciente_infantil?.apellidos || ''}
+                    </td>
+                    <td>{seguimiento.grupo_edad || 'N/D'}</td>
                     <td>
                       <Button 
                         variant="info" 
@@ -643,39 +629,70 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
         </Card.Body>
       </Card>
 
-      {/* Modal para ver detalles de seguimiento anterior */}
       <Modal 
         show={!!selectedSeguimiento} 
         onHide={() => setSelectedSeguimiento(null)}
         size="lg"
       >
         <Modal.Header closeButton>
-          <Modal.Title>Seguimiento - {selectedSeguimiento?.fecha}</Modal.Title>
+          <Modal.Title>
+          {selectedSeguimiento?.numero_llamado 
+            ? `Llamado ${selectedSeguimiento.numero_llamado}` 
+            : 'Seguimiento'} - {selectedSeguimiento?.fecha}  
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedSeguimiento && (
             <div>
-              <p><strong>Edad:</strong> {selectedSeguimiento.edad_meses} meses</p>
-              
-              <h5>Hitos Cumplidos</h5>
-              {Object.entries(selectedSeguimiento.areaDPM || {}).map(([area, hitos]) => (
-                <div key={area}>
-                  <strong>{area}:</strong>
-                  <ul>
-                    {hitos.map((cumplido, index) => cumplido && (
-                      <li key={index}>
-                        {HITOS_DESARROLLO[selectedSeguimiento.grupoEdad][area][index]?.descripcion}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              <p><strong>Edad:</strong> {selectedSeguimiento.grupo_edad}</p>
+              <h5>Hitos de Desarrollo</h5>
+              {Object.entries(selectedSeguimiento.areaDPM || {}).map(([area, cumplido]) => {
+                // Solo mostrar áreas con valor booleano
+                if (cumplido === null) return null;
+
+                const areaFormateada = area === 'motorGrueso' ? 'Motor Grueso' : 
+                area === 'motorFino' ? 'Motor Fino' : 
+                area.charAt(0).toUpperCase() + area.slice(1);
+                
+                return (
+                  <Card key={area} className="mb-3">
+                    <Card.Header>
+                      <strong>{areaFormateada}</strong>
+                    </Card.Header>
+                    <Card.Body>
+                      {HITOS_DESARROLLO[selectedSeguimiento.grupoEdad][area].map((hito, index) => (
+                        <div key={index} className="mb-3">
+                          <p>{hito.descripcion}</p>
+                          <Alert 
+                            variant={cumplido ? "success" : "danger"}
+                            className="p-2"
+                          >
+                            Respuesta: {cumplido ? "Sí" : "No"}
+                          </Alert>
+                        </div>
+                      ))}
+                    </Card.Body>
+                  </Card>
+                );
+              })}
 
               <h5>Recomendaciones</h5>
-              <p><strong>Área Motora:</strong> {selectedSeguimiento.recomendaciones?.areaMotora}</p>
-              <p><strong>Área de Lenguaje:</strong> {selectedSeguimiento.recomendaciones?.areaLenguaje}</p>
-              <p><strong>Área Socioemocional:</strong> {selectedSeguimiento.recomendaciones?.areaSocioemocional}</p>
-              <p><strong>Área Cognitiva:</strong> {selectedSeguimiento.recomendaciones?.areaCognitiva}</p>
+              {[
+                { label: 'Área Motora', key: 'areaMotora' },
+                { label: 'Área de Lenguaje', key: 'areaLenguaje' },
+                { label: 'Área Socioemocional', key: 'areaSocioemocional' },
+                { label: 'Área Cognitiva', key: 'areaCognitiva' }
+              ].map(({ label, key }) => (
+                <div key={key} className="mb-3">
+                  <strong>{label}:</strong>
+                  <Card>
+                    <Card.Body>
+                      {selectedSeguimiento.recomendaciones?.[key] || 
+                      <span className="text-muted">No hay recomendaciones específicas</span>}
+                    </Card.Body>
+                  </Card>
+                </div>
+              ))}
             </div>
           )}
         </Modal.Body>
