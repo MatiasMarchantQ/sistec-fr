@@ -1,4 +1,3 @@
-// src/components/Sidebar.js
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Components.css';
@@ -16,7 +15,6 @@ const Sidebar = ({ setActiveComponent }) => {
     setIsUserMenuOpen(prevState => !prevState);
   };
   
-
   return (
     <aside className="main-sidebar elevation-1">
       <div className="d-flex justify-content-center align-items-center">
@@ -27,6 +25,7 @@ const Sidebar = ({ setActiveComponent }) => {
       <div className="sidebar">
         <nav className="mt-2">
           <ul className="nav nav-pills nav-sidebar flex-column" role="menu">
+            {/* Menú de Agenda */}
             <li className="nav-item">
               <Link 
                 to="?component=home"
@@ -37,6 +36,8 @@ const Sidebar = ({ setActiveComponent }) => {
                 <p>Agenda</p>
               </Link>
             </li>
+
+            {/* Menú de Instituciones */}
             <li className="nav-item">
               <Link 
                 to="?component=instituciones"
@@ -44,9 +45,10 @@ const Sidebar = ({ setActiveComponent }) => {
                 onClick={() => handleSetActiveComponent('instituciones')} 
               >
                 <i className="nav-icon fas fa-university"></i>
-                <p>Instituciones</p>
-              </Link>
+                <p>Instituciones</p> </Link>
             </li>
+
+            {/* Menú de Usuarios */}
             <li className={`nav-item ${isUserMenuOpen ? 'menu-open' : ''}`}>
               <Link 
                 to="#"
@@ -106,18 +108,21 @@ const Sidebar = ({ setActiveComponent }) => {
                   </li>
                 </ul>
               )}
-              <li className="nav-item">
-                <Link 
-                  to="?component=ingresar-ficha-clinica"
-                  className="nav-link"
-                  onClick={() => handleSetActiveComponent('ingresar-ficha-clinica')} 
-                >
-                  <i className="nav-icon fas fa-file-medical"></i>
-                  <p>Ingresar ficha clínica</p>
-                </Link>
-              </li>
+            </li>
 
-              <li className="nav-item">
+            {/* Menú de Ficha Clínica */}
+            <li className="nav-item">
+              <Link 
+                to="?component=ingresar-ficha-clinica"
+                className="nav-link"
+                onClick={() => handleSetActiveComponent('ingresar-ficha-clinica')} 
+              >
+                <i className="nav-icon fas fa-file-medical"></i>
+                <p>Ingresar ficha clínica</p>
+              </Link>
+            </li>
+
+            <li className="nav-item">
               <Link 
                 to="?component=listado-fichas-clinicas"
                 className="nav-link"
@@ -126,7 +131,6 @@ const Sidebar = ({ setActiveComponent }) => {
                 <i className="nav-icon fas fa-notes-medical"></i>
                 <p>Listado Fichas Clínicas</p>
               </Link>
-            </li>
             </li>
           </ul>
         </nav>

@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Container, Form, Button, Table, Card, 
-  Modal, Alert, Row, Col 
+  Modal, Accordion 
 } from 'react-bootstrap';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 // Importaciones de componentes
@@ -15,84 +15,132 @@ import TercerLlamado from './TercerLlamado';
 
 // Función de procesamiento de datos
 const procesarSeguimiento = (seguimientoData = {}) => {
+  // Función auxiliar para parsear campos JSON
+  const parsearCampoJSON = (campo) => {
+    if (typeof campo === 'string') {
+      try {
+        // Eliminar comillas extras y parsear
+        const campoLimpio = campo.replace(/^"|"$/g, '');
+        return campoLimpio && campoLimpio !== '{}' 
+          ? JSON.parse(campoLimpio) 
+          : {};
+      } catch (error) {
+        console.error('Error parseando JSON:', campo, error);
+        return {};
+      }
+    }
+    return campo || {};
+  };
+
+  // Parsear campos JSON
+  const riesgoInfeccion = parsearCampoJSON(seguimientoData.riesgo_infeccion);
+  const riesgoGlicemia = parsearCampoJSON(seguimientoData.riesgo_glicemia);
+  const riesgoHipertension = parsearCampoJSON(seguimientoData.riesgo_hipertension);
+  const adherencia = parsearCampoJSON(seguimientoData.adherencia);
+  const adherenciaTratamiento = parsearCampoJSON(seguimientoData.adherencia_tratamiento);
+  const efectosSecundarios = parsearCampoJSON(seguimientoData.efectos_secundarios);
+  const nutricion = parsearCampoJSON(seguimientoData.nutricion);
+  const actividadFisica = parsearCampoJSON(seguimientoData.actividad_fisica);
+  const eliminacion = parsearCampoJSON(seguimientoData.eliminacion);
+  const autoeficacia = parsearCampoJSON(seguimientoData.autoeficacia);
+
   return {
+    id: seguimientoData.id,
     fecha: seguimientoData.fecha || new Date().toISOString().split('T')[0],
-    pacienteId: seguimientoData.pacienteId || null,
-    fichaId: seguimientoData.fichaId || null,
-    numeroLlamado: seguimientoData.numeroLlamado || 1,
+    pacienteId: seguimientoData.paciente_id || null,
+    fichaId: seguimientoData.ficha_id || null,
+    numeroLlamado: seguimientoData.numero_llamado || 1,
+    
     riesgoInfeccion: {
-      herida: !!seguimientoData.riesgoInfeccion?.herida,
-      heridaDetalle: seguimientoData.riesgoInfeccion?.heridaDetalle || '',
-      dolorNeuropatico: !!seguimientoData.riesgoInfeccion?.dolorNeuropatico,
-      intensidadDolor: seguimientoData.riesgoInfeccion?.intensidadDolor || 0,
-      intervencionDolor: seguimientoData.riesgoInfeccion?.intervencionDolor || ''
+      herida: riesgoInfeccion.herida ?? null,
+      fechaHerida: riesgoInfeccion.fechaHerida || null,
+      dolorNeuropatico: riesgoInfeccion.dolorNeuropatico ?? null,
+      intensidadDolor: riesgoInfeccion.intensidadDolor || riesgoInfeccion.intensidad_dolor || 0,
+      tratamientoHerida: riesgoInfeccion.tratamientoHerida ?? null,
+      necesitaDerivacion: riesgoInfeccion.necesitaDerivacion ?? null,
+      intervencionDolor: riesgoInfeccion.intervencionDolor ?? null,
+      intervencionMejoria: riesgoInfeccion.intervencionMejoria || null
     },
+    
     riesgoGlicemia: {
-      hipoglicemia: !!seguimientoData.riesgoGlicemia?.hipoglicemia,
-      intervencionHipoglicemia: seguimientoData.riesgoGlicemia?.intervencionHipoglicemia || '',
-      hiperglicemia: !!seguimientoData.riesgoGlicemia?.hiperglicemia,
-      intervencionHiperglicemia: seguimientoData.riesgoGlicemia?.intervencionHiperglicemia || ''
+      hipoglicemia: riesgoGlicemia.hipoglicemia ?? null,
+      intervencionHipoglicemia: riesgoGlicemia.intervencionHipoglicemia || null,
+      hiperglicemia: riesgoGlicemia.hiperglicemia ?? null,
+      realizoIntervencionHipoglicemia: riesgoGlicemia.realizoIntervencionHipoglicemia ?? null
     },
-    // Continúa con el resto de los objetos anidados de manera similar
+    
     riesgoHipertension: {
-      dolorPecho: !!seguimientoData.riesgoHipertension?.dolorPecho,
-      dolorCabeza: !!seguimientoData.riesgoHipertension?.dolorCabeza,
-      zumbidoOidos: !!seguimientoData.riesgoHipertension?.zumbidoOidos,
-      nauseaVomitos: !!seguimientoData.riesgoHipertension?.nauseaVomitos
+      dolorPecho: riesgoHipertension.dolorPecho ?? null,
+      dolorCabeza: riesgoHipertension.dolorCabeza ?? null,
+      zumbidoOidos: riesgoHipertension.zumbidoOidos ?? null,
+      nauseaVomitos: riesgoHipertension.nauseaVomitos ?? null,
+      nauseas: riesgoHipertension.nauseas || null
     },
-    // Resto de las propiedades con valores por defecto
+    
     adherencia: {
-      olvido: !!seguimientoData.adherencia?.olvido,
-      horaIndicada: !!seguimientoData.adherencia?.horaIndicada,
-      dejaRemedio: !!seguimientoData.adherencia?.dejaRemedio,
-      dejaRemedioMal: !!seguimientoData.adherencia?.dejaRemedioMal
+      olvido: adherencia.olvido ?? null,
+      horaIndicada: adherencia.horaIndicada ?? null,
+      dejaRemedio: adherencia.dejaRemedio ?? null,
+      dejaRemedioMal: adherencia.dejaRemedioMal ?? null
     },
+    
     adherenciaTratamiento: {
       moriskyGreen: {
-        olvidaMedicamento: !!seguimientoData.adherenciaTratamiento?.moriskyGreen?.olvidaMedicamento,
-        tomaHoraIndicada: !!seguimientoData.adherenciaTratamiento?.moriskyGreen?.tomaHoraIndicada,
-        dejaMedicamentoBien: !!seguimientoData.adherenciaTratamiento?.moriskyGreen?.dejaMedicamentoBien,
-        dejaMedicamentoMal: !!seguimientoData.adherenciaTratamiento?.moriskyGreen?.dejaMedicamentoMal
+        olvidaMedicamento: adherenciaTratamiento.moriskyGreen?.olvidaMedicamento ?? null,
+        tomaHoraIndicada: adherenciaTratamiento.moriskyGreen?.tomaHoraIndicada ?? null,
+        dejaMedicamentoBien: adherenciaTratamiento.moriskyGreen?.dejaMedicamentoBien ?? null,
+        dejaMedicamentoMal: adherenciaTratamiento.moriskyGreen?.dejaMedicamentoMal ?? null
       },
-      adherencia: seguimientoData.adherenciaTratamiento?.adherencia ?? true
+      adherencia: adherenciaTratamiento.adherencia ?? null
     },
+    
     efectosSecundarios: {
-      presente: !!seguimientoData.efectosSecundarios?.presente,
-      detalle: seguimientoData.efectosSecundarios?.detalle || '',
-      intervencion: seguimientoData.efectosSecundarios?.intervencion || ''
+      presente: efectosSecundarios.presente ?? null,
+      malestar: efectosSecundarios.malestar || null,
+      intervencion: efectosSecundarios.intervencion || null,
+      realizaIntervencion: efectosSecundarios.realizaIntervencion ?? null
     },
+    
     nutricion: {
-      comidasDia: seguimientoData.nutricion?.comidasDia || 0,
+      comidasDia: nutricion.comidasDia || null,
       comidas: {
-        desayuno: seguimientoData.nutricion?.comidas?.desayuno || '',
-        almuerzo: seguimientoData.nutricion?.comidas?.almuerzo || '',
-        once: seguimientoData.nutricion?.comidas?.once || '',
-        cena: seguimientoData.nutricion?.comidas?.cena || ''
+        desayuno: nutricion.comidas?.desayuno || null,
+        almuerzo: nutricion.comidas?.almuerzo || null,
+        once: nutricion.comidas?.once || null,
+        cena: nutricion.comidas?.cena || null
       },
-      alimentosNoRecomendados: seguimientoData.nutricion?.alimentosNoRecomendados || ''
+      alimentosNoRecomendados: nutricion.alimentosNoRecomendados || null
     },
+    
     actividadFisica: {
-      realiza: !!seguimientoData.actividadFisica?.realiza,
-      tipo: seguimientoData.actividadFisica?.tipo || '',
-      frecuencia: seguimientoData.actividadFisica?.frecuencia || ''
+      realiza: actividadFisica.realiza ?? null,
+      tipo: actividadFisica.tipo || null,
+      frecuencia: actividadFisica.frecuencia || null
     },
+    
     eliminacion: {
-      poliuria: !!seguimientoData.eliminacion?.poliuria,
-      urgenciaMiccional: !!seguimientoData.eliminacion?.urgenciaMiccional,
-      tenesmoVesical: !!seguimientoData.eliminacion?.tenesmoVesical,
-      intervencion: seguimientoData.eliminacion?.intervencion || ''
+      poliuria: eliminacion.poliuria ?? null,
+      urgenciaMiccional: eliminacion.urgenciaMiccional ?? null,
+      tenesmoVesical: eliminacion.tenesmoVesical ?? null,
+      intervencion: eliminacion.intervencion || null
     },
-    sintomasDepresivos: seguimientoData.sintomasDepresivos || '',
+    
+    sintomasDepresivos: seguimientoData.sintomas_depresivos || null,
+    
     autoeficacia: {
-      comerCada4Horas: seguimientoData.autoeficacia?.comerCada4Horas || 0,
-      continuarDieta: seguimientoData.autoeficacia?.continuarDieta || 0,
-      escogerAlimentos: seguimientoData.autoeficacia?.escogerAlimentos || 0,
-      hacerEjercicio: seguimientoData.autoeficacia?.hacerEjercicio || 0,
-      prevenirBajaAzucar: seguimientoData.autoeficacia?.prevenirBajaAzucar || 0,
-      saberQueHacer: seguimientoData.autoeficacia?.saberQueHacer || 0,
-      evaluarCambios: seguimientoData.autoeficacia?.evaluarCambios || 0,
-      controlarDiabetes: seguimientoData.autoeficacia?.controlarDiabetes || 0
-    }
+      comerCada4Horas: autoeficacia.comerCada4Horas || null,
+      continuarDieta: autoeficacia.continuarDieta || null,
+      escogerAlimentos: autoeficacia.escogerAlimentos || null,
+      hacerEjercicio: autoeficacia.hacerEjercicio || null,
+      prevenirBajaAzucar: autoeficacia.prevenirBajaAzucar || null,
+      saberQueHacer: autoeficacia.saberQueHacer || null,
+      evaluarCambios: autoeficacia.evaluarCambios || null,
+      controlarDiabetes: autoeficacia.controlarDiabetes || null
+    },
+    
+    otrosSintomas: seguimientoData.otros_sintomas || null,
+    manejoSintomas: seguimientoData.manejo_sintomas || null,
+    comentarios: seguimientoData.comentarios || null
   };
 };
 
@@ -102,8 +150,37 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
 
   // Estado inicial con función de procesamiento
   const [seguimiento, setSeguimiento] = useState(() => 
-    procesarSeguimiento({ pacienteId, fichaId })
+    procesarSeguimiento({ 
+      pacienteId, 
+      fichaId,
+      sintomasDepresivos: {
+        puntajes: [],
+        puntajeTotal: 0,
+        nivelDificultad: 0
+      },
+      autoeficacia: {
+        comerCada4Horas: 1,
+        continuarDieta: 1,
+        escogerAlimentos: 1,
+        hacerEjercicio: 1,
+        prevenirBajaAzucar: 1,
+        saberQueHacer: 1,
+        evaluarCambios: 1,
+        controlarDiabetes: 1
+      },
+      otrosSintomas: '',
+      manejoSintomas: '',
+      comentarios: ''
+    })
   );
+
+  // Estados para controlar la expansión de los acordeones
+  const [activeStep, setActiveStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState({
+    primerLlamado: false,
+    segundoLlamado: false,
+    tercerLlamado: false
+  });
 
   const [seguimientosAnteriores, setSeguimientosAnteriores] = useState([]);
   const [selectedSeguimiento, setSelectedSeguimiento] = useState(null);
@@ -121,12 +198,96 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
     try {
       setLoading(true);
       const token = getToken();
-      const response = await axios .get(
+      const response = await axios.get(
         `${process.env.REACT_APP_API_URL}/seguimientos/adulto/${pacienteId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+  
+      // Agrupar seguimientos por llamado
+      const seguimientosPorLlamado = response.data.reduce((acc, seguimiento) => {
+        const llamado = seguimiento.numero_llamado;
+        if (!acc[llamado]) {
+          acc[llamado] = seguimiento;
+        }
+        return acc;
+      }, {});
+  
+      // Combinar todos los seguimientos en uno solo
+      const seguimientoCombinado = {
+        pacienteId,
+        fichaId,
+        numeroLlamado: Math.max(...Object.keys(seguimientosPorLlamado).map(Number)),
+        fecha: new Date().toISOString().split('T')[0],
+      };
+  
+      // Combinar datos de cada llamado
+      Object.values(seguimientosPorLlamado).forEach(seguimiento => {
+        // Campos del primer llamado
+        if (seguimiento.numero_llamado === 1) {
+          seguimientoCombinado.riesgoInfeccion = 
+            procesarSeguimiento(seguimiento).riesgoInfeccion;
+          seguimientoCombinado.riesgoGlicemia = 
+            procesarSeguimiento(seguimiento).riesgoGlicemia;
+          seguimientoCombinado.riesgoHipertension = 
+            procesarSeguimiento(seguimiento).riesgoHipertension;
+          seguimientoCombinado.adherencia = 
+            procesarSeguimiento(seguimiento).adherencia;
+          seguimientoCombinado.adherenciaTratamiento = 
+            procesarSeguimiento(seguimiento).adherenciaTratamiento;
+          seguimientoCombinado.efectosSecundarios = 
+            procesarSeguimiento(seguimiento).efectosSecundarios;
+        }
+  
+        // Campos del segundo llamado
+        if (seguimiento.numero_llamado === 2) {
+          seguimientoCombinado.nutricion = 
+            procesarSeguimiento(seguimiento).nutricion;
+          seguimientoCombinado.actividadFisica = 
+            procesarSeguimiento(seguimiento).actividadFisica;
+          seguimientoCombinado.eliminacion = 
+            procesarSeguimiento(seguimiento).eliminacion;
+        }
+  
+        // Campos del tercer llamado (si los hubiera)
+        if (seguimiento.numero_llamado === 3) {
+          seguimientoCombinado.sintomasDepresivos = 
+            procesarSeguimiento(seguimiento).sintomasDepresivos;
+          seguimientoCombinado.autoeficacia = 
+            procesarSeguimiento(seguimiento).autoeficacia;
+          seguimientoCombinado.otrosSintomas = 
+            procesarSeguimiento(seguimiento).otrosSintomas;
+          seguimientoCombinado.manejoSintomas = 
+            procesarSeguimiento(seguimiento).manejoSintomas;
+          seguimientoCombinado.comentarios = 
+            procesarSeguimiento(seguimiento).comentarios;
+        }
+      });
+  
+      // Procesar seguimientos anteriores para mostrar en la tabla
       const procesados = response.data.map(procesarSeguimiento);
       setSeguimientosAnteriores(procesados);
+  
+      // Actualizar el estado del seguimiento con los datos combinados
+      setSeguimiento(prevSeguimiento => ({
+        ...prevSeguimiento,
+        ...seguimientoCombinado
+      }));
+  
+      // Marcar pasos completados
+      const nuevosCompletedSteps = {
+        primerLlamado: procesados.some(s => s.numeroLlamado === 1),
+        segundoLlamado: procesados.some(s => s.numeroLlamado === 2),
+        tercerLlamado: procesados.some(s => s.numeroLlamado === 3)
+      };
+  
+      setCompletedSteps(nuevosCompletedSteps);
+  
+      // Establecer el paso activo al último llamado no completado
+      if (!nuevosCompletedSteps.tercerLlamado) {
+        setActiveStep(nuevosCompletedSteps.segundoLlamado ? 2 : 
+                      nuevosCompletedSteps.primerLlamado ? 1 : 0);
+      }
+  
     } catch (error) {
       console.error('Error al cargar seguimientos anteriores', error);
       toast.error('Error al cargar los seguimientos anteriores');
@@ -136,62 +297,229 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
   };
 
   // Función para guardar seguimiento
-  const guardarSeguimiento = async () => {
+  const guardarSeguimiento = async (etapa) => {
     try {
       const token = getToken();
-      const seguimientoValidado = procesarSeguimiento(seguimiento);
+        
+      // Preparar datos para enviar
+      const datosParaEnviar = {
+        pacienteId,  
+        fichaId,     
+        numeroLlamado: etapa,
+        fecha: new Date().toISOString().split('T')[0],
+      };
+
+  
+      // Agregar datos específicos según la etapa
+      switch(etapa) {
+        case 1:
+          // Mapeo explícito para asegurar la estructura correcta
+          datosParaEnviar.riesgoInfeccion = {
+            herida: seguimiento.riesgoInfeccion.herida,
+            fechaHerida: seguimiento.riesgoInfeccion.fechaHerida,
+            dolorNeuropatico: seguimiento.riesgoInfeccion.dolorNeuropatico,
+            intensidadDolor: seguimiento.riesgoInfeccion.intensidadDolor,
+            tratamientoHerida: seguimiento.riesgoInfeccion.tratamientoHerida,
+            necesitaDerivacion: seguimiento.riesgoInfeccion.necesitaDerivacion,
+            realizoIntervencion: seguimiento.riesgoInfeccion.realizoIntervencion,
+            intervencionDolor: seguimiento.riesgoInfeccion.intervencionDolor
+          };
+  
+          datosParaEnviar.riesgoGlicemia = {
+            hipoglicemia: seguimiento.riesgoGlicemia.hipoglicemia,
+            intervencionHipoglicemia: seguimiento.riesgoGlicemia.intervencionHipoglicemia,
+            hiperglicemia: seguimiento.riesgoGlicemia.hiperglicemia,
+            realizoIntervencionHipoglicemia: seguimiento.riesgoGlicemia.realizoIntervencionHipoglicemia
+          };
+  
+          datosParaEnviar.riesgoHipertension = {
+            dolorPecho: seguimiento.riesgoHipertension.dolorPecho,
+            dolorCabeza: seguimiento.riesgoHipertension.dolorCabeza,
+            zumbidoOidos: seguimiento.riesgoHipertension.zumbidoOidos,
+            nauseaVomitos: seguimiento.riesgoHipertension.nauseaVomitos
+          };
+  
+          datosParaEnviar.adherencia = {
+            olvido: seguimiento.adherencia.olvido,
+            horaIndicada: seguimiento.adherencia.horaIndicada,
+            dejaRemedio: seguimiento.adherencia.dejaRemedio,
+            dejaRemedioMal: seguimiento.adherencia.dejaRemedioMal
+          };
+  
+          datosParaEnviar.adherenciaTratamiento = {
+            moriskyGreen: {
+              olvidaMedicamento: seguimiento.adherenciaTratamiento.moriskyGreen.olvidaMedicamento,
+              tomaHoraIndicada: seguimiento.adherenciaTratamiento.moriskyGreen.tomaHoraIndicada,
+              dejaMedicamentoBien: seguimiento.adherenciaTratamiento.moriskyGreen.dejaMedicamentoBien,
+              dejaMedicamentoMal: seguimiento.adherenciaTratamiento.moriskyGreen.dejaMedicamentoMal
+            },
+            adherencia: seguimiento.adherenciaTratamiento.adherencia
+          };
+  
+          datosParaEnviar.efectosSecundarios = {
+            presente: seguimiento.efectosSecundarios.presente,
+            malestar: seguimiento.efectosSecundarios.malestar,
+            intervencion: seguimiento.efectosSecundarios.intervencion,
+            realizaIntervencion: seguimiento.efectosSecundarios.realizaIntervencion
+          };
+          break;
+        
+        case 2:
+          datosParaEnviar.nutricion = {
+            comidasDia: seguimiento.nutricion.comidasDia,
+            comidas: {
+              desayuno: seguimiento.nutricion.comidas.desayuno,
+              almuerzo: seguimiento.nutricion.comidas.almuerzo,
+              once: seguimiento.nutricion.comidas.once,
+              cena: seguimiento.nutricion.comidas.cena
+            },
+            alimentosNoRecomendados: seguimiento.nutricion.alimentosNoRecomendados
+          };
+  
+          datosParaEnviar.actividadFisica = {
+            realiza: seguimiento.actividadFisica.realiza,
+            tipo: seguimiento.actividadFisica.tipo,
+            frecuencia: seguimiento.actividadFisica.frecuencia
+          };
+  
+          datosParaEnviar.eliminacion = {
+            poliuria: seguimiento.eliminacion.poliuria,
+            urgenciaMiccional: seguimiento.eliminacion.urgenciaMiccional,
+            tenesmoVesical: seguimiento.eliminacion.tenesmoVesical,
+            intervencion: seguimiento.eliminacion.intervencion
+          };
+          break;
+        
+          case 3:
+            // Síntomas Depresivos
+            console.log('Síntomas Depresivos:', seguimiento.sintomasDepresivos);
+            datosParaEnviar.sintomasDepresivos = {
+              puntajes: seguimiento.sintomasDepresivos?.puntajes || [],
+              puntajeTotal: seguimiento.sintomasDepresivos?.puntajeTotal || 0,
+              nivelDificultad: seguimiento.sintomasDepresivos?.nivelDificultad || 0
+            };
+            
+            // Autoeficacia
+            datosParaEnviar.autoeficacia = {
+              comerCada4Horas: seguimiento.autoeficacia.comerCada4Horas || 0,
+              continuarDieta: seguimiento.autoeficacia.continuarDieta || 0,
+              escogerAlimentos: seguimiento.autoeficacia.escogerAlimentos || 0,
+              hacerEjercicio: seguimiento.autoeficacia.hacerEjercicio || 0,
+              prevenirBajaAzucar: seguimiento.autoeficacia.prevenirBajaAzucar || 0,
+              saberQueHacer: seguimiento.autoeficacia.saberQueHacer || 0,
+              evaluarCambios: seguimiento.autoeficacia.evaluarCambios || 0,
+              controlarDiabetes: seguimiento.autoeficacia.controlarDiabetes || 0
+            };
+          
+            // Otros síntomas
+            datosParaEnviar.otrosSintomas = seguimiento.otrosSintomas || '';
+            
+            // Manejo de síntomas
+            datosParaEnviar.manejoSintomas = seguimiento.manejoSintomas || '';
+            
+            // Comentarios
+            datosParaEnviar.comentarios = seguimiento.comentarios || '';
+            break;
+      }
+
+      console.log('Datos para enviar:', datosParaEnviar);
+
+    
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/seguimientos/adulto`,
-        seguimientoValidado,
-        { headers: { Authorization: `Bearer ${token}` } }
+        datosParaEnviar,
+        { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
       );
 
-      toast.success('Seguimiento guardado correctamente');
-      setSeguimientosAnteriores(prev => [...prev, procesarSeguimiento(response.data)]);
-      setSeguimiento(procesarSeguimiento({ pacienteId, fichaId })); // Resetear el formulario
+      await cargarSeguimientosAnteriores();
+  
     } catch (error) {
-      console.error('Error al guardar seguimiento', error);
-      toast.error('Error al guardar el seguimiento');
+      console.error('ERROR AL GUARDAR SEGUIMIENTO:', error.response ? error.response.data : error);
+      
+      // Mostrar mensaje de error específico
+      if (error.response) {
+        toast.error(error.response.data.message || 'Error al guardar el seguimiento');
+      } else {
+        toast.error('No se pudo guardar el seguimiento. Verifique su conexión.');
+      }
     }
-  };
-
-  // Renderizar formulario de seguimiento
-  const renderFormularioSeguimiento = () => {
-    return (
-      <Container>
-        <PrimerLlamado seguimiento={seguimiento} setSeguimiento={setSeguimiento} />
-        <SegundoLlamado seguimiento={seguimiento} setSeguimiento={setSeguimiento} />
-        <TercerLlamado seguimiento={seguimiento} setSeguimiento={setSeguimiento} />
-        
-        <Button variant="primary" onClick={guardarSeguimiento}>
-          Guardar Seguimiento
-        </Button>
-      </Container>
-    );
   };
 
   return (
     <Container fluid className="p-4">
       <h2 className="mb-4">Seguimiento de Adulto - Telecuidado</h2>
       
-      {loading ? <p>Cargando...</p> : renderFormularioSeguimiento()}
+      {loading ? <p>Cargando...</p> : (
+        <Accordion defaultActiveKey={activeStep.toString()}>
+          <Accordion.Item eventKey="0">
+            <Accordion.Header>
+              Primer Llamado 
+              {completedSteps.primerLlamado && <span className="text-success"> ✓</span>}
+            </Accordion.Header>
+            <Accordion.Body>
+              <PrimerLlamado 
+                seguimiento={seguimiento} 
+                setSeguimiento={setSeguimiento}
+                onComplete={() => guardarSeguimiento(1)}
+              />
+            </Accordion.Body>
+          </Accordion.Item>
 
+          {/* Segundo Llamado - Sin restricciones de acceso */}
+          <Accordion.Item eventKey="1">
+            <Accordion.Header>
+              Segundo Llamado
+              {completedSteps.segundoLlamado && <span className="text-success"> ✓</span>}
+            </Accordion.Header>
+            <Accordion.Body>
+              <SegundoLlamado 
+                seguimiento={seguimiento} 
+                setSeguimiento={setSeguimiento}
+                onComplete={() => guardarSeguimiento(2)}
+              />
+            </Accordion.Body>
+          </Accordion.Item>
+
+          {/* Tercer Llamado - Sin restricciones de acceso */}
+          <Accordion.Item eventKey="2">
+            <Accordion.Header>
+              Tercer Llamado
+              {completedSteps.tercerLlamado && <span className="text-success"> ✓</span>}
+            </Accordion.Header>
+            <Accordion.Body>
+              <TercerLlamado 
+                seguimiento={seguimiento} 
+                setSeguimiento={setSeguimiento}
+                onComplete={() => guardarSeguimiento(3)}
+              />
+            </Accordion.Body>
+          </Accordion.Item>
+        </Accordion>
+      )}
+
+
+      {/* Resto del código de seguimientos anteriores y modal permanece igual */}
       <Card className="mt-4">
         <Card.Header>Seguimientos Anteriores</Card.Header>
         <Card.Body>
           <Table striped bordered>
             <thead>
               <tr>
-                <th>Fecha</th>
                 <th>Número de Llamado</th>
+                <th>Fecha</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {seguimientosAnteriores.map((seguimiento, index) => (
-                <tr key={index}>
-                  <td>{seguimiento.fecha}</td>
+              {seguimientosAnteriores.map(seguimiento => (
+                <tr key={seguimiento.id}>
                   <td>{seguimiento.numeroLlamado}</td>
+                  <td>{seguimiento.fecha}</td>
                   <td>
                     <Button 
                       variant="info" 
@@ -208,58 +536,107 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
       </Card>
 
       <Modal 
-        show={!!selectedSeguimiento} 
-        onHide={() => setSelectedSeguimiento(null)}
-        size="lg"
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Seguimiento - {selectedSeguimiento?.fecha}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedSeguimiento && (
-            <div>
-              <p><strong>Número de Llamado:</strong> {selectedSeguimiento.numeroLlamado}</p>
-              <h5>Riesgo de Infección</h5>
-              <p><strong>Herida en pies:</strong> {selectedSeguimiento.riesgoInfeccion.herida ? 'Sí ' : 'No'}</p>
-              {selectedSeguimiento.riesgoInfeccion.herida && (
-                <p><strong>Detalle:</strong> {selectedSeguimiento.riesgoInfeccion.heridaDetalle}</p>
-              )}
-              <h5>Riesgo de Glicemia</h5>
-              <p><strong>Hipoglicemia:</strong> {selectedSeguimiento.riesgoGlicemia.hipoglicemia ? 'Sí' : 'No'}</p>
-              <p><strong>Intervención Hipoglicemia:</strong> {selectedSeguimiento.riesgoGlicemia.intervencionHipoglicemia}</p>
-              <p><strong>Hiperglicemia:</strong> {selectedSeguimiento.riesgoGlicemia.hiperglicemia ? 'Sí' : 'No'}</p>
-              <p><strong>Intervención Hiperglicemia:</strong> {selectedSeguimiento.riesgoGlicemia.intervencionHiperglicemia}</p>
-              <h5>Riesgo de Hipertensión</h5>
-              <p><strong>Dolor de pecho:</strong> {selectedSeguimiento.riesgoHipertension.dolorPecho ? 'Sí' : 'No'}</p>
-              <p><strong>Dolor de cabeza:</strong> {selectedSeguimiento.riesgoHipertension.dolorCabeza ? 'Sí' : 'No'}</p>
-              <p><strong>Zumbido de oídos:</strong> {selectedSeguimiento.riesgoHipertension.zumbidoOidos ? 'Sí' : 'No'}</p>
-              <p><strong>Náuseas y vómitos:</strong> {selectedSeguimiento.riesgoHipertension.nauseaVomitos ? 'Sí' : 'No'}</p>
-              <h5>Adherencia al Tratamiento</h5>
-              <p><strong>Adhiere al tratamiento:</strong> {selectedSeguimiento.adherenciaTratamiento.adherencia ? 'Sí' : 'No'}</p>
-              <h5>Efectos Secundarios</h5>
-              <p><strong>Presenta efectos secundarios:</strong> {selectedSeguimiento.efectosSecundarios.presente ? 'Sí' : 'No'}</p>
-              {selectedSeguimiento.efectosSecundarios.presente && (
-                <p><strong>Detalle:</strong> {selectedSeguimiento.efectosSecundarios.detalle}</p>
-              )}
-              <h5>Nutrición</h5>
-              <p><strong>Comidas al día:</strong> {selectedSeguimiento.nutricion.comidasDia}</p>
-              <p><strong>Desayuno:</strong> {selectedSeguimiento.nutricion.comidas.desayuno}</p>
-              <p><strong>Almuerzo:</strong> {selectedSeguimiento.nutricion.comidas.almuerzo}</p>
-              <p><strong>Once:</strong> {selectedSeguimiento.nutricion.comidas.once}</p>
-              <p><strong>Cena:</strong> {selectedSeguimiento.nutricion.comidas.cena}</p>
-              <h5>Actividad Física</h5>
-              <p><strong>Realiza actividad física:</strong> {selectedSeguimiento.actividadFisica.realiza ? 'Sí' : 'No'}</p>
-              {selectedSeguimiento.actividadFisica.realiza && (
-                <p><strong>Tipo:</strong> {selectedSeguimiento.actividadFisica.tipo}</p>
-              )}
-              <h5>Eliminación</h5>
-              <p><strong>Poliuria:</strong> {selectedSeguimiento.eliminacion.poliuria ? 'Sí' : 'No'}</p>
-              <p><strong>Urgencia Miccional:</strong> {selectedSeguimiento.eliminacion.urgenciaMiccional ? 'Sí' : 'No'}</p>
-              <p><strong>Tenesmo Vesical:</strong> {selectedSeguimiento.eliminacion.tenesmoVesical ? 'Sí' : 'No'}</p>
-            </div>
-          )}
-        </Modal.Body>
-      </Modal>
+      show={!!selectedSeguimiento} 
+      onHide={() => setSelectedSeguimiento(null)}
+      size="lg"
+    >
+      <Modal.Header closeButton>
+        <Modal.Title>Seguimiento - {selectedSeguimiento?.fecha}</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {selectedSeguimiento && (
+          <div>
+            <h4>Número de Llamado: {selectedSeguimiento.numeroLlamado}</h4>
+            
+            {/* Primer Llamado - Riesgos */}
+            <Card className="mb-3">
+              <Card.Header>Riesgos y Adherencia</Card.Header>
+              <Card.Body>
+                <h5>Riesgo de Infección</h5>
+                <p><strong>Herida en pies:</strong> {selectedSeguimiento.riesgoInfeccion?.herida ? 'Sí' : 'No'}</p>
+                {selectedSeguimiento.riesgoInfeccion?.herida && (
+                  <>
+                    <p><strong>Fecha de Herida:</strong> {selectedSeguimiento.riesgoInfeccion.fechaHerida}</p>
+                    <p><strong>Dolor Neuropático:</strong> {selectedSeguimiento.riesgoInfeccion.dolorNeuropatico ? 'Sí' : 'No'}</p>
+                    <p><strong>Intensidad del Dolor:</strong> {selectedSeguimiento.riesgoInfeccion.intensidadDolor}</p>
+                  </>
+                )}
+
+                <h5>Riesgo de Glicemia</h5>
+                <p><strong>Hipoglicemia:</strong> {selectedSeguimiento.riesgoGlicemia?.hipoglicemia ? 'Sí' : 'No'}</p>
+                <p><strong>Hiperglicemia:</strong> {selectedSeguimiento.riesgoGlicemia?.hiperglicemia ? 'Sí' : 'No'}</p>
+
+                <h5>Riesgo de Hipertensión</h5>
+                <p><strong>Dolor de Pecho:</strong> {selectedSeguimiento.riesgoHipertension?.dolorPecho ? 'Sí' : 'No'}</p>
+                <p><strong>Dolor de Cabeza:</strong> {selectedSeguimiento.riesgoHipertension?.dolorCabeza ? 'Sí' : 'No'}</p>
+                <p><strong>Zumbido de Oídos:</strong> {selectedSeguimiento.riesgoHipertension?.zumbidoOidos ? 'Sí' : 'No'}</p>
+
+                <h5>Adherencia al Tratamiento</h5>
+                <p><strong>Olvido de Medicamento:</strong> {selectedSeguimiento.adherencia?.olvido ? 'Sí' : 'No'}</p>
+                <p><strong>Toma a Hora Indicada:</strong> {selectedSeguimiento.adherenciaTratamiento?.moriskyGreen?.tomaHoraIndicada ? 'Sí' : 'No'}</p>
+              </Card.Body>
+            </Card>
+
+            {/* Segundo Llamado - Nutrición y Actividad */}
+            <Card className="mb-3">
+              <Card.Header>Nutrición y Actividad Física</Card.Header>
+              <Card.Body>
+                <h5>Nutrición</h5>
+                <p><strong>Comidas al Día:</strong> {selectedSeguimiento.nutricion?.comidasDia}</p>
+                <p><strong>Desayuno:</strong> {selectedSeguimiento.nutricion?.comidas?.desayuno}</p>
+                <p><strong>Almuerzo:</strong> {selectedSeguimiento.nutricion?.comidas?.almuerzo}</p>
+                <p><strong>Once:</strong> {selectedSeguimiento.nutricion?.comidas?.once}</p>
+                <p><strong>Cena:</strong> {selectedSeguimiento.nutricion?.comidas?.cena}</p>
+                <p><strong>Alimentos No Recomendados:</strong> {selectedSeguimiento.nutricion?.alimentosNoRecomendados}</p>
+
+                <h5>Actividad Física</h5>
+                <p><strong>Realiza Actividad:</strong> {selectedSeguimiento.actividadFisica?.realiza ? 'Sí' : 'No'}</p>
+                <p><strong>Tipo:</strong> {selectedSeguimiento.actividadFisica?.tipo}</p>
+                <p><strong>Frecuencia:</strong> {selectedSeguimiento.actividadFisica?.frecuencia}</p>
+
+                <h5>Eliminación</h5>
+                <p><strong>Poliuria:</strong> {selectedSeguimiento.eliminacion?.poliuria ? 'Sí' : 'No'}</p>
+                <p><strong>Urgencia Miccional:</strong> {selectedSeguimiento.eliminacion?.urgenciaMiccional ? 'Sí' : 'No'}</p>
+                <p><strong>Tenesmo Vesical:</strong> {selectedSeguimiento.eliminacion?.tenesmoVesical ? 'Sí' : 'No'}</p>
+              </Card.Body>
+            </Card>
+
+            {/* Tercer Llamado - Síntomas Depresivos y Autoeficacia */}
+            <Card className="mb-3">
+              <Card.Header>Síntomas Depresivos y Autoeficacia</Card.Header>
+              <Card.Body>
+                <h5>Síntomas Depresivos (PHQ-9)</h5>
+                <p><strong>Puntaje Total:</strong> {selectedSeguimiento.sintomasDepresivos?.puntajeTotal || 0}</p>
+                <p><strong>Nivel de Dificultad:</strong> {
+                  ['Nada en absoluto', 'Algo difícil', 'Muy difícil', 'Extremadamente difícil'][selectedSeguimiento.sintomasDepresivos?.nivelDificultad || 0]
+                }</p>
+
+                <h5>Autoeficacia</h5>
+                {[
+                  { label: "Comer cada 4-5 horas", key: "comerCada4Horas" },
+                  { label: "Continuar dieta en situaciones sociales", key: "continuarDieta" },
+                  { label: "Escoger alimentos apropiados", key: "escogerAlimentos" },
+                  { label: "Hacer ejercicio 15-30 minutos", key: "hacerEjercicio" },
+                  { label: "Prevenir baja de azúcar", key: "prevenirBajaAzucar" },
+                  { label: "Saber qué hacer con niveles de azúcar", key: "saberQueHacer" },
+                  { label: "Evaluar cambios para visitar médico", key: "evaluarCambios" },
+                  { label: "Controlar diabetes para hacer actividades", key: "controlarDiabetes" }
+                ].map((item) => (
+                  <p key={item.key}>
+                    <strong>{item.label}:</strong> {selectedSeguimiento.autoeficacia?.[item.key] || 0}/10
+                  </p>
+                ))}
+
+                <h5>Otros Datos</h5>
+                <p><strong>Otros Síntomas:</strong> {selectedSeguimiento.otrosSintomas || 'No reportados'}</p>
+                <p><strong> Manejo de Síntomas:</strong> {selectedSeguimiento.manejoSintomas || 'No especificado'}</p>
+                <p><strong>Comentarios:</strong> {selectedSeguimiento.comentarios || 'Sin comentarios'}</p>
+              </Card.Body>
+            </Card>
+          </div>
+        )}
+      </Modal.Body>
+    </Modal>
     </Container>
   );
 };

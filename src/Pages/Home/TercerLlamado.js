@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import { Card, Form, Alert } from 'react-bootstrap';
+import { Card, Form, Button, Alert } from 'react-bootstrap';
+import { toast } from 'react-toastify';
 
-const TercerLlamado = ({ seguimiento, setSeguimiento }) => {
-    const [puntajesDepresion, setPuntajesDepresion] = useState(Array(9).fill(0));
+const TercerLlamado = ({ 
+  seguimiento, 
+  setSeguimiento, 
+  onComplete, 
+  disabled 
+}) => {
+  const [puntajesDepresion, setPuntajesDepresion] = useState(Array(9).fill(0));
     const [nivelDificultad, setNivelDificultad] = useState(0);
   
     const preguntasDepresion = [
@@ -43,7 +49,7 @@ const TercerLlamado = ({ seguimiento, setSeguimiento }) => {
         sintomasDepresivos: {
           puntajes: nuevosPuntajes,
           puntajeTotal: puntajeTotal,
-          nivelDificultad: nivelDificultad
+          nivelDificultad: nivelDificultad || prev.sintomasDepresivos?.nivelDificultad
         }
       }));
     };
@@ -93,8 +99,72 @@ const TercerLlamado = ({ seguimiento, setSeguimiento }) => {
         key: "controlarDiabetes" 
       }
     ];
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      
+      console.log('Datos actuales de seguimiento antes de validación:', seguimiento);
+      
+      // Validaciones
+      const validaciones = [
+        {
+          condicion: puntajesDepresion.every(puntaje => puntaje === 0),
+          mensaje: 'Debe responder al cuestionario de síntomas depresivos'
+        },
+        {
+          condicion: nivelDificultad === 0,
+          mensaje: 'Debe indicar el nivel de dificultad'
+        },
+        {
+          condicion: !seguimiento.otrosSintomas,
+          mensaje: 'Debe indicar otros síntomas o molestias (si no tiene, escriba "Ninguno")'
+        }
+      ];
+    
+      const errorValidacion = validaciones.find(val => val.condicion);
+      
+      if (errorValidacion) {
+        toast.error(errorValidacion.mensaje);
+        return;
+      }
+    
+      // Crear un objeto con todos los datos necesarios
+      const datosActualizados = {
+        ...seguimiento,
+        sintomasDepresivos: {
+          puntajes: puntajesDepresion,
+          puntajeTotal: puntajesDepresion.reduce((a, b) => a + b, 0),
+          nivelDificultad: nivelDificultad
+        },
+        otrosSintomas: seguimiento.otrosSintomas || '',
+        manejoSintomas: seguimiento.manejoSintomas || '',
+        comentarios: seguimiento.comentarios || '',
+        autoeficacia: {
+          comerCada4Horas: seguimiento.autoeficacia.comerCada4Horas || 1,
+          continuarDieta: seguimiento.autoeficacia.continuarDieta || 1,
+          escogerAlimentos: seguimiento.autoeficacia.escogerAlimentos || 1,
+          hacerEjercicio: seguimiento.autoeficacia.hacerEjercicio || 1,
+          prevenirBajaAzucar: seguimiento.autoeficacia.prevenirBajaAzucar || 1,
+          saberQueHacer: seguimiento.autoeficacia.saberQueHacer || 1,
+          evaluarCambios: seguimiento.autoeficacia.evaluarCambios || 1,
+          controlarDiabetes: seguimiento.autoeficacia.controlarDiabetes || 1
+        }
+      };
+    
+      console.log('Datos a enviar en TercerLlamado:', datosActualizados);
+    
+      // Actualizar el estado con todos los datos
+      setSeguimiento(datosActualizados);
+    
+      // Llamar a onComplete en el siguiente ciclo de renderizado
+      setTimeout(() => {
+        console.log('Llamando a onComplete');
+        onComplete();
+      }, 0);
+    };
   
     return (
+    <Form onSubmit={handleSubmit}>
       <Card className="mb-4">
         <Card.Header>TERCER LLAMADO TELEFÓNICO - Necesidad de Estima y Autoestima</Card.Header>
         <Card.Body>
@@ -231,7 +301,16 @@ const TercerLlamado = ({ seguimiento, setSeguimiento }) => {
             </Form.Group>
           ))}
         </Card.Body>
+        <Button 
+          type="submit" 
+          variant="primary" 
+          disabled={disabled}
+          className="mt-3"
+        >
+          Guardar Tercer Llamado
+        </Button>
       </Card>
+    </Form>
     );
   };
 

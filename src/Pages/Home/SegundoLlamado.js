@@ -1,8 +1,53 @@
 import React from 'react';
-import { Card, Form } from 'react-bootstrap';
+import { Card, Form, Button } from 'react-bootstrap';
+import { toast } from 'react-toastify';
 
-const SegundoLlamado = ({ seguimiento, setSeguimiento }) => {
-    return (
+const SegundoLlamado = ({ 
+  seguimiento, 
+  setSeguimiento, 
+  onComplete, 
+  disabled 
+}) => {
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Validaciones
+    const validaciones = [
+      {
+        condicion: seguimiento.nutricion.comidasDia === 0,
+        mensaje: 'Debe indicar el número de comidas al día'
+      },
+      {
+        condicion: !seguimiento.nutricion.comidas.desayuno,
+        mensaje: 'Debe describir su desayuno'
+      },
+      {
+        condicion: seguimiento.actividadFisica.realiza === undefined,
+        mensaje: 'Debe indicar si realiza actividad física'
+      },
+      {
+        condicion: seguimiento.actividadFisica.realiza && !seguimiento.actividadFisica.tipo,
+        mensaje: 'Debe especificar el tipo de actividad física'
+      },
+      {
+        condicion: seguimiento.eliminacion.poliuria === undefined,
+        mensaje: 'Debe indicar si ha presentado aumento en la frecuencia de micción'
+      }
+    ];
+
+    const errorValidacion = validaciones.find(val => val.condicion);
+    
+    if (errorValidacion) {
+      toast.error(errorValidacion.mensaje);
+      return;
+    }
+
+    // Si pasa validaciones, llamar a la función de completar
+    onComplete();
+  };
+
+  return (
+    <Form onSubmit={handleSubmit}>
       <Card className="mb-4">
         <Card.Header>SEGUNDO LLAMADO TELEFÓNICO - Necesidad de Nutrición y Actividad</Card.Header>
         <Card.Body>
@@ -318,7 +363,16 @@ const SegundoLlamado = ({ seguimiento, setSeguimiento }) => {
   
           <p>Para finalizar este llamado, recuerde registrar todos los síntomas, dudas y/o comentarios que presente. Además, respetar las indicaciones de su médico y del equipo de salud. Muchas gracias por su colaboración, ¡Hasta pronto!</p>
         </Card.Body>
+        <Button 
+          type="submit" 
+          variant="primary" 
+          disabled={disabled}
+          className="mt-3"
+        >
+          Guardar Segundo Llamado
+        </Button>
       </Card>
+    </Form>
     );
   };
 
