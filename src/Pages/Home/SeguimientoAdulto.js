@@ -43,6 +43,7 @@ const procesarSeguimiento = (seguimientoData = {}) => {
   const actividadFisica = parsearCampoJSON(seguimientoData.actividad_fisica);
   const eliminacion = parsearCampoJSON(seguimientoData.eliminacion);
   const autoeficacia = parsearCampoJSON(seguimientoData.autoeficacia);
+  const sintomasDepresivos = parsearCampoJSON(seguimientoData.sintomas_depresivos);
 
   return {
     id: seguimientoData.id,
@@ -125,7 +126,11 @@ const procesarSeguimiento = (seguimientoData = {}) => {
       intervencion: eliminacion.intervencion || null
     },
     
-    sintomasDepresivos: seguimientoData.sintomas_depresivos || null,
+    sintomasDepresivos: {
+      puntajes: sintomasDepresivos.puntajes || [],
+      puntajeTotal: sintomasDepresivos.puntajeTotal || 0,
+      nivelDificultad: sintomasDepresivos.nivelDificultad || 0
+    },
     
     autoeficacia: {
       comerCada4Horas: autoeficacia.comerCada4Horas || null,
@@ -392,7 +397,6 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
         
           case 3:
             // Síntomas Depresivos
-            console.log('Síntomas Depresivos:', seguimiento.sintomasDepresivos);
             datosParaEnviar.sintomasDepresivos = {
               puntajes: seguimiento.sintomasDepresivos?.puntajes || [],
               puntajeTotal: seguimiento.sintomasDepresivos?.puntajeTotal || 0,
@@ -606,10 +610,17 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
               <Card.Header>Síntomas Depresivos y Autoeficacia</Card.Header>
               <Card.Body>
                 <h5>Síntomas Depresivos (PHQ-9)</h5>
-                <p><strong>Puntaje Total:</strong> {selectedSeguimiento.sintomasDepresivos?.puntajeTotal || 0}</p>
-                <p><strong>Nivel de Dificultad:</strong> {
-                  ['Nada en absoluto', 'Algo difícil', 'Muy difícil', 'Extremadamente difícil'][selectedSeguimiento.sintomasDepresivos?.nivelDificultad || 0]
-                }</p>
+                {selectedSeguimiento.sintomasDepresivos ? (
+                  <>
+                    <p><strong>Puntajes:</strong> {selectedSeguimiento.sintomasDepresivos?.puntajes.join(', ')}</p>
+                    <p><strong>Puntaje Total:</strong> {selectedSeguimiento.sintomasDepresivos?.puntajeTotal}</p>
+                    <p><strong>Nivel de Dificultad:</strong> {
+                      ['Nada en absoluto', 'Algo difícil', 'Muy difícil', 'Extremadamente difícil'][selectedSeguimiento.sintomasDepresivos?.nivelDificultad]
+                    }</p>
+                  </>
+                ) : (
+                  <p>No se reportaron síntomas depresivos.</p>
+                )}
 
                 <h5>Autoeficacia</h5>
                 {[
@@ -629,7 +640,7 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
 
                 <h5>Otros Datos</h5>
                 <p><strong>Otros Síntomas:</strong> {selectedSeguimiento.otrosSintomas || 'No reportados'}</p>
-                <p><strong> Manejo de Síntomas:</strong> {selectedSeguimiento.manejoSintomas || 'No especificado'}</p>
+                <p><strong>Manejo de Síntomas:</strong> {selectedSeguimiento.manejoSintomas || 'No especificado'}</p>
                 <p><strong>Comentarios:</strong> {selectedSeguimiento.comentarios || 'Sin comentarios'}</p>
               </Card.Body>
             </Card>

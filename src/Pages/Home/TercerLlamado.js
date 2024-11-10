@@ -8,8 +8,8 @@ const TercerLlamado = ({
   onComplete, 
   disabled 
 }) => {
-  const [puntajesDepresion, setPuntajesDepresion] = useState(Array(9).fill(0));
-    const [nivelDificultad, setNivelDificultad] = useState(0);
+  const [puntajesDepresion, setPuntajesDepresion] = useState(seguimiento.sintomasDepresivos?.puntajes || Array(9).fill(0));
+  const [nivelDificultad, setNivelDificultad] = useState(seguimiento.sintomasDepresivos?.nivelDificultad || 0);
   
     const preguntasDepresion = [
       "Tener poco interés o placer en hacer las cosas",
@@ -132,9 +132,9 @@ const TercerLlamado = ({
       const datosActualizados = {
         ...seguimiento,
         sintomasDepresivos: {
-          puntajes: puntajesDepresion,
-          puntajeTotal: puntajesDepresion.reduce((a, b) => a + b, 0),
-          nivelDificultad: nivelDificultad
+          puntajes: seguimiento.puntajesDepresion,
+          puntajeTotal: seguimiento.puntajesDepresion.reduce((a, b) => a + b, 0),
+          nivelDificultad: seguimiento.nivelDificultad
         },
         otrosSintomas: seguimiento.otrosSintomas || '',
         manejoSintomas: seguimiento.manejoSintomas || '',
