@@ -3,6 +3,8 @@ import {
   Container, Form, Button, Table, Card, 
   Modal, Accordion 
 } from 'react-bootstrap';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -50,7 +52,6 @@ const procesarSeguimiento = (seguimientoData = {}) => {
     fecha: seguimientoData.fecha || new Date().toISOString().split('T')[0],
     pacienteId: seguimientoData.paciente_id || null,
     fichaId: seguimientoData.ficha_id || null,
-    numeroLlamado: seguimientoData.numero_llamado || 1,
     
     riesgoInfeccion: {
       herida: riesgoInfeccion.herida ?? null,
@@ -60,6 +61,7 @@ const procesarSeguimiento = (seguimientoData = {}) => {
       tratamientoHerida: riesgoInfeccion.tratamientoHerida ?? null,
       necesitaDerivacion: riesgoInfeccion.necesitaDerivacion ?? null,
       intervencionDolor: riesgoInfeccion.intervencionDolor ?? null,
+      realizoIntervencion: riesgoInfeccion.realizoIntervencion ?? null,
       intervencionMejoria: riesgoInfeccion.intervencionMejoria || null
     },
     
@@ -180,7 +182,7 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
   );
 
   // Estados para controlar la expansión de los acordeones
-  const [activeStep, setActiveStep] = useState(0);
+  const [activeStep, setActiveStep] = useState(null);
   const [completedSteps, setCompletedSteps] = useState({
     primerLlamado: false,
     segundoLlamado: false,
@@ -198,108 +200,160 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
     }
   }, [pacienteId]);
 
-  // Función para cargar seguimientos anteriores
-  const cargarSeguimientosAnteriores = async () => {
+  const cargarRespuestasAnteriores = async (seguimientoId) => {
     try {
-      setLoading(true);
       const token = getToken();
       const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/seguimientos/adulto/${pacienteId}`,
+        `${process.env.REACT_APP_API_URL}/seguimientos/adulto/${seguimientoId}/paciente/${pacienteId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
   
-      // Agrupar seguimientos por llamado
-      const seguimientosPorLlamado = response.data.reduce((acc, seguimiento) => {
-        const llamado = seguimiento.numero_llamado;
-        if (!acc[llamado]) {
-          acc[llamado] = seguimiento;
-        }
-        return acc;
-      }, {});
+      const seguimientoProcesado = procesarSeguimiento(response.data);
+      
+      // Determinar el índice del acordeón basado en un campo específico
+      const indiceAcordeon = determinarIndiceAcordeon(seguimientoProcesado);
   
-      // Combinar todos los seguimientos en uno solo
-      const seguimientoCombinado = {
-        pacienteId,
-        fichaId,
-        numeroLlamado: Math.max(...Object.keys(seguimientosPorLlamado).map(Number)),
-        fecha: new Date().toISOString().split('T')[0],
-      };
+      console.log('Índice del acordeón:', indiceAcordeon);
   
-      // Combinar datos de cada llamado
-      Object.values(seguimientosPorLlamado).forEach(seguimiento => {
-        // Campos del primer llamado
-        if (seguimiento.numero_llamado === 1) {
-          seguimientoCombinado.riesgoInfeccion = 
-            procesarSeguimiento(seguimiento).riesgoInfeccion;
-          seguimientoCombinado.riesgoGlicemia = 
-            procesarSeguimiento(seguimiento).riesgoGlicemia;
-          seguimientoCombinado.riesgoHipertension = 
-            procesarSeguimiento(seguimiento).riesgoHipertension;
-          seguimientoCombinado.adherencia = 
-            procesarSeguimiento(seguimiento).adherencia;
-          seguimientoCombinado.adherenciaTratamiento = 
-            procesarSeguimiento(seguimiento).adherenciaTratamiento;
-          seguimientoCombinado.efectosSecundarios = 
-            procesarSeguimiento(seguimiento).efectosSecundarios;
-        }
-  
-        // Campos del segundo llamado
-        if (seguimiento.numero_llamado === 2) {
-          seguimientoCombinado.nutricion = 
-            procesarSeguimiento(seguimiento).nutricion;
-          seguimientoCombinado.actividadFisica = 
-            procesarSeguimiento(seguimiento).actividadFisica;
-          seguimientoCombinado.eliminacion = 
-            procesarSeguimiento(seguimiento).eliminacion;
-        }
-  
-        // Campos del tercer llamado (si los hubiera)
-        if (seguimiento.numero_llamado === 3) {
-          seguimientoCombinado.sintomasDepresivos = 
-            procesarSeguimiento(seguimiento).sintomasDepresivos;
-          seguimientoCombinado.autoeficacia = 
-            procesarSeguimiento(seguimiento).autoeficacia;
-          seguimientoCombinado.otrosSintomas = 
-            procesarSeguimiento(seguimiento).otrosSintomas;
-          seguimientoCombinado.manejoSintomas = 
-            procesarSeguimiento(seguimiento).manejoSintomas;
-          seguimientoCombinado.comentarios = 
-            procesarSeguimiento(seguimiento).comentarios;
-        }
-      });
-  
-      // Procesar seguimientos anteriores para mostrar en la tabla
-      const procesados = response.data.map(procesarSeguimiento);
-      setSeguimientosAnteriores(procesados);
-  
-      // Actualizar el estado del seguimiento con los datos combinados
+      // Actualizar el estado del seguimiento con los datos recuperados
       setSeguimiento(prevSeguimiento => ({
         ...prevSeguimiento,
-        ...seguimientoCombinado
+        ...seguimientoProcesado
       }));
   
-      // Marcar pasos completados
-      const nuevosCompletedSteps = {
-        primerLlamado: procesados.some(s => s.numeroLlamado === 1),
-        segundoLlamado: procesados.some(s => s.numeroLlamado === 2),
-        tercerLlamado: procesados.some(s => s.numeroLlamado === 3)
-      };
+      // Actualizar los pasos completados
+      setCompletedSteps(prev => ({
+        ...prev,
+        [`${getPrimerLlamadoKey(indiceAcordeon + 1)}`]: true
+      }));
   
-      setCompletedSteps(nuevosCompletedSteps);
+      // Abrir el acordeón correspondiente
+      setActiveStep(indiceAcordeon);
   
-      // Establecer el paso activo al último llamado no completado
-      if (!nuevosCompletedSteps.tercerLlamado) {
-        setActiveStep(nuevosCompletedSteps.segundoLlamado ? 2 : 
-                      nuevosCompletedSteps.primerLlamado ? 1 : 0);
-      }
+      // Forzar un re-render
+      setTimeout(() => {
+        const accordionItem = document.querySelector(`[data-rk="accordion-item-${indiceAcordeon}"]`);
+        if (accordionItem) {
+          accordionItem.querySelector('.accordion-button').click();
+        }
+      }, 100);
+  
+      toast.success(`Respuestas del seguimiento cargadas`);
   
     } catch (error) {
-      console.error('Error al cargar seguimientos anteriores', error);
-      toast.error('Error al cargar los seguimientos anteriores');
-    } finally {
-      setLoading(false);
+      console.error('Error al cargar seguimiento anterior', error);
+      toast.error('No se pudieron cargar las respuestas anteriores');
     }
   };
+  
+  // Función para determinar el índice del acordeón
+  const determinarIndiceAcordeon = (seguimiento) => {
+    // Prioriza campos específicos de cada sección
+    if (seguimiento.riesgoInfeccion?.herida !== null || 
+        seguimiento.riesgoGlicemia?.hipoglicemia !== null || 
+        seguimiento.riesgoHipertension?.dolorPecho !== null) {
+      return 0; // Primer acordeón
+    }
+  
+    if (seguimiento.nutricion?.comidasDia !== null || 
+        seguimiento.actividadFisica?.realiza !== null || 
+        seguimiento.eliminacion?.poliuria !== null) {
+      return 1; // Segundo acordeón
+    }
+  
+    if (seguimiento.sintomasDepresivos?.puntajeTotal !== null || 
+        seguimiento.autoeficacia?.comerCada4Horas !== null) {
+      return 2; // Tercer acordeón
+    }
+  
+    // Si no se puede determinar, devolver 0 por defecto
+    return 0;
+  };
+  
+  // Modificar getPrimerLlamadoKey para ser más flexible
+  const getPrimerLlamadoKey = (indice) => {
+    switch(indice) {
+      case 0: return 'primerLlamado';
+      case 1: return 'segundoLlamado';
+      case 2: return 'tercerLlamado';
+      default: return 'primerLlamado';
+    }
+  };
+  
+  
+  // Función para cargar seguimientos anteriores
+  const cargarSeguimientosAnteriores = async () => {
+    try {
+        setLoading(true);
+        const token = getToken();
+        const response = await axios.get(
+            `${process.env.REACT_APP_API_URL}/seguimientos/adulto/${pacienteId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        // Procesar los datos recibidos
+        const procesados = response.data.map(seguimiento => {
+            const procesado = procesarSeguimiento(seguimiento);
+            return {
+                id: procesado.id,
+                numeroLlamado: seguimiento.numero_llamado,
+                fecha: procesado.fecha,
+                riesgoInfeccion: procesado.riesgoInfeccion,
+                riesgoGlicemia: procesado.riesgoGlicemia,
+                riesgoHipertension: procesado.riesgoHipertension,
+                adherencia: procesado.adherencia,
+                adherenciaTratamiento: procesado.adherenciaTratamiento,
+                efectosSecundarios: procesado.efectosSecundarios,
+                nutricion: procesado.nutricion,
+                actividadFisica: procesado.actividadFisica,
+                eliminacion: procesado.eliminacion,
+                sintomasDepresivos: procesado.sintomasDepresivos,
+                autoeficacia: procesado.autoeficacia,
+                otrosSintomas: procesado.otrosSintomas,
+                manejoSintomas: procesado.manejoSintomas,
+                comentarios: procesado.comentarios
+            };
+        });
+
+        setSeguimientosAnteriores(procesados); // Actualiza el estado con los datos procesados
+
+        // Actualiza el seguimiento combinado como antes
+        const seguimientoCombinado = {
+            pacienteId,
+            fichaId,
+            numeroLlamado: Math.max(...procesados.map(s => s.numeroLlamado)) || 1,
+            fecha: new Date().toISOString().split('T')[0],
+            // Agrega otros campos que necesites de los seguimientos
+        };
+
+        // Actualizar el estado del seguimiento con los datos combinados
+        setSeguimiento(prevSeguimiento => ({
+            ...prevSeguimiento,
+            ...seguimientoCombinado
+        }));
+
+        // Marcar pasos completados
+        const nuevosCompletedSteps = {
+            primerLlamado: procesados.some(s => s.numeroLlamado === 1),
+            segundoLlamado: procesados.some(s => s.numeroLlamado === 2),
+            tercerLlamado: procesados.some(s => s.numeroLlamado === 3)
+        };
+
+        setCompletedSteps(nuevosCompletedSteps);
+
+        // Establecer el paso activo al último llamado no completado
+        if (!nuevosCompletedSteps.tercerLlamado) {
+            setActiveStep(nuevosCompletedSteps.segundoLlamado ? 2 : 
+                          nuevosCompletedSteps.primerLlamado ? 1 : 0);
+        }
+
+    } catch (error) {
+        console.error('Error al cargar seguimientos anteriores', error);
+        toast.error('Error al cargar los seguimientos anteriores');
+    } finally {
+        setLoading(false);
+    }
+};
 
   // Función para guardar seguimiento
   const guardarSeguimiento = async (etapa) => {
@@ -310,7 +364,6 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
       const datosParaEnviar = {
         pacienteId,  
         fichaId,     
-        numeroLlamado: etapa,
         fecha: new Date().toISOString().split('T')[0],
       };
 
@@ -454,12 +507,50 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
     }
   };
 
+  const exportarPDF = (numeroLlamado) => {
+    const input = document.getElementById(`exportable-content-${numeroLlamado}`);
+    if (!input) {
+      toast.error('No se encontró el contenido para exportar.');
+      return;
+    }
+    
+    html2canvas(input)
+      .then((canvas) => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF();
+        const imgWidth = 190;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+  
+        let position = 0;
+  
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= pdf.internal.pageSize.getHeight();
+  
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+          heightLeft -= pdf.internal.pageSize.getHeight();
+        }
+  
+        pdf.save(`seguimiento-${numeroLlamado}-llamado.pdf`);
+      })
+      .catch((error) => {
+        console.error('Error al generar el PDF:', error);
+        toast.error('Error al generar el PDF. Verifique la consola para más detalles.');
+      });
+  };
+
   return (
     <Container fluid className="p-4">
       <h2 className="mb-4">Seguimiento de Adulto - Telecuidado</h2>
       
       {loading ? <p>Cargando...</p> : (
-        <Accordion defaultActiveKey={activeStep.toString()}>
+          <Accordion 
+            activeKey={activeStep !== null ? activeStep.toString() : undefined}
+            onSelect={(eventKey) => setActiveStep(eventKey ? parseInt(eventKey) : null)}
+          >
           <Accordion.Item eventKey="0">
             <Accordion.Header>
               Primer Llamado 
@@ -473,8 +564,7 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
               />
             </Accordion.Body>
           </Accordion.Item>
-
-          {/* Segundo Llamado - Sin restricciones de acceso */}
+        
           <Accordion.Item eventKey="1">
             <Accordion.Header>
               Segundo Llamado
@@ -488,8 +578,7 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
               />
             </Accordion.Body>
           </Accordion.Item>
-
-          {/* Tercer Llamado - Sin restricciones de acceso */}
+        
           <Accordion.Item eventKey="2">
             <Accordion.Header>
               Tercer Llamado
@@ -505,39 +594,52 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
           </Accordion.Item>
         </Accordion>
       )}
-
-
+  
       {/* Resto del código de seguimientos anteriores y modal permanece igual */}
       <Card className="mt-4">
-        <Card.Header>Seguimientos Anteriores</Card.Header>
-        <Card.Body>
-          <Table striped bordered>
-            <thead>
-              <tr>
-                <th>Número de Llamado</th>
-                <th>Fecha</th>
-                <th>Acciones</th>
+      <Card.Header>Seguimientos Anteriores</Card.Header>
+      <Card.Body>
+        <Table striped bordered>
+          <thead>
+            <tr>
+              <th>Número de Llamado</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {seguimientosAnteriores.map(seguimiento => (
+              <tr key={seguimiento.id}>
+                <td>{seguimiento.numeroLlamado}</td>
+                <td>{seguimiento.fecha}</td>
+                <td>
+                  <Button 
+                    variant="info" 
+                    onClick={() => setSelectedSeguimiento(seguimiento)}
+                  >
+                    Ver Detalles
+                  </Button>
+                  <Button 
+                    variant="success" 
+                    onClick={() => cargarRespuestasAnteriores(seguimiento.id)}
+                    style={{ marginLeft: '10px' }}
+                  >
+                    Cargar Respuestas
+                  </Button>
+                  <Button 
+                    variant="success" 
+                    onClick={() => exportarPDF(seguimiento.numeroLlamado)} // Llama a la función de exportación
+                    style={{ marginLeft: '10px' }}
+                  >
+                    Exportar PDF
+                  </Button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {seguimientosAnteriores.map(seguimiento => (
-                <tr key={seguimiento.id}>
-                  <td>{seguimiento.numeroLlamado}</td>
-                  <td>{seguimiento.fecha}</td>
-                  <td>
-                    <Button 
-                      variant="info" 
-                      onClick={() => setSelectedSeguimiento(seguimiento)}
-                    >
-                      Ver Detalles
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Card.Body>
-      </Card>
+            ))}
+          </tbody>
+        </Table>
+      </Card.Body>
+    </Card>
 
       <Modal 
       show={!!selectedSeguimiento} 

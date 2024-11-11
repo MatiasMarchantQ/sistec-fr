@@ -46,13 +46,14 @@ const SegundoLlamado = ({
     onComplete();
   };
 
-  return (
-    <Form onSubmit={handleSubmit}>
-      <Card className="mb-4">
-        <Card.Header>SEGUNDO LLAMADO TELEFÓNICO - Necesidad de Nutrición y Actividad</Card.Header>
-        <Card.Body>
-          <h5>III. Necesidad de Nutrición, Agua y Electrolíticos</h5>
-          
+  const renderContent = () => {
+    return (
+      <div id="exportable-content-2">
+        <Card className="mb-4">
+          <Card.Header>SEGUNDO LLAMADO TELEFÓNICO - Necesidad de Nutrición y Actividad</Card.Header>
+          <Card.Body>
+            <h5>III. Necesidad de Nutrición, Agua y Electrolíticos</h5>
+            
           <Form.Group className="mb-3">
             <Form.Label>1. ¿Cuántas comidas consume al día?</Form.Label>
             <Form.Control 
@@ -363,17 +364,21 @@ const SegundoLlamado = ({
   
           <p>Para finalizar este llamado, recuerde registrar todos los síntomas, dudas y/o comentarios que presente. Además, respetar las indicaciones de su médico y del equipo de salud. Muchas gracias por su colaboración, ¡Hasta pronto!</p>
         </Card.Body>
-        <Button 
-          type="submit" 
-          variant="primary" 
-          disabled={disabled}
-          className="mt-3"
-        >
-          Guardar Segundo Llamado
-        </Button>
       </Card>
-    </Form>
+    </div>
     );
   };
+
+  return (
+    <Card>
+      <Card.Body>
+        <Form onSubmit={handleSubmit}>
+          {renderContent()}
+            <Button type="submit" disabled={disabled} className="w-100">Guardar</Button>          
+        </Form>
+      </Card.Body>
+    </Card>
+  );
+};
 
 export default SegundoLlamado;

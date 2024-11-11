@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Form, Button, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 
@@ -100,6 +100,10 @@ const TercerLlamado = ({
       }
     ];
 
+    useEffect(() => {
+      console.log('Síntomas depresivos actualizados:', seguimiento.sintomasDepresivos);
+    }, [seguimiento]);
+
     const handleSubmit = (e) => {
       e.preventDefault();
       
@@ -132,9 +136,9 @@ const TercerLlamado = ({
       const datosActualizados = {
         ...seguimiento,
         sintomasDepresivos: {
-          puntajes: seguimiento.puntajesDepresion,
-          puntajeTotal: seguimiento.puntajesDepresion.reduce((a, b) => a + b, 0),
-          nivelDificultad: seguimiento.nivelDificultad
+          puntajes: puntajesDepresion,
+          puntajeTotal: puntajesDepresion.reduce((a, b) => a + b, 0),
+          nivelDificultad: nivelDificultad
         },
         otrosSintomas: seguimiento.otrosSintomas || '',
         manejoSintomas: seguimiento.manejoSintomas || '',
@@ -163,155 +167,160 @@ const TercerLlamado = ({
       }, 0);
     };
   
-    return (
-    <Form onSubmit={handleSubmit}>
-      <Card className="mb-4">
-        <Card.Header>TERCER LLAMADO TELEFÓNICO - Necesidad de Estima y Autoestima</Card.Header>
-        <Card.Body>
-          <h5>V. Necesidad de Estima, Autoestima y Realización</h5>
-          
-          <h6>Detección de Síntomas Depresivos (PHQ-9)</h6>
-          <p>Durante las dos últimas semanas, ¿con qué frecuencia le han molestado los siguientes problemas?</p>
-          
-          {preguntasDepresion.map((pregunta, index) => (
-            <Form.Group key={index} className="mb-3">
-              <Form.Label>{index + 1}. {pregunta}</Form.Label>
+    const renderContent = () => {
+      return (
+        <div id="exportable-content-3">
+        <Card className="mb-4">
+          <Card.Header>TERCER LLAMADO TELEFÓNICO - Necesidad de Estima y Autoestima</Card.Header>
+          <Card.Body>
+            <h5>V. Necesidad de Estima, Autoestima y Realización</h5>
+            
+            <h6>Detección de Síntomas Depresivos (PHQ-9)</h6>
+            <p>Durante las dos últimas semanas, ¿con qué frecuencia le han molestado los siguientes problemas?</p>
+            
+            {preguntasDepresion.map((pregunta, index) => (
+              <Form.Group key={index} className="mb-3">
+                <Form.Label>{index + 1}. {pregunta}</Form.Label>
+                <div className="d-flex justify-content-between">
+                  {opcionesFrecuencia.map((opcion) => (
+                    <Form.Check 
+                      key={opcion.value}
+                      type="radio"
+                      name={`depresion-${index}`}
+                      label={opcion.label}
+                      checked={puntajesDepresion[index] === opcion.value}
+                      onChange={() => handleCambioPuntajeDepresion(index, opcion.value)}
+                    />
+                  ))}
+                </div>
+              </Form.Group>
+            ))}
+    
+            <Form.Group className="mb-3">
+              <Form.Label>Si se identificó con algún problema, ¿cuán difícil se le ha hecho cumplir con su trabajo, atender su casa, o relacionarse con otras personas?</Form.Label>
               <div className="d-flex justify-content-between">
-                {opcionesFrecuencia.map((opcion) => (
+                {nivelesDificultad.map((nivel, index) => (
                   <Form.Check 
-                    key={opcion.value}
+                    key={index}
                     type="radio"
-                    name={`depresion-${index}`}
-                    label={opcion.label}
-                    checked={puntajesDepresion[index] === opcion.value}
-                    onChange={() => handleCambioPuntajeDepresion(index, opcion.value)}
+                    name="nivelDificultad"
+                    label={nivel}
+                    checked={nivelDificultad === index}
+                    onChange={() => {
+                      setNivelDificultad(index);
+                      setSeguimiento(prev => ({
+                        ...prev,
+                        sintomasDepresivos: {
+                          ...prev.sintomasDepresivos,
+                          nivelDificultad: index
+                        }
+                      }));
+                    }}
                   />
                 ))}
               </div>
             </Form.Group>
-          ))}
-  
-          <Form.Group className="mb-3">
-            <Form.Label>Si se identificó con algún problema, ¿cuán difícil se le ha hecho cumplir con su trabajo, atender su casa, o relacionarse con otras personas?</Form.Label>
-            <div className="d-flex justify-content-between">
-              {nivelesDificultad.map((nivel, index) => (
-                <Form.Check 
-                  key={index}
-                  type="radio"
-                  name="nivelDificultad"
-                  label={nivel}
-                  checked={nivelDificultad === index}
-                  onChange={() => {
-                    setNivelDificultad(index);
-                    setSeguimiento(prev => ({
-                      ...prev,
-                      sintomasDepresivos: {
-                        ...prev.sintomasDepresivos,
-                        nivelDificultad: index
-                      }
-                    }));
-                  }}
-                />
-              ))}
-            </div>
-          </Form.Group>
-  
-          <Alert variant={
-            puntajeTotal >= 10 ? "danger" : 
-            puntajeTotal >= 5 ? "warning" : "success"
-          }>
-            <strong>Puntuación Total: {puntajeTotal}</strong>
-            <p>Categoría: {obtenerCategoriaDepresion(puntajeTotal)}</p>
-            {puntajeTotal >= 10 && (
-              <p>Derivar a médico del CESFAM</p>
-            )}
-          </Alert>
-  
-          <h6>Recomendaciones:</h6>
-          <ul>
-            <li>Expresar los sentimientos a un amigo, familiar, sacerdote, pastor entre otros.</li>
-            <li>No guardar las emociones o pensamientos, sólo ocasionará tristeza y soledad.</li>
-            <li>Unirse a grupos de apoyo, permitirá encontrarse con otras personas que viven situaciones similares.</li>
-            <li>Pedir y aceptar ayuda psicológica si lo considera necesario.</li>
-            <li>Realizar actividades recreativas saludables que generen placer.</li>
-            <li>Continuar con la vida lo más normal posible, no aislarse.</li>
-            <li>No aislarse de amistades y familias.</li>
-          </ul>
-  
-          <Form.Group className="mb-3">
-            <Form.Label>¿Qué otro síntoma o molestia ha presentado?</Form.Label>
-            <Form.Control 
-              as="textarea"
-              value={seguimiento.otrosSintomas}
-              onChange={(e) => setSeguimiento(prev => ({
-                ...prev,
-                otrosSintomas: e.target.value
-              }))}
-            />
-          </Form.Group>
-  
-          <Form.Group className="mb-3">
-            <Form.Label>¿Cómo lo ha manejado o superado?</Form.Label>
-            <Form.Control 
-              as="textarea"
-              value={seguimiento.manejoSintomas}
-              onChange={(e) => setSeguimiento(prev => ({
-                ...prev,
-                manejoSintomas: e.target.value
-              }))}
-            />
-          </Form.Group>
-  
-          <Form.Group className="mb-3">
-            <Form.Label>Algún comentario que quisiera mencionar:</Form.Label>
-            <Form.Control 
-              as="textarea"
-              value={seguimiento.comentarios}
-              onChange={(e) => setSeguimiento(prev => ({
-                ...prev,
-                comentarios: e.target.value
-              }))}
-            />
-          </Form.Group>
-  
-          <h5>Evaluación de Autoeficacia en Diabetes Tipo 2</h5>
-          <p>En las siguientes preguntas nos gustaría saber qué piensa Ud. de sus habilidades para controlar su enfermedad. Por favor marque el número que mejor corresponda a su nivel de seguridad de que puede realizar en este momento las siguientes tareas.</p>
-  
-          {preguntasAutoeficacia.map((pregunta, index) => (
-            <Form.Group key={index} className="mb-3">
-              <Form.Label>{pregunta.label}</Form.Label>
-              <div className="d-flex align-items-center">
-                <span className="mr-2">Muy inseguro(a)</span>
-                <Form.Control 
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={seguimiento.autoeficacia[pregunta.key]}
-                  onChange={(e) => setSeguimiento(prev => ({
-                    ...prev,
-                    autoeficacia: {
-                      ...prev.autoeficacia,
-                      [pregunta.key]: parseInt(e.target.value)
-                    }
-                  }))}
-                />
-                <span className="ml-2">Seguro(a)</span>
-              </div>
-              <div className="text-center">{seguimiento.autoeficacia[pregunta.key]}</div>
+    
+            <Alert variant={
+              puntajeTotal >= 10 ? "danger" : 
+              puntajeTotal >= 5 ? "warning" : "success"
+            }>
+              <strong>Puntuación Total: {puntajeTotal}</strong>
+              <p>Categoría: {obtenerCategoriaDepresion(puntajeTotal)}</p>
+              {puntajeTotal >= 10 && (
+                <p>Derivar a médico del CESFAM</p>
+              )}
+            </Alert>
+    
+            <h6>Recomendaciones:</h6>
+            <ul>
+              <li>Expresar los sentimientos a un amigo, familiar, sacerdote, pastor entre otros.</li>
+              <li>No guardar las emociones o pensamientos, sólo ocasionará tristeza y soledad.</li>
+              <li>Unirse a grupos de apoyo, permitirá encontrarse con otras personas que viven situaciones similares.</li>
+              <li>Pedir y aceptar ayuda psicológica si lo considera necesario.</li>
+              <li>Realizar actividades recreativas saludables que generen placer.</li>
+              <li>Continuar con la vida lo más normal posible, no aislarse.</li>
+              <li>No aislarse de amistades y familias.</li>
+            </ul>
+    
+            <Form.Group className="mb-3">
+              <Form.Label>¿Qué otro síntoma o molestia ha presentado?</Form.Label>
+              <Form.Control 
+                as="textarea"
+                value={seguimiento.otrosSintomas}
+                onChange={(e) => setSeguimiento(prev => ({
+                  ...prev,
+                  otrosSintomas: e.target.value
+                }))}
+              />
             </Form.Group>
-          ))}
-        </Card.Body>
-        <Button 
-          type="submit" 
-          variant="primary" 
-          disabled={disabled}
-          className="mt-3"
-        >
-          Guardar Tercer Llamado
-        </Button>
-      </Card>
-    </Form>
+    
+            <Form.Group className="mb-3">
+              <Form.Label>¿Cómo lo ha manejado o superado?</Form.Label>
+              <Form.Control 
+                as="textarea"
+                value={seguimiento.manejoSintomas}
+                onChange={(e) => setSeguimiento(prev => ({
+                  ...prev,
+                  manejoSintomas: e.target.value
+                }))}
+              />
+            </Form.Group>
+    
+            <Form.Group className="mb-3">
+              <Form.Label>Algún comentario que quisiera mencionar:</Form.Label>
+              <Form.Control 
+                as="textarea"
+                value={seguimiento.comentarios}
+                onChange={(e) => setSeguimiento(prev => ({
+                  ...prev,
+                  comentarios: e.target.value
+                }))}
+              />
+            </Form.Group>
+    
+            <h5>Evaluación de Autoeficacia en Diabetes Tipo 2</h5>
+            <p>En las siguientes preguntas nos gustaría saber qué piensa Ud. de sus habilidades para controlar su enfermedad. Por favor marque el número que mejor corresponda a su nivel de seguridad de que puede realizar en este momento las siguientes tareas.</p>
+    
+            {preguntasAutoeficacia.map((pregunta, index) => (
+              <Form.Group key={index} className="mb-3">
+                <Form.Label>{pregunta.label}</Form.Label>
+                <div className="d-flex align-items-center">
+                  <span className="mr-2">Muy inseguro(a)</span>
+                  <Form.Control 
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={seguimiento.autoeficacia[pregunta.key]}
+                    onChange={(e) => setSeguimiento(prev => ({
+                      ...prev,
+                      autoeficacia: {
+                        ...prev.autoeficacia,
+                        [pregunta.key]: parseInt(e.target.value)
+                      }
+                    }))}
+                  />
+                  <span className="ml-2">Seguro(a)</span>
+                </div>
+                <div className="text-center">{seguimiento.autoeficacia[pregunta.key]}</div>
+              </Form.Group>
+            ))}
+          </Card.Body>
+        </Card>
+      </div>
     );
   };
+
+  return (
+    <Card>
+      <Card.Body>
+        <Form onSubmit={handleSubmit}>
+          {renderContent()}
+            <Button type="submit" disabled={disabled} className="w-100">Guardar</Button>          
+        </Form>
+      </Card.Body>
+    </Card>
+  );
+};
 
 export default TercerLlamado;
