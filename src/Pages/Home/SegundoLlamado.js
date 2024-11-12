@@ -1,12 +1,15 @@
 import React from 'react';
 import { Card, Form, Button } from 'react-bootstrap';
 import { toast } from 'react-toastify';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const SegundoLlamado = ({ 
   seguimiento, 
   setSeguimiento, 
   onComplete, 
-  disabled 
+  disabled,
+  paciente
 }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -48,12 +51,8 @@ const SegundoLlamado = ({
 
   const renderContent = () => {
     return (
-      <div id="exportable-content-2">
-        <Card className="mb-4">
-          <Card.Header>SEGUNDO LLAMADO TELEFÓNICO - Necesidad de Nutrición y Actividad</Card.Header>
-          <Card.Body>
+      <div id="exportable-content2">
             <h5>III. Necesidad de Nutrición, Agua y Electrolíticos</h5>
-            
           <Form.Group className="mb-3">
             <Form.Label>1. ¿Cuántas comidas consume al día?</Form.Label>
             <Form.Control 
@@ -363,22 +362,66 @@ const SegundoLlamado = ({
           </ul>
   
           <p>Para finalizar este llamado, recuerde registrar todos los síntomas, dudas y/o comentarios que presente. Además, respetar las indicaciones de su médico y del equipo de salud. Muchas gracias por su colaboración, ¡Hasta pronto!</p>
-        </Card.Body>
-      </Card>
     </div>
     );
   };
 
-  return (
-    <Card>
-      <Card.Body>
-        <Form onSubmit={handleSubmit}>
-          {renderContent()}
-            <Button type="submit" disabled={disabled} className="w-100">Guardar</Button>          
-        </Form>
-      </Card.Body>
-    </Card>
-  );
+  const exportarPDF = () => {
+    const input = document.getElementById('exportable-content2');
+    html2canvas(input).then((canvas) => {
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Crear un PDF de tamaño oficio (216 mm x 330 mm)
+        const pdf = new jsPDF({
+            orientation: 'portrait', // o 'landscape' si prefieres horizontal
+            unit: 'mm',
+            format: 'legal', // 'legal' es el formato oficio
+            putOnlyUsedFonts: true,
+            floatPrecision: 16 // Precision de flotantes
+        });
+
+        // Añadir información del paciente al PDF en la primera página
+        pdf.text('Información del Paciente', 10, 10);
+        pdf.text(`Nombre: ${paciente.nombres} ${paciente.apellidos}`, 10, 20);
+        pdf.text(`RUT: ${paciente.rut}`, 10, 30);
+        pdf.text(`Fecha de nacimiento: ${paciente.fecha_nacimiento}`, 10, 40);
+        pdf.text(`Edad: ${paciente.edad}`, 10, 50);
+        pdf.text(`Teléfono Principal: ${paciente.telefono_principal}`, 10, 60);
+        pdf.text(`Teléfono Secundario: ${paciente.telefono_secundario}`, 10, 70);
+        
+        // Agregar un salto de página
+        pdf.addPage();
+
+        // Definir el ancho y la altura de la imagen
+        const imgWidth = 105; // Ajusta según el tamaño del PDF (debe ser menor a 210 mm)
+        const imgHeight = (canvas.height * imgWidth) / canvas.width; // Mantiene la proporción de la imagen
+
+        // Calcular la posición Y para la imagen
+        let yPositionForImage = 0; // Comenzar desde la parte superior de la segunda página
+
+        // Agregar la imagen al PDF en la segunda página
+        pdf.addImage(imgData, 'PNG', 5, yPositionForImage, imgWidth, imgHeight);
+
+        // Guardar el PDF
+        pdf.save(`${paciente.rut}_2.pdf`);
+    });
+};
+
+return (
+  <Card>
+    <Card.Body>
+      <Form onSubmit={handleSubmit}>
+        {renderContent()}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+          <Button type="submit" disabled={disabled}>Guardar</Button>
+          {seguimiento.nutricion.comidasDia && (
+            <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
+          )}
+        </div>
+      </Form>
+    </Card.Body>
+  </Card>
+);
 };
 
 export default SegundoLlamado;

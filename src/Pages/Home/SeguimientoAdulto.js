@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Container, Form, Button, Table, Card, 
   Modal, Accordion 
 } from 'react-bootstrap';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -155,6 +153,9 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
   const { getToken } = useAuth();
   const navigate = useNavigate();
 
+  // Crear referencia para el acordeón
+  const accordionRef = useRef(null);
+
   // Estado inicial con función de procesamiento
   const [seguimiento, setSeguimiento] = useState(() => 
     procesarSeguimiento({ 
@@ -191,6 +192,7 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
 
   const [seguimientosAnteriores, setSeguimientosAnteriores] = useState([]);
   const [selectedSeguimiento, setSelectedSeguimiento] = useState(null);
+  const [paciente, setPaciente] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // Cargar seguimientos anteriores
@@ -210,36 +212,49 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
   
       const seguimientoProcesado = procesarSeguimiento(response.data);
       
-      // Determinar el índice del acordeón basado en un campo específico
+      const pacienteData = response.data.paciente_adulto; // Asegúrate de que esta propiedad existe
+
+      // Determinar el índice del acordeón basado en el seguimiento procesado
       const indiceAcordeon = determinarIndiceAcordeon(seguimientoProcesado);
-  
-      console.log('Índice del acordeón:', indiceAcordeon);
-  
+            
       // Actualizar el estado del seguimiento con los datos recuperados
       setSeguimiento(prevSeguimiento => ({
         ...prevSeguimiento,
         ...seguimientoProcesado
       }));
-  
+
+      setPaciente(pacienteData);
+      
       // Actualizar los pasos completados
       setCompletedSteps(prev => ({
         ...prev,
         [`${getPrimerLlamadoKey(indiceAcordeon + 1)}`]: true
       }));
+      
+      // Si el acordeón actual es diferente del que se va a abrir, ciérralo
+      if (activeStep !== indiceAcordeon) {
+        // Cerrar el acordeón actual
+        setActiveStep(indiceAcordeon);
+      } else {
+        // Si el acordeón que se va a abrir es el mismo, ciérralo
+        setActiveStep(null);
+        setTimeout(() => {
+          setActiveStep(indiceAcordeon);
+        }, 100);
+      }
   
-      // Abrir el acordeón correspondiente
-      setActiveStep(indiceAcordeon);
-  
-      // Forzar un re-render
+      // Forzar un re-render y abrir el acordeón
       setTimeout(() => {
         const accordionItem = document.querySelector(`[data-rk="accordion-item-${indiceAcordeon}"]`);
         if (accordionItem) {
           accordionItem.querySelector('.accordion-button').click();
+          // Desplazar el acordeón a la vista
+          accordionItem.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 100);
   
       toast.success(`Respuestas del seguimiento cargadas`);
-  
+      
     } catch (error) {
       console.error('Error al cargar seguimiento anterior', error);
       toast.error('No se pudieron cargar las respuestas anteriores');
@@ -451,9 +466,9 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
           case 3:
             // Síntomas Depresivos
             datosParaEnviar.sintomasDepresivos = {
-              puntajes: seguimiento.sintomasDepresivos?.puntajes || [],
-              puntajeTotal: seguimiento.sintomasDepresivos?.puntajeTotal || 0,
-              nivelDificultad: seguimiento.sintomasDepresivos?.nivelDificultad || 0
+              puntajes: datosParaEnviar.sintomasDepresivos?.puntajes || [],
+              puntajeTotal: datosParaEnviar.sintomasDepresivos?.puntajeTotal || 0,
+              nivelDificultad: datosParaEnviar.sintomasDepresivos?.nivelDificultad || 0
             };
             
             // Autoeficacia
@@ -478,9 +493,6 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
             datosParaEnviar.comentarios = seguimiento.comentarios || '';
             break;
       }
-
-      console.log('Datos para enviar:', datosParaEnviar);
-
     
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/seguimientos/adulto`,
@@ -507,40 +519,6 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
     }
   };
 
-  const exportarPDF = (numeroLlamado) => {
-    const input = document.getElementById(`exportable-content-${numeroLlamado}`);
-    if (!input) {
-      toast.error('No se encontró el contenido para exportar.');
-      return;
-    }
-    
-    html2canvas(input)
-      .then((canvas) => {
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF();
-        const imgWidth = 190;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-  
-        let position = 0;
-  
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
-  
-        while (heightLeft >= 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-          heightLeft -= pdf.internal.pageSize.getHeight();
-        }
-  
-        pdf.save(`seguimiento-${numeroLlamado}-llamado.pdf`);
-      })
-      .catch((error) => {
-        console.error('Error al generar el PDF:', error);
-        toast.error('Error al generar el PDF. Verifique la consola para más detalles.');
-      });
-  };
 
   return (
     <Container fluid className="p-4">
@@ -548,19 +526,21 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
       
       {loading ? <p>Cargando...</p> : (
           <Accordion 
+            ref={accordionRef}
             activeKey={activeStep !== null ? activeStep.toString() : undefined}
             onSelect={(eventKey) => setActiveStep(eventKey ? parseInt(eventKey) : null)}
           >
           <Accordion.Item eventKey="0">
             <Accordion.Header>
               Primer Llamado 
-              {completedSteps.primerLlamado && <span className="text-success"> ✓</span>}
+              {completedSteps.primerLlamado && <span className="text-success"></span>}
             </Accordion.Header>
             <Accordion.Body>
               <PrimerLlamado 
                 seguimiento={seguimiento} 
                 setSeguimiento={setSeguimiento}
                 onComplete={() => guardarSeguimiento(1)}
+                paciente={paciente}
               />
             </Accordion.Body>
           </Accordion.Item>
@@ -568,13 +548,14 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
           <Accordion.Item eventKey="1">
             <Accordion.Header>
               Segundo Llamado
-              {completedSteps.segundoLlamado && <span className="text-success"> ✓</span>}
+              {completedSteps.segundoLlamado && <span className="text-success"></span>}
             </Accordion.Header>
             <Accordion.Body>
               <SegundoLlamado 
                 seguimiento={seguimiento} 
                 setSeguimiento={setSeguimiento}
                 onComplete={() => guardarSeguimiento(2)}
+                paciente={paciente}
               />
             </Accordion.Body>
           </Accordion.Item>
@@ -582,13 +563,14 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
           <Accordion.Item eventKey="2">
             <Accordion.Header>
               Tercer Llamado
-              {completedSteps.tercerLlamado && <span className="text-success"> ✓</span>}
+              {completedSteps.tercerLlamado && <span className="text-success"></span>}
             </Accordion.Header>
             <Accordion.Body>
               <TercerLlamado 
                 seguimiento={seguimiento} 
                 setSeguimiento={setSeguimiento}
                 onComplete={() => guardarSeguimiento(3)}
+                paciente={paciente}
               />
             </Accordion.Body>
           </Accordion.Item>
@@ -625,13 +607,6 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
                     style={{ marginLeft: '10px' }}
                   >
                     Cargar Respuestas
-                  </Button>
-                  <Button 
-                    variant="success" 
-                    onClick={() => exportarPDF(seguimiento.numeroLlamado)} // Llama a la función de exportación
-                    style={{ marginLeft: '10px' }}
-                  >
-                    Exportar PDF
                   </Button>
                 </td>
               </tr>

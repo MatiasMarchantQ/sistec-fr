@@ -68,7 +68,6 @@ const ListadoFichasClinicas = () => {
         ? response.data 
         : [];
       
-      console.log('Tipos de instituciones cargados:', tipos);
       setTiposInstituciones(tipos);
     } catch (error) {
       console.error('Error al cargar tipos de instituciones', error);
@@ -85,7 +84,6 @@ const ListadoFichasClinicas = () => {
       
       const instits = response.data?.instituciones || response.data || [];
       
-      console.log('Instituciones cargadas:', instits);
       setInstituciones(instits);
     } catch (error) {
       console.error('Error al cargar instituciones', error);

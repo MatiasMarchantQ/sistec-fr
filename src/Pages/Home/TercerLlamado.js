@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Form, Button, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const TercerLlamado = ({ 
   seguimiento, 
   setSeguimiento, 
   onComplete, 
-  disabled 
+  disabled,
+  paciente
 }) => {
-  const [puntajesDepresion, setPuntajesDepresion] = useState(seguimiento.sintomasDepresivos?.puntajes || Array(9).fill(0));
-  const [nivelDificultad, setNivelDificultad] = useState(seguimiento.sintomasDepresivos?.nivelDificultad || 0);
-  
+  const [puntajesDepresion, setPuntajesDepresion] = useState(Array(9).fill(0));
+  const [nivelDificultad, setNivelDificultad] = useState(0);
+
     const preguntasDepresion = [
       "Tener poco interés o placer en hacer las cosas",
       "Sentirse desanimado/a, deprimido/a, o sin esperanza",
@@ -101,14 +104,16 @@ const TercerLlamado = ({
     ];
 
     useEffect(() => {
-      console.log('Síntomas depresivos actualizados:', seguimiento.sintomasDepresivos);
+      // Actualizar puntajes y nivel de dificultad cuando el seguimiento cambie
+      if (seguimiento.sintomasDepresivos) {
+        setPuntajesDepresion(seguimiento.sintomasDepresivos.puntajes || Array(9).fill(0));
+        setNivelDificultad(seguimiento.sintomasDepresivos.nivelDificultad || 0);
+      }
     }, [seguimiento]);
 
     const handleSubmit = (e) => {
       e.preventDefault();
-      
-      console.log('Datos actuales de seguimiento antes de validación:', seguimiento);
-      
+            
       // Validaciones
       const validaciones = [
         {
@@ -154,47 +159,40 @@ const TercerLlamado = ({
           controlarDiabetes: seguimiento.autoeficacia.controlarDiabetes || 1
         }
       };
-    
-      console.log('Datos a enviar en TercerLlamado:', datosActualizados);
-    
+        
       // Actualizar el estado con todos los datos
       setSeguimiento(datosActualizados);
     
       // Llamar a onComplete en el siguiente ciclo de renderizado
       setTimeout(() => {
-        console.log('Llamando a onComplete');
         onComplete();
       }, 0);
     };
   
     const renderContent = () => {
       return (
-        <div id="exportable-content-3">
-        <Card className="mb-4">
-          <Card.Header>TERCER LLAMADO TELEFÓNICO - Necesidad de Estima y Autoestima</Card.Header>
-          <Card.Body>
-            <h5>V. Necesidad de Estima, Autoestima y Realización</h5>
-            
-            <h6>Detección de Síntomas Depresivos (PHQ-9)</h6>
-            <p>Durante las dos últimas semanas, ¿con qué frecuencia le han molestado los siguientes problemas?</p>
-            
-            {preguntasDepresion.map((pregunta, index) => (
-              <Form.Group key={index} className="mb-3">
-                <Form.Label>{index + 1}. {pregunta}</Form.Label>
-                <div className="d-flex justify-content-between">
-                  {opcionesFrecuencia.map((opcion) => (
-                    <Form.Check 
-                      key={opcion.value}
-                      type="radio"
-                      name={`depresion-${index}`}
-                      label={opcion.label}
-                      checked={puntajesDepresion[index] === opcion.value}
-                      onChange={() => handleCambioPuntajeDepresion(index, opcion.value)}
-                    />
-                  ))}
-                </div>
-              </Form.Group>
-            ))}
+        <div id="exportable-content3">
+          <h5>V. Necesidad de Estima, Autoestima y Realización</h5>
+          <h6>Detección de Síntomas Depresivos (PHQ-9)</h6>
+          <p>Durante las dos últimas semanas, ¿con qué frecuencia le han molestado los siguientes problemas?</p>
+          
+          {preguntasDepresion.map((pregunta, index) => (
+            <Form.Group key={index} className="mb-3">
+              <Form.Label>{index + 1}. {pregunta}</Form.Label>
+              <div className="d-flex justify-content-between">
+                {opcionesFrecuencia.map((opcion) => (
+                  <Form.Check 
+                    key={opcion.value}
+                    type="radio"
+                    name={`depresion-${index}`}
+                    label={opcion.label}
+                    checked={puntajesDepresion[index] === opcion.value}
+                    onChange={() => handleCambioPuntajeDepresion(index, opcion.value)}
+                  />
+                ))}
+              </div>
+            </Form.Group>
+          ))}
     
             <Form.Group className="mb-3">
               <Form.Label>Si se identificó con algún problema, ¿cuán difícil se le ha hecho cumplir con su trabajo, atender su casa, o relacionarse con otras personas?</Form.Label>
@@ -305,18 +303,62 @@ const TercerLlamado = ({
                 <div className="text-center">{seguimiento.autoeficacia[pregunta.key]}</div>
               </Form.Group>
             ))}
-          </Card.Body>
-        </Card>
       </div>
     );
   };
+
+  const exportarPDF = () => {
+    const input = document.getElementById('exportable-content3');
+    html2canvas(input).then((canvas) => {
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Crear un PDF de tamaño oficio (216 mm x 330 mm)
+        const pdf = new jsPDF({
+            orientation: 'portrait', // o 'landscape' si prefieres horizontal
+            unit: 'mm',
+            format: 'legal', // 'legal' es el formato oficio
+            putOnlyUsedFonts: true,
+            floatPrecision: 16 // Precision de flotantes
+        });
+
+        // Añadir información del paciente al PDF en la primera página
+        pdf.text('Información del Paciente', 10, 10);
+        pdf.text(`Nombre: ${paciente.nombres} ${paciente.apellidos}`, 10, 20);
+        pdf.text(`RUT: ${paciente.rut}`, 10, 30);
+        pdf.text(`Fecha de nacimiento: ${paciente.fecha_nacimiento}`, 10, 40);
+        pdf.text(`Edad: ${paciente.edad}`, 10, 50);
+        pdf.text(`Teléfono Principal: ${paciente.telefono_principal}`, 10, 60);
+        pdf.text(`Teléfono Secundario: ${paciente.telefono_secundario}`, 10, 70);
+        
+        // Agregar un salto de página
+        pdf.addPage();
+
+        // Definir el ancho y la altura de la imagen
+        const imgWidth = 72; // Ajusta según el tamaño del PDF (debe ser menor a 210 mm)
+        const imgHeight = (canvas.height * imgWidth) / canvas.width; // Mantiene la proporción de la imagen
+
+        // Calcular la posición Y para la imagen
+        let yPositionForImage = 0; // Comenzar desde la parte superior de la segunda página
+
+        // Agregar la imagen al PDF en la segunda página
+        pdf.addImage(imgData, 'PNG', 5, yPositionForImage, imgWidth, imgHeight);
+
+        // Guardar el PDF
+        pdf.save(`${paciente.rut}_3.pdf`);
+    });
+};
 
   return (
     <Card>
       <Card.Body>
         <Form onSubmit={handleSubmit}>
           {renderContent()}
-            <Button type="submit" disabled={disabled} className="w-100">Guardar</Button>          
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+            <Button type="submit" disabled={disabled}>Guardar</Button>
+            {puntajesDepresion && (
+              <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
+            )}
+          </div>
         </Form>
       </Card.Body>
     </Card>

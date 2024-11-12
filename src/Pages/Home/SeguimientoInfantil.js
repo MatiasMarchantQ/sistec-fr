@@ -608,7 +608,6 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
                       <Button 
                         variant="info" 
                         onClick={() => {
-                          console.log('Seguimiento seleccionado:', seguimiento);
                           setSelectedSeguimiento(seguimiento);
                         }}
                       >

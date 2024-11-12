@@ -122,7 +122,6 @@ const Instituciones = () => {
         }
       );
       
-      console.log('Respuesta del servidor:', response.data);
       obtenerInstituciones();
       handleModalClose();
       setNuevaInstitucion({

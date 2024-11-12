@@ -8,10 +8,9 @@ const PrimerLlamado = ({
   seguimiento, 
   setSeguimiento, 
   onComplete, 
-  disabled 
-}) => {
-  console.log('Seguimiento recibido:', seguimiento);
-  
+  disabled,
+  paciente
+}) => {  
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -56,7 +55,7 @@ const PrimerLlamado = ({
 
   const renderContent = () => {
     return (
-      <div id="exportable-content-1">
+      <div id="exportable-content">
         <h5>I. Necesidad de Seguridad y Protección</h5>
         
         <h6>1. Riesgo de Infección - Examen del Pie Diabético</h6>
@@ -377,7 +376,7 @@ const PrimerLlamado = ({
               type="radio"
               label="Sí"
               name="intervencionHiperglicemia"
-              checked={seguimiento.riesgoGlicemia .realizoIntervencionHiperglicemia === true}
+              checked={seguimiento.riesgoGlicemia.realizoIntervencionHiperglicemia === true}
               onChange={() => setSeguimiento(prev => ({
                 ...prev,
                 riesgoGlicemia: {
@@ -665,27 +664,40 @@ const PrimerLlamado = ({
     const input = document.getElementById('exportable-content');
     html2canvas(input).then((canvas) => {
         const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF();
-        const imgWidth = 190; // Ajusta según el tamaño del PDF
+        
+        // Crear un PDF de tamaño oficio (216 mm x 330 mm)
+        const pdf = new jsPDF({
+            orientation: 'portrait', // o 'landscape' si prefieres horizontal
+            unit: 'mm',
+            format: 'legal', // 'legal' es el formato oficio
+            putOnlyUsedFonts: true,
+            floatPrecision: 16 // Precision de flotantes
+        });
+
+        // Añadir información del paciente al PDF en la primera página
+        pdf.text('Información del Paciente', 10, 10);
+        pdf.text(`Nombre: ${paciente.nombres} ${paciente.apellidos}`, 10, 20);
+        pdf.text(`RUT: ${paciente.rut}`, 10, 30);
+        pdf.text(`Fecha de nacimiento: ${paciente.fecha_nacimiento}`, 10, 40);
+        pdf.text(`Edad: ${paciente.edad}`, 10, 50);
+        pdf.text(`Teléfono Principal: ${paciente.telefono_principal}`, 10, 60);
+        pdf.text(`Teléfono Secundario: ${paciente.telefono_secundario}`, 10, 70);
+        
+        // Agregar un salto de página
+        pdf.addPage();
+
+        // Definir el ancho y la altura de la imagen
+        const imgWidth = 95; // Ajusta según el tamaño del PDF (debe ser menor a 210 mm)
         const imgHeight = (canvas.height * imgWidth) / canvas.width; // Mantiene la proporción de la imagen
-        let heightLeft = imgHeight;
 
-        let position = 0;
+        // Calcular la posición Y para la imagen
+        let yPositionForImage = 0; // Comenzar desde la parte superior de la segunda página
 
-        // Agregar la imagen al PDF
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
-
-        // Si la imagen es más alta que la página, agregar páginas adicionales
-        while (heightLeft >= 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-            heightLeft -= pdf.internal.pageSize.getHeight();
-        }
+        // Agregar la imagen al PDF en la segunda página
+        pdf.addImage(imgData, 'PNG', 5, yPositionForImage, imgWidth, imgHeight);
 
         // Guardar el PDF
-        pdf.save('exported-content.pdf');
+        pdf.save(`${paciente.rut}_1.pdf`);
     });
 };
 

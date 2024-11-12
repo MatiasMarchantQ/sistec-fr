@@ -170,9 +170,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
         // Obtener fichas clínicas del centro
         const response = await fetchFichasClinicas(centroId);
         const fichas = response || [];
-        
-        console.log('Fichas obtenidas:', fichas); // Para depuración
-        
+                
         // Actualizar asignaciones con las fichas
         setAsignaciones(prevAsignaciones => 
           prevAsignaciones.map(rotacion => ({

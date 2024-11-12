@@ -36,7 +36,7 @@ const CambiarContrasena = () => {
         }
       );
   
-      console.log('Respuesta del servidor:', response.data);
+      console.log('Respuesta del servidor:', response);
   
       // Actualizar el almacenamiento local
       const storage = localStorage.getItem('accessToken') ? localStorage : sessionStorage;

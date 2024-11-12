@@ -17,8 +17,6 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await login(rut, password, rememberMe);
-      console.log('Login exitoso:', response);
-
       if (response.debe_cambiar_contrasena) {
         navigate('/cambiar-contrasena');
       } else {

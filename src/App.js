@@ -8,8 +8,6 @@ import CambiarContrasena from './components/CambiarContrasena';
 // Componente para proteger rutas
 const ProtectedRoute = ({ children }) => {
   const hasToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
-  console.log('Token exists:', !!hasToken);
-  
   if (!hasToken) {
     return <Navigate to="/" replace />;
   }
