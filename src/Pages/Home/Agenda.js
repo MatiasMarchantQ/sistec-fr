@@ -48,7 +48,17 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
       
       // Agrupar asignaciones por período
       const asignacionesAgrupadas = agruparAsignacionesPorPeriodo(response.data.asignaciones);
-      setAsignaciones(asignacionesAgrupadas);
+      // Filtrar asignaciones si el rol es 3
+      if (user.rol_id === 3) {
+        const filteredAsignaciones = asignacionesAgrupadas.filter(asignacion =>
+          asignacion.instituciones.some(inst => 
+            inst.estudiantes.includes(`${user.nombres} ${user.apellidos}`) // Cambia esto si el nombre del estudiante no es el mismo que el del usuario
+          )
+        );
+        setAsignaciones(filteredAsignaciones);
+      } else {
+        setAsignaciones(asignacionesAgrupadas);
+      }
     } catch (error) {
       console.error("Error fetching asignaciones:", error);
     }
@@ -73,7 +83,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
           nombre: asignacion.Institucion.nombre,
           receptora: asignacion.Institucion.receptores[0]?.nombre || 'Sin receptor',
           estudiantes: [],
-          fichasClinicas: [] // Si tienes fichas clínicas, las puedes agregar aquí
+          fichasClinicas: []
         };
       }
   

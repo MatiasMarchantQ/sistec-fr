@@ -188,6 +188,14 @@ const Usuarios = () => {
     navigate('/home?component=home');
   };
 
+  const hayFiltrosAplicados = () => {
+    return (
+      tipo !== '' || // Verifica si hay un tipo seleccionado
+      estadoFiltro !== 'todos' || // Verifica si el estado es diferente de "todos"
+      searchTerm !== '' // Verifica si hay un término de búsqueda
+    );
+  };
+
   return (
     <div className="usuarios">
       <h2 className="usuarios__title text-center mb-4">Gestión de Usuarios</h2>
@@ -195,20 +203,23 @@ const Usuarios = () => {
       {/* Selector de tipo de usuario */}
       <div className="usuarios__controls d-flex justify-content-between mb-3">
       <select
-        className="usuarios__select form-select col-2" style={{ width: '12%' }}
+        className="usuarios__select form-select col-2" 
+        style={{ width: '12%' }}
         value={tipo}
         onChange={handleTipoChange}
       >
         <option value="">Todos los tipos</option>
-        {roles.map(rol => (
-          <option key={rol.id} value={rol.id}>
-            {rol.nombre}
-          </option>
-        ))}
+        {roles
+          .filter(rol => rol.nombre !== 'Estudiante')
+          .map(rol => (
+            <option key={rol.id} value={rol.id}>
+              {rol.nombre}
+            </option>
+          ))}
       </select>
 
       <select
-        className="usuarios__select form-select w-auto"
+        className="usuarios__select form-select col-2" style={{width:'14%'}}
         value={estadoFiltro}
         onChange={handleEstadoChange}
       >
@@ -229,9 +240,12 @@ const Usuarios = () => {
           <i className="fas fa-search"></i> Buscar
         </button> */}
 
-        <button className="usuarios__btn usuarios__btn--secondary" onClick={handleClearSearch}>
-          <i className="fas fa-eraser"></i> Limpiar
-        </button>
+       {/* Mostrar el botón de limpiar solo si hay filtros aplicados */}
+        {hayFiltrosAplicados() && (
+          <button className="usuarios__btn usuarios__btn--secondary" onClick={handleClearSearch}>
+            <i className="fas fa-eraser"></i> Limpiar
+          </button>
+        )}
 
         <button className="usuarios__btn usuarios__btn--primary" onClick={handleModalOpen}>
           <i className="fas fa-plus"></i> Añadir Usuario

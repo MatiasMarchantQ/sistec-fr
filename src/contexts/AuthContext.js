@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
           let userData = {
             id: decoded.id,
             rol: decoded.rol,
-            estudiante_id: decoded.estudiante_id // Añadir estudiante_id desde el token
+            estudiante_id: decoded.estudiante_id
           };
 
           if (storedUserData) {
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }) => {
             userData = {
               ...userData,
               nombres: parsedUserData.nombres,
-              estudiante_id: parsedUserData.estudiante_id // También lo guardamos aquí por si acaso
+              estudiante_id: parsedUserData.estudiante_id
             };
           }
 
@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }) => {
       const decoded = jwtDecode(accessToken);
       const userData = {
         id: decoded.id,
-        rol: decoded.rol,
+        rol_id: decoded.rol_id,
         nombres: nombres || decoded.nombres,
         estudiante_id: estudiante_id || decoded.estudiante_id // Añadir estudiante_id
       };

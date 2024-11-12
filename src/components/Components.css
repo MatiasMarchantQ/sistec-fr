@@ -48,7 +48,7 @@
 /* Sidebar */
 
 .main-sidebar {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent));
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-secondary));
   }
   
   .nav-sidebar .nav-link {

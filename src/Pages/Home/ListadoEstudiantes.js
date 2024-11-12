@@ -43,6 +43,13 @@ const Estudiantes = () => {
   const [seleccionarTodos, setSeleccionarTodos] = useState(false);
   const symbols = '!#$%&*+?';
 
+  const limpiarFiltros = () => {
+    setAno(getCurrentYear().toString());
+    setSemestre('');
+    setEstadoFiltro('activos');
+    setSearchTerm('');
+  };
+
   useEffect(() => {
     obtenerEstudiantes();
   }, [currentPage, ano, semestre, searchTerm, estadoFiltro]);
@@ -219,7 +226,17 @@ const Estudiantes = () => {
     }
   };
 
-return (
+  // Función para determinar si hay filtros aplicados
+  const hayFiltrosAplicados = () => {
+    return (
+      ano !== getCurrentYear().toString() || // Verifica si el año es diferente al actual
+      semestre !== '' || // Verifica si el semestre no está vacío
+      estadoFiltro !== 'activos' || // Verifica si el estado no es "activos"
+      searchTerm !== '' // Verifica si hay un término de búsqueda
+    );
+  };
+
+  return (
   <Container fluid className="estudiantes">
     <Row className="mb-4">
       <Col>
@@ -229,15 +246,18 @@ return (
 
     {/* Controles de búsqueda y filtrado */}
     <Row className="mb-2">
-      <Col xs={1}>
-        <Form.Control
-          type="text"
-          placeholder="Año cursado"
+      <Col xs={2} style={{width: '9%'}}>
+        <Form.Select
           value={ano}
           onChange={(e) => setAno(e.target.value)}
-        />
+        >
+          <option value="">Seleccione un año</option>
+          {Array.from({ length: 10 }, (_, index) => getCurrentYear() - index).map(year => (
+            <option key={year} value={year}>{year}</option>
+          ))}
+        </Form.Select>
       </Col>
-      <Col xs={3}>
+      <Col xs={3} style={{width: '20%'}}>
         <Form.Select
           value={semestre}
           onChange={(e) => setSemestre(e.target.value)}
@@ -247,7 +267,7 @@ return (
           <option value="2">Segundo semestre</option>
         </Form.Select>
       </Col>
-      <Col xs={2}>
+      <Col xs={2} style={{width: '17%'}}>
         <Form.Select
           value={estadoFiltro}
           onChange={(e) => setEstadoFiltro(e.target.value)}
@@ -265,6 +285,13 @@ return (
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </Col>
+      {hayFiltrosAplicados() && (
+        <Col xs={2}>
+          <Button variant="secondary" onClick={limpiarFiltros}>
+            <i className="fas fa-eraser"></i> Limpiar Filtros
+          </Button>
+        </Col>
+      )}
       <Col xs={2}>
         <Button variant="primary" onClick={() => setModalOpen(true)}>
           <i className="fas fa-plus"></i> Añadir Estudiante

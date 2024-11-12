@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext'; // Asegúrate de que la ruta sea correcta
+import { useAuth } from '../contexts/AuthContext';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'admin-lte/dist/css/adminlte.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -33,7 +33,6 @@ const Login = () => {
 
     } catch (error) {
       console.error('Error durante el login:', error);
-      // Aquí puedes manejar el error, por ejemplo, mostrando un mensaje al usuario
     }
   };
 
