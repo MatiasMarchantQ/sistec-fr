@@ -4,6 +4,8 @@ import {
   Accordion, Modal, Alert 
 } from 'react-bootstrap';
 import axios from 'axios';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -308,7 +310,7 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
             socioemocional: seg.area_socioemocional === 1
           },
           grupoEdad: seg.grupo_edad,
-          // Generar recomendaciones en el cliente
+          paciente_infantil: seg.paciente_infantil,
           recomendaciones: {
             areaMotora: recomendacionesEdad.areaMotora || '',
             areaLenguaje: recomendacionesEdad.areaLenguaje || '',
@@ -468,6 +470,45 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
         ))}
       </Accordion>
     );
+  };
+
+
+  const exportarDetallesPDF = async (seguimiento) => {
+    // Primero, crea un contenedor temporal para el contenido que deseas exportar
+    const input = document.getElementById('detallesSeguimiento'); // Asegúrate de que este ID coincida con el contenedor del modal
+
+    // Captura el contenido del elemento
+    const canvas = await html2canvas(input);
+    const imgData = canvas.toDataURL('image/png');
+
+    // Crea un nuevo PDF
+    const pdf = new jsPDF();
+    const imgWidth = 98; // Ancho de la imagen en el PDF
+    const pageHeight = pdf.internal.pageSize.height;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+
+
+     // Añadir datos del paciente
+     pdf.setFontSize(12);
+     pdf.text(`Nombre: ${seguimiento.paciente_infantil?.nombres || 'N/A'} ${seguimiento.paciente_infantil?.apellidos || ''}`, 10, 10);
+     pdf.text(`Edad: ${seguimiento.grupo_edad || 'N/D'}`, 10, 20);
+     pdf.text(`Fecha: ${seguimiento.fecha || 'N/D'}`, 10, 30);
+ 
+
+    // Agregar la imagen al PDF
+    pdf.addImage(imgData, 'PNG', 10, 40, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    // Si la imagen es más alta que una página, agrega más páginas
+    while (heightLeft >= 0) {
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 10, -260, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    // Guarda el PDF
+    pdf.save(`seguimiento_infantil_${seguimiento.numero_llamado || 'detalles'}.pdf`);
   };
 
   return (
@@ -640,7 +681,7 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
             : 'Seguimiento'} - {selectedSeguimiento?.fecha}  
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body id="detallesSeguimiento">
           {selectedSeguimiento && (
             <div>
               <p><strong>Edad:</strong> {selectedSeguimiento.grupo_edad}</p>
@@ -695,6 +736,15 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
             </div>
           )}
         </Modal.Body>
+        <div className="text-center m-3 mt-0">
+          <Button 
+            variant="primary" 
+            className="col-5"
+            onClick={() => exportarDetallesPDF(selectedSeguimiento)}
+          >
+            Exportar a PDF
+          </Button>
+        </div>
       </Modal>
     </Container>
   );

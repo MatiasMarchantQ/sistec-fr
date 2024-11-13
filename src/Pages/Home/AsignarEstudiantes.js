@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, InputGroup, FormControl, Card, Alert } from 'react-bootstrap';
+import { Table, Button, Modal, Form, InputGroup, FormControl, Card, Alert, Col, Row } from 'react-bootstrap';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
+import { ToastContainer, toast } from 'react-toastify'; // Importa toast
+import 'react-toastify/dist/ReactToastify.css';
 import './AsignarEstudiantes.css';
 
 const AsignarEstudiantes = () => {
@@ -14,6 +16,7 @@ const AsignarEstudiantes = () => {
   const [showAsignarModal, setShowAsignarModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEstudiantes, setSelectedEstudiantes] = useState([]);
+  const [estadoFiltro, setEstadoFiltro] = useState('activos');
   const [isSelecting, setIsSelecting] = useState(null);
   const [startEstudiante, setStartEstudiante] = useState(null);
   const [tipoInstitucionSeleccionado, setTipoInstitucionSeleccionado] = useState(null);
@@ -27,12 +30,24 @@ const AsignarEstudiantes = () => {
   const [totalAsignaciones, setTotalAsignaciones] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
-  const limit = 10; // o el número que prefieras
+  const [anoSeleccionado, setAnoSeleccionado] = useState('');
+  const limit = 10;
   const totalPages = Math.ceil(totalElements / limit);
+
+  const getAniosOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let i = -5; i <= 1; i++) {
+      years.push(currentYear + i);
+    }
+    return years;
+  };
+
+  const aniosOptions = getAniosOptions();
 
   useEffect(() => {
     fetchData(currentPage);
-  }, [currentPage, searchTerm]);
+  }, [currentPage, searchTerm, anoSeleccionado]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -52,7 +67,9 @@ const AsignarEstudiantes = () => {
         params: {
           page: page,
           limit: limit,
-          search: searchTerm
+          search: searchTerm,
+          ano: anoSeleccionado,
+          estado: estadoFiltro
         }
       });
       setEstudiantes(estudiantesRes.data.estudiantes || []);
@@ -73,11 +90,6 @@ const AsignarEstudiantes = () => {
       console.error("Error fetching data:", error);
       setErrorMessage("Error al cargar los datos. Por favor, intente de nuevo.");
     }
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
   };
 
   const handleTipoInstitucionChange = async (event) => {
@@ -102,6 +114,7 @@ const AsignarEstudiantes = () => {
     } catch (error) {
       console.error("Error al obtener instituciones:", error);
       setErrorMessage("Error al obtener instituciones.");
+      toast.error("Error al obtener instituciones.");
     }
   };
 
@@ -120,37 +133,47 @@ const AsignarEstudiantes = () => {
     } catch (error) {
       console.error("Error al obtener receptores:", error);
       setErrorMessage("Error al obtener receptores.");
+      toast.error("Error al obtener receptores.");
     }
   };
 
   const handleAsignarCentro = async () => {
     if (!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin) {
       setErrorMessage('Por favor, completa todos los campos.');
+      toast.error('Por favor, completa todos los campos.');
       return;
     }
-
+  
     try {
       const token = getToken();
       const apiUrl = process.env.REACT_APP_API_URL;
       const nuevasAsignaciones = await Promise.all(selectedEstudiantes.map(async (estudiante) => {
         const response = await axios.post(`${apiUrl}/asignaciones`, {
-          estudiante_id: estudiante.id, // Asegúrate de que esto sea un número
-          institucion_id: parseInt(institucionSeleccionada), // Asegúrate de convertir a número
-          receptorId: parseInt(receptorSeleccionado), // Asegúrate de convertir a número
+          estudiante_id: estudiante.id,
+          institucion_id: parseInt(institucionSeleccionada),
+          receptor_id: parseInt(receptorSeleccionado),
           fecha_inicio: fechaInicio,
           fecha_fin: fechaFin
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        return response.data;
+        return response.data; // Asegúrate de que esta línea esté retornando correctamente los datos.
       }));
-
-      setAsignaciones([...asignaciones, ...nuevasAsignaciones]);
+  
+      // Actualiza el estado solo si hay nuevas asignaciones
+      if (nuevasAsignaciones.length > 0) {
+        setAsignaciones([...asignaciones, ...nuevasAsignaciones]);
+      }
+  
       setShowAsignarModal(false);
       resetearFormulario();
+      toast.success('Asignaciones creadas exitosamente!');
     } catch (error) {
       console.error("Error al crear asignaciones:", error);
-      setErrorMessage("Error al crear las asignaciones. Por favor, intente de nuevo.");
+      console.error("Detalles del error:", error.response);
+      const errorMsg = error.response?.data?.error || "Error al crear las asignaciones. Por favor, intente de nuevo.";
+      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
@@ -166,6 +189,7 @@ const AsignarEstudiantes = () => {
 const handleGuardarEdicion = async () => {
   if (!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin) {
     setErrorMessage('Por favor, completa todos los campos.');
+    toast.error('Por favor, completa todos los campos.');
     return;
   }
 
@@ -191,9 +215,11 @@ const handleGuardarEdicion = async () => {
     // Cerrar el modal y limpiar el formulario
     setShowEditarModal(false);
     resetearFormulario();
+    toast.success('Asignación actualizada exitosamente!');
   } catch (error) {
     console.error("Error al actualizar asignación:", error);
     setErrorMessage("Error al actualizar la asignación. Por favor, intente de nuevo.");
+    toast.error("Error al actualizar la asignación. Por favor, intente de nuevo.");
   }
 };
 
@@ -206,9 +232,11 @@ const handleEliminarAsignacion = async (asignacionId) => {
     });
     const asignacionesActualizadas = asignaciones.filter(a => a.id !== asignacionId);
     setAsignaciones(asignacionesActualizadas);
+    toast.success("Asignación eliminada exitosamente!");
   } catch (error) {
     console.error("Error al eliminar asignación:", error);
     setErrorMessage("Error al eliminar la asignación. Por favor, intente de nuevo.");
+    toast.error("Error al eliminar la asignación. Por favor, intente de nuevo.");
   }
 };
 
@@ -273,17 +301,32 @@ const handleEliminarAsignacion = async (asignacionId) => {
 
   return (
     <div className="asignar-estudiantes" onMouseUp={handleMouseUp}>
+    <ToastContainer />
       <h2>Asignación de Estudiantes</h2>
-      
-      <InputGroup className="mb-3">
-        <InputGroup.Text id="basic-addon1">Buscar</InputGroup.Text>
-        <FormControl
-          placeholder="Nombre o apellido del estudiante"
-          aria-label="Buscar estudiante"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </InputGroup>
+      <Row className="mb-3 align-items-end">
+        <Col xs={4} md={3}>
+          <Form.Group>
+            <Form.Label>Año Cursado</Form.Label>
+            <Form.Select onChange={(e) => setAnoSeleccionado(e.target.value)} value={anoSeleccionado}>
+              <option value="">Seleccione un año</option>
+              {aniosOptions.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Col>
+
+        <Col xs={8} md={9}>
+          <InputGroup>
+            <FormControl
+              placeholder="Buscar estudiante"
+              aria-label="Buscar estudiante"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </InputGroup>
+        </Col>
+      </Row>
 
       <Card>
         <Card.Header>
@@ -297,6 +340,7 @@ const handleEliminarAsignacion = async (asignacionId) => {
               <th>Apellidos</th>
               <th>Correo</th>
               <th>Asignaciones</th>
+              <th>Cursado(s)</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -348,9 +392,10 @@ const handleEliminarAsignacion = async (asignacionId) => {
                       </div>
                     ))}
                   </td>
+                  <td>{estudiante.anos_cursados}</td>
                 <td>
                   <Button 
-                    variant="outline-success" 
+                    variant="success" 
                     size="sm" 
                     onClick={() => setShowAsignarModal(true)}
                   >
@@ -551,10 +596,6 @@ const handleEliminarAsignacion = async (asignacionId) => {
                 onChange={(e) => setFechaFin(e.target.value)}
               />
             </Form.Group>
-
-            {errorMessage && (
-              <Alert variant="danger">{errorMessage}</Alert>
-            )}
           </Form>
         </Modal.Body>
         <Modal.Footer>

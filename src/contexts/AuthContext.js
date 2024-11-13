@@ -1,7 +1,8 @@
-// src/contexts/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const AuthContext = createContext(null);
 
@@ -19,18 +20,24 @@ export const AuthProvider = ({ children }) => {
         if (error.response?.status === 401) {
           // Si no estamos en la página de cambiar contraseña
           if (!window.location.pathname.includes('/cambiar-contrasena') && window.location.pathname !== '/') {
-            sessionStorage.removeItem('userData');
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            sessionStorage.removeItem('accessToken');
-            sessionStorage.removeItem('refreshToken');
-            localStorage.removeItem('userData');
-            sessionStorage.removeItem('userData');
+            localStorage.clear();
+            sessionStorage.clear();
             
             setToken(null);
             setUser(null);
-                        
-            setError('Su sesión ha expirado. Por favor, inicie sesión nuevamente.');
+            
+            // Usar toast en lugar de setError
+            toast.error('Su sesión ha expirado. Por favor, inicie sesión nuevamente.', {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            });
+            
+            // Redirigir automáticamente a la página de inicio de sesión
+            window.location.href = '/';
           }
         }
         return Promise.reject(error);
@@ -38,10 +45,10 @@ export const AuthProvider = ({ children }) => {
     );
 
     // Verificar token existente
-      const initializeAuth = () => {
+    const initializeAuth = () => {
       const storedToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
       const storedUserData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
-
+    
       if (storedToken) {
         try {
           const decoded = jwtDecode(storedToken);
@@ -49,37 +56,38 @@ export const AuthProvider = ({ children }) => {
           const currentTime = Date.now() / 1000;
           if (decoded.exp < currentTime) {
             // Token expirado
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            sessionStorage.removeItem('accessToken');
-            sessionStorage.removeItem('refreshToken');
-            localStorage.removeItem('userData');
-            sessionStorage.removeItem('userData');
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            toast.error('Su sesión ha expirado. Por favor, inicie sesión nuevamente.', {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            });
+            
             window.location.href = '/';
-            setError('Su sesión ha expirado. Por favor, inicie sesión nuevamente.');
             return;
           }
-
-          let userData = {
-            id: decoded.id,
-            rol: decoded.rol,
-            estudiante_id: decoded.estudiante_id
-          };
-
-          if (storedUserData) {
-            const parsedUserData = JSON.parse(storedUserData);
-            userData = {
-              ...userData,
-              nombres: parsedUserData.nombres,
-              estudiante_id: parsedUserData.estudiante_id
-            };
-          }
-
-          setToken(storedToken);
-          setUser(userData);
+    
+          // Resto del código de inicialización...
         } catch (error) {
           console.error('Error al decodificar el token:', error);
-          setError('Error de autenticación');
+          
+          toast.error('Error de autenticación', {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          
+          // Limpiar datos en caso de error
+          localStorage.clear();
+          sessionStorage.clear();
         }
       }
       setLoading(false);
@@ -102,7 +110,7 @@ export const AuthProvider = ({ children }) => {
         rememberMe
       });
   
-      const { accessToken, refreshToken, nombres, estudiante_id } = response.data;
+      const { accessToken, refreshToken, nombres, estudiante_id, rol_id } = response.data;
       const storage = rememberMe ? localStorage : sessionStorage;
       
       storage.setItem('accessToken', accessToken);
@@ -113,19 +121,30 @@ export const AuthProvider = ({ children }) => {
       const decoded = jwtDecode(accessToken);
       const userData = {
         id: decoded.id,
-        rol_id: decoded.rol_id,
+        rol_id: rol_id || decoded.rol_id,
         nombres: nombres || decoded.nombres,
-        estudiante_id: estudiante_id || decoded.estudiante_id // Añadir estudiante_id
+        estudiante_id: estudiante_id || decoded.estudiante_id
       };
   
       // Guardar userData en storage
       storage.setItem('userData', JSON.stringify(userData));
   
       setUser(userData);
-      setError('');
+      setError('');      
       return response.data;
     } catch (error) {
       console.error('Error durante el login:', error);
+      
+      // Mostrar toast de error
+      toast.error('Error de autenticación', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      
       setError('Error de autenticación');
       throw error;
     } finally {
@@ -135,8 +154,6 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('userData');
       setLoading(true);
       if (token) {
         await axios.post(`${process.env.REACT_APP_API_URL}/auth/logout`, {}, {
@@ -147,14 +164,24 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error durante el logout:', error);
+      
+      // Mostrar toast de error
+      toast.error('Error al cerrar sesión', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      sessionStorage.removeItem('accessToken');
-      sessionStorage.removeItem('refreshToken');
+      // Limpiar completamente
+      localStorage.clear();
+      sessionStorage.clear();
       setToken(null);
       setUser(null);
       setLoading(false);
+      // Redirigir a la página de inicio de sesión
     }
   };
 

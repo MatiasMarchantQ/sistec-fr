@@ -5,7 +5,6 @@ import {
 } from 'react-bootstrap';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 // Importaciones de componentes
@@ -151,7 +150,6 @@ const procesarSeguimiento = (seguimientoData = {}) => {
 
 const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
   const { getToken } = useAuth();
-  const navigate = useNavigate();
 
   // Crear referencia para el acordeón
   const accordionRef = useRef(null);

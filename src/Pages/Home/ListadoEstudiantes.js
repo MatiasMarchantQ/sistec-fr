@@ -29,7 +29,7 @@ const Estudiantes = () => {
   const [editingId, setEditingId] = useState(null);
   const [editedFields, setEditedFields] = useState({});
   const [ano, setAno] = useState(getCurrentYear().toString());  const [semestre, setSemestre] = useState('');
-  const [estadoFiltro, setEstadoFiltro] = useState('activos');
+  const [estadoFiltro, setEstadoFiltro] = useState('todos');
   const limit = 10;
   const totalPages = Math.ceil(totalElements / limit);
   const isFirstPage = currentPage === 1;
@@ -252,12 +252,13 @@ const Estudiantes = () => {
           onChange={(e) => setAno(e.target.value)}
         >
           <option value="">Seleccione un año</option>
+          <option value="2025">2025</option>
           {Array.from({ length: 10 }, (_, index) => getCurrentYear() - index).map(year => (
             <option key={year} value={year}>{year}</option>
           ))}
         </Form.Select>
       </Col>
-      <Col xs={3} style={{width: '20%'}}>
+      {/* <Col xs={3} style={{width: '20%'}}>
         <Form.Select
           value={semestre}
           onChange={(e) => setSemestre(e.target.value)}
@@ -266,7 +267,7 @@ const Estudiantes = () => {
           <option value="1">Primer semestre</option>
           <option value="2">Segundo semestre</option>
         </Form.Select>
-      </Col>
+      </Col> */}
       <Col xs={2} style={{width: '17%'}}>
         <Form.Select
           value={estadoFiltro}
@@ -321,7 +322,7 @@ const Estudiantes = () => {
               <th>RUT</th>
               <th>Correo</th>
               <th>Años Cursados</th>
-              <th>Semestre</th>
+              {/* <th>Semestre</th> */}
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
@@ -366,7 +367,7 @@ const Estudiantes = () => {
                   ) : estudiante.correo}
                 </td>
                 <td>{estudiante.anos_cursados}</td>
-                <td>
+                {/* <td>
                   {editingId === estudiante.id ? (
                     <Form.Select
                       value={editedFields.semestre || estudiante.semestre}
@@ -377,7 +378,7 @@ const Estudiantes = () => {
                       <option value="2">Segundo semestre</option>
                     </Form.Select>
                   ) : estudiante.semestre}
-                </td>
+                </td> */}
                 <td>
                   <Form.Check
                     type="switch"
@@ -473,7 +474,7 @@ const Estudiantes = () => {
       </Modal.Header>
       <Modal.Body>
         <Form>
-          <Form.Group>
+          {/* <Form.Group>
             <Form.Label>Semestre</Form.Label>
             <Form.Select
               value={edicionMasiva.semestre}
@@ -483,7 +484,7 @@ const Estudiantes = () => {
               <option value="1">Primer semestre</option>
               <option value="2">Segundo semestre</option>
             </Form.Select>
-          </Form.Group>
+          </Form.Group> */}
           <Form.Group>
             <Form.Label>Estado</Form.Label>
             <Form.Select
@@ -558,7 +559,7 @@ const Estudiantes = () => {
                 required 
               />
             </Form.Group>
-            <Form.Group className="mb-3">
+            {/* <Form.Group className="mb-3">
               <Form.Label>Semestre</Form.Label>
               <Form.Select
                 name="semestre"
@@ -569,7 +570,7 @@ const Estudiantes = () => {
                 <option value="1">Primer semestre</option>
                 <option value="2">Segundo semestre</option>
               </Form.Select>
-            </Form.Group>
+            </Form.Group> */}
             <Button type="submit" variant="primary" className="mt-3">Registrar</Button>
           </Form>
         </Modal.Body>

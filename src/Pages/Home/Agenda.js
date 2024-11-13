@@ -48,13 +48,14 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
       
       // Agrupar asignaciones por período
       const asignacionesAgrupadas = agruparAsignacionesPorPeriodo(response.data.asignaciones);
+      
       // Filtrar asignaciones si el rol es 3
       if (user.rol_id === 3) {
-        const filteredAsignaciones = asignacionesAgrupadas.filter(asignacion =>
-          asignacion.instituciones.some(inst => 
-            inst.estudiantes.includes(`${user.nombres} ${user.apellidos}`) // Cambia esto si el nombre del estudiante no es el mismo que el del usuario
-          )
+        const filteredAsignaciones = asignacionesAgrupadas.filter(asignacion => 
+          asignacion.estudiante_id === user.estudiante_id // Filtra solo las asignaciones del estudiante autenticado
         );
+        console.log('A',asignaciones);
+
         setAsignaciones(filteredAsignaciones);
       } else {
         setAsignaciones(asignacionesAgrupadas);
