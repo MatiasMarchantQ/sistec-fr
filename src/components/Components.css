@@ -218,3 +218,39 @@
 .login-card-body {
     padding: 20px;
 }
+
+
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+  .content-wrapper {
+    margin-left: 0 !important;
+  }
+
+  .main-sidebar {
+    position: fixed !important;
+    top: 0;
+    left: -250px;
+    height: 100vh;
+    width: 250px;
+    transition: left 0.3s ease;
+    z-index: 1050;
+  }
+
+  .main-sidebar.sidebar-open {
+    left: 0;
+  }
+
+  .content-wrapper.overlay-active {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .wrapper.sidebar-mini .main-sidebar {
+    margin-left: -250px !important;
+  }
+
+  .navbar-nav {
+    flex-direction: row;
+  }
+}

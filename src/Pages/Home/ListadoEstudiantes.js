@@ -240,7 +240,7 @@ const Estudiantes = () => {
   <Container fluid className="estudiantes">
     <Row className="mb-4">
       <Col>
-        <h2 className="text-center">Gestión de Estudiantes</h2>
+        <h2 className="text-center mb-4" style={{ color: 'color: #388DE2'}}>Gestión de Estudiantes</h2>
       </Col>
     </Row>
 

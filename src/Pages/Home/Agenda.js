@@ -13,6 +13,12 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
   const [year, setYear] = useState(currentDate.getFullYear());  
   const [showAllFichasModal, setShowAllFichasModal] = useState(false);
   const [allFichas, setAllFichas] = useState([]);
+  const [paginationInfo, setPaginationInfo] = useState({
+    page: 1,
+    totalPages: 0,
+    totalRegistros: 0,
+    registrosPorPagina: 15
+  });
   const [asignaciones, setAsignaciones] = useState([]);
   const [selectedCentro, setSelectedCentro] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,7 +88,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
         acc[periodo].instituciones[institucionId] = {
           id: institucionId,
           nombre: asignacion.Institucion.nombre,
-          receptora: asignacion.Institucion.receptores[0]?.nombre || 'Sin receptor',
+          receptora: (asignacion.Receptor?.cargo + ' ' + asignacion.Receptor?.nombre) || 'Sin receptor',
           estudiantes: [],
           fichasClinicas: []
         };
@@ -113,9 +119,33 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
     });
 };
 
-  const handleVerMasFichas = (fichas) => {
-    setAllFichas(fichas);
-    setShowAllFichasModal(true);
+  const handleVerMasFichas = async (fichas, institucionId) => {
+    console.log(institucionId)
+    setLoading(true);
+    try {
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const response = await axios.get(
+        `${apiUrl}/fichas-clinicas/institucion/${institucionId}`,
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          params: { page: 1, limit: 15 }
+        }
+      );
+
+      setAllFichas(response.data.data);
+      setPaginationInfo({
+        page: response.data.pagination.paginaActual,
+        totalPages: response.data.pagination.totalPaginas,
+        totalRegistros: response.data.pagination.totalRegistros,
+        registrosPorPagina: 15
+      });
+      setShowAllFichasModal(true);
+    } catch (error) {
+      console.error('Error al cargar fichas:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePrevMonth = () => {
@@ -312,7 +342,8 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                         className="btn btn-info btn-sm mr-2"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleVerMasFichas(institucion.fichasClinicas || []);
+                          // Pasar explícitamente el ID de la institución
+                          handleVerMasFichas(institucion.fichasClinicas || [], institucion.id);
                         }}
                       >
                         Ver fichas clínicas
@@ -367,16 +398,17 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                                 </div>
                             </div>
                           ))}
-                          {institucion.fichasClinicas.length > 2 && (
-                            <button 
-                              className="btn btn-info btn-sm mt-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleVerMasFichas(institucion.fichasClinicas);
-                              }}
-                            >
-                              Ver más fichas clínicas
-                            </button>
+                         {institucion.fichasClinicas.length > 2 && (
+                          <button 
+                            className="btn btn-info btn-sm mt-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Pasar explícitamente el ID de la institución
+                              handleVerMasFichas(institucion.fichasClinicas, institucion.id);
+                            }}
+                          >
+                            Ver más fichas clínicas
+                          </button>
                           )}
                         </div>
                       ) : (
@@ -412,65 +444,225 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
       )}
 
       {/* Modal para mostrar todas las fichas clínicas */}
-      {/* Modal para mostrar todas las fichas clínicas */}
       <Modal 
-        show={showAllFichasModal} 
-        onHide={() => {
-          setShowAllFichasModal(false);
-          setSearchTerm('');
+          show={showAllFichasModal} 
+          onHide={() => {
+            setShowAllFichasModal(false);
+            setSearchTerm('');
+            setPaginationInfo({
+              page: 1,
+              totalPages: 0,
+              totalRegistros: 0,
+              registrosPorPagina: 15
+            });
+          }}
+          size="lg"
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>
+              Todas las Fichas Clínicas 
+              <small className="text-muted ml-2">
+                ({paginationInfo.totalRegistros} registros)
+              </small>
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <InputGroup>
+                <InputGroup.Text>
+                  <i className="fas fa-search"></i>
+                </InputGroup.Text>
+                <Form.Control
+                  type="text"
+                  placeholder="Buscar paciente..."
+                  value={searchTerm}
+                  onChange={async (e) => {
+          const searchValue = e.target.value;
+          setSearchTerm(searchValue);
+          setLoading(true);
+          
+          try {
+            const token = getToken();
+            const apiUrl = process.env.REACT_APP_API_URL;
+            
+            // Extraer el ID de institución de selectedCentro
+            const institucionId = selectedCentro ? selectedCentro.split('-')[1] : null;
+            
+            if (!institucionId) {
+              console.error('No se encontró ID de institución');
+              setLoading(false);
+              return;
+            }
+            
+            const response = await axios.get(
+              `${apiUrl}/fichas-clinicas/institucion/${institucionId}`,
+              { 
+                headers: { Authorization: `Bearer ${token}` },
+                params: { 
+                  page: 1, 
+                  limit: 15, 
+                  search: searchValue 
+                }
+              }
+            );
+
+            console.log('Respuesta de búsqueda:', response.data);
+
+            // Verificar si la respuesta tiene datos
+            if (response.data && response.data.data) {
+              setAllFichas(response.data.data);
+              setPaginationInfo({
+                page: response.data.pagination.paginaActual,
+                totalPages: response.data.pagination.totalPaginas,
+                totalRegistros: response.data.pagination.totalRegistros,
+                registrosPorPagina: 15
+              });
+            } else {
+              // Si no hay datos, mostrar un mensaje o limpiar la lista
+              setAllFichas([]);
+              setPaginationInfo({
+                page: 1,
+                totalPages: 0,
+                totalRegistros: 0,
+                registrosPorPagina: 15
+              });
+            }
+          } catch (error) {
+            console.error('Error buscando fichas:', error.response ? error.response.data : error.message);
+            // Mostrar un mensaje de error al usuario
+            setAllFichas([]);
+          } finally {
+            setLoading(false);
+          }
         }}
-        size="lg"
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Todas las Fichas Clínicas</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3">
-            <InputGroup>
-              <InputGroup.Text>
-                <i className="fas fa-search"></i>
-              </InputGroup.Text>
-              <Form.Control
-                type="text"
-                placeholder="Buscar paciente..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </InputGroup>
-          </Form.Group>
-          <div className="fichas-list">
-            {filteredFichas.map((ficha) => (
-              <div 
-                key={ficha.id}
-                className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
-                onClick={() => {
-                    handleFichaClick(ficha.id, ficha.tipo); // Asegúrate de pasar el tipo
-                    setShowAllFichasModal(false);
-                    setSearchTerm('');
-                }}
-              >
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <i className="fas fa-clipboard-list mr-2"></i>
-                    <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong>
-                  </div>
-                  <small className="text-muted">
-                    {new Date(ficha.fecha).toLocaleDateString('es-CL')}
-                  </small>
+        />
+      </InputGroup>
+    </Form.Group>
+
+    {loading ? (
+      <div className="text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="sr-only">Cargando...</span>
+        </div>
+      </div>
+    ) : (
+      <>
+        <div className="fichas-list">
+          {allFichas.map((ficha) => (
+            <div 
+              key={ficha.id}
+              className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
+              onClick={() => {
+                handleFichaClick(ficha.id, ficha.tipo);
+                setShowAllFichasModal(false);
+                setSearchTerm('');
+              }}
+            >
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <i className="fas fa-clipboard-list mr-2"></i>
+                  <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong>
                 </div>
-                <div className="mt-1 text-muted small">
-                  {ficha.diagnostico}
-                </div>
+                <small className="text-muted">
+                  {new Date(ficha.fecha).toLocaleDateString('es-CL')}
+                </small>
               </div>
-            ))}
-            {filteredFichas.length === 0 && (
-              <div className="alert alert-info text-center">
-                No se encontraron fichas clínicas que coincidan con la búsqueda.
+              <div className="mt-1 text-muted small">
+                {ficha.diagnostico}
               </div>
-            )}
+            </div>
+          ))}
+        </div>
+
+        {paginationInfo.totalPages > 1 && (
+          <div className="d-flex justify-content-center mt-3">
+            <nav>
+              <ul className="pagination">
+                <li className={`page-item ${paginationInfo.page === 1 ? 'disabled' : ''}`}>
+                  <button 
+                    className="page-link" 
+                    onClick={async () => {
+                      if (paginationInfo.page > 1) {
+                        setLoading(true);
+                        try {
+                          const token = getToken();
+                          const apiUrl = process.env.REACT_APP_API_URL;
+                          const institucionId = selectedCentro.split('-')[1];
+                          
+                          const response = await axios.get(
+                            `${apiUrl}/fichas-clinicas/institucion/${institucionId}`,
+                            { 
+                              headers: { Authorization: `Bearer ${token}` },
+                              params: { 
+                                page: paginationInfo.page - 1, 
+                                limit: 15, 
+                                search: searchTerm 
+                              }
+                            }
+                          );
+
+                          setAllFichas(response.data.data);
+                          setPaginationInfo(prev => ({
+                            ...prev,
+                            page: response.data.pagination.paginaActual
+                          }));
+                        } catch (error) {
+                          console.error('Error cargando página:', error);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }
+                    }}
+                  >
+                    Anterior
+                  </button>
+                </li>
+                <li className={`page-item ${paginationInfo.page === paginationInfo.totalPages ? 'disabled' : ''}`}>
+                  <button 
+                    className="page-link" 
+                    onClick={async () => {
+                      if (paginationInfo.page < paginationInfo.totalPages) {
+                        setLoading(true);
+                        try {
+                          const token = getToken();
+                          const apiUrl = process.env.REACT_APP_API_URL;
+                          const institucionId = selectedCentro.split('-')[1];
+                          
+                          const response = await axios.get(
+                            `${apiUrl}/fichas-clinicas/institucion/${institucionId}`,
+                            { 
+                              headers: { Authorization: `Bearer ${token}` },
+                              params: { 
+                                page: paginationInfo.page + 1, 
+                                limit: 15, 
+                                search: searchTerm 
+                              }
+                            }
+                          );
+
+                          setAllFichas(response.data.data);
+                          setPaginationInfo(prev => ({
+                            ...prev,
+                            page: response.data.pagination.paginaActual
+                          }));
+                        } catch (error) {
+                          console.error('Error cargando página:', error);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }
+                    }}
+                  >
+                    Siguiente
+                  </button>
+                </li> </ul>
+            </nav>
           </div>
-        </Modal.Body>
-      </Modal>
+        )}
+      </>
+    )}
+  </Modal.Body>
+</Modal>
     </div>
   );
 };

@@ -72,7 +72,18 @@ export const AuthProvider = ({ children }) => {
             return;
           }
     
-          // Resto del código de inicialización...
+          // Parsear los datos del usuario almacenados
+          const parsedUserData = storedUserData ? JSON.parse(storedUserData) : null;
+    
+          // Establecer el token y los datos del usuario
+          setToken(storedToken);
+          
+          if (parsedUserData) {
+            setUser(parsedUserData);
+          } else {
+            // Si no hay datos de usuario almacenados, intentar obtenerlos
+            fetchUserData(storedToken);
+          }
         } catch (error) {
           console.error('Error al decodificar el token:', error);
           
@@ -91,6 +102,34 @@ export const AuthProvider = ({ children }) => {
         }
       }
       setLoading(false);
+    };
+    
+    // Agregar una función para obtener datos del usuario
+    const fetchUserData = async (token) => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+    
+        const userData = {
+          id: response.data.id,
+          rol_id: response.data.rol_id,
+          nombres: response.data.nombres,
+          estudiante_id: response.data.estudiante_id
+        };
+    
+        // Guardar en storage
+        const storage = localStorage.getItem('accessToken') ? localStorage : sessionStorage;
+        storage.setItem('userData', JSON.stringify(userData));
+    
+        setUser(userData);
+      } catch (error) {
+        console.error('Error al obtener datos del usuario:', error);
+        // Manejar el error, posiblemente limpiar el token y redirigir
+        logout();
+      }
     };
 
     initializeAuth();
@@ -133,18 +172,7 @@ export const AuthProvider = ({ children }) => {
       setError('');      
       return response.data;
     } catch (error) {
-      console.error('Error durante el login:', error);
-      
-      // Mostrar toast de error
-      toast.error('Error de autenticación', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      
+      console.error('Error durante el login:', error);      
       setError('Error de autenticación');
       throw error;
     } finally {
@@ -165,7 +193,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Error durante el logout:', error);
       
-      // Mostrar toast de error
       toast.error('Error al cerrar sesión', {
         position: "top-right",
         autoClose: 3000,
@@ -181,7 +208,6 @@ export const AuthProvider = ({ children }) => {
       setToken(null);
       setUser(null);
       setLoading(false);
-      // Redirigir a la página de inicio de sesión
     }
   };
 

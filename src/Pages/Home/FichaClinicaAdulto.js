@@ -1,12 +1,12 @@
 import React, { useState, useEffect} from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
   const { user, getToken } = useAuth();
   const initialDatosAdulto = {
-    fecha: '',
     nombres: '',
     apellidos: '',
     rut: '',
@@ -27,13 +27,18 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
 
   const [tiposFamilia, setTiposFamilia] = useState([]);
   const [ciclosVitales, setCiclosVitales] = useState([]);
+  const [diagnosticoSeleccionado, setDiagnosticoSeleccionado] = useState([]);
+  const [diagnosticoOtro, setDiagnosticoOtro] = useState('');
   const [tiposFamiliaSeleccionados, setTiposFamiliaSeleccionados] = useState([]);
+  const [tipoFamiliaOtro, setTipoFamiliaOtro] = useState('');
   const [ciclosVitalesSeleccionados, setCiclosVitalesSeleccionados] = useState([]);
   const [factoresRiesgo, setFactoresRiesgo] = useState({
     alcoholDrogas: false,
-    tabaquismo: false
+    tabaquismo: false,
+    otros: ''
   });
 
+  const [diagnosticos, setDiagnosticos] = useState([]);
   const [nivelesEscolaridad, setNivelesEscolaridad] = useState([]);
   const [errores, setErrores] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
@@ -45,7 +50,23 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
     obtenerNivelesEscolaridad();
     obtenerTiposFamilia();
     obtenerCiclosVitales();
+    obtenerDiagnosticos();
   }, []);
+
+  const obtenerDiagnosticos = async () => {
+    try {
+        const token = getToken();
+        const response = await axios.get(
+            `${process.env.REACT_APP_API_URL}/obtener/diagnosticos`,
+            {
+                headers: { Authorization: `Bearer ${token}` }
+            }
+        );
+        setDiagnosticos(response.data);
+    } catch (error) {
+        console.error('Error al obtener diagnósticos:', error);
+    }
+  };
 
   const obtenerNivelesEscolaridad = async () => {
     try {
@@ -92,7 +113,6 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
     }
   };
 
-
   const validarCampo = (nombre, valor) => {
     switch (nombre) {
       case 'nombres':
@@ -130,12 +150,13 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
   const validarFormulario = () => {
     const erroresValidacion = {};
     
-    if (!datosAdulto.fecha) erroresValidacion.fecha = 'La fecha es requerida';
     if (!datosAdulto.nombres) erroresValidacion.nombres = 'Los nombres son requeridos';
     if (!datosAdulto.apellidos) erroresValidacion.apellidos = 'Los apellidos son requeridos';
     if (!datosAdulto.rut) erroresValidacion.rut = 'El RUT es requerido';
     if (!datosAdulto.edad) erroresValidacion.edad = 'La edad es requerida';
-    if (!datosAdulto.diagnostico) erroresValidacion.diagnostico = 'El diagnóstico es requerido';
+    if (!diagnosticoSeleccionado && !diagnosticoOtro) {
+      erroresValidacion.diagnostico = 'Debe seleccionar un diagnóstico o especificar uno personalizado';
+    }
     if (!datosAdulto.escolaridad) erroresValidacion.escolaridad = 'La escolaridad es requerida';
     if (!datosAdulto.telefonoPrincipal) erroresValidacion.telefonoPrincipal = 'El teléfono principal es requerido';
 
@@ -145,6 +166,8 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
 
   const limpiarFormulario = () => {
     setDatosAdulto(initialDatosAdulto);
+    setDiagnosticoSeleccionado('');
+    setDiagnosticoOtro('');
     setTiposFamiliaSeleccionados([]);
     setCiclosVitalesSeleccionados([]);
     setFactoresRiesgo({
@@ -166,7 +189,10 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
     // Crear el objeto de datos que se va a enviar
     const datosParaEnviar = {
       ...datosAdulto,
+      diagnostico_id: diagnosticoSeleccionado !== 'otro' ? diagnosticoSeleccionado : null,
+      diagnostico_otro: diagnosticoSeleccionado === 'otro' ? diagnosticoOtro : null,
       tiposFamilia: tiposFamiliaSeleccionados.map(id => parseInt(id)),
+      tipoFamiliaOtro: tiposFamiliaSeleccionados.includes('Otras') ? tipoFamiliaOtro : null,
       ciclosVitalesFamiliares: ciclosVitalesSeleccionados.map(id => parseInt(id)),
       factoresRiesgo,
       estudiante_id: user.estudiante_id,
@@ -185,24 +211,17 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
       );
   
       if (response.data.success) {
-        setSuccessMessage('Ficha clínica creada exitosamente');
+        toast.success('Ficha clínica creada exitosamente');
         onIngresar(response.data.data);
         limpiarFormulario();
-        // Opcional: limpiar el formulario o redirigir después de un tiempo
         setTimeout(() => {
-          // Aquí puedes limpiar el formulario o redirigir
         }, 3000);
       } else {
         setSubmitError('Error al crear la ficha clínica');
       }
     } catch (error) {
       console.error('Error completo:', error);
-      console.error('Detalles del error:', {
-        mensaje: error.message,
-        respuesta: error.response?.data,
-        estado: error.response?.status
-      });
-      setSubmitError(error.response?.data?.message || 'Error al crear la ficha clínica');
+      toast.error(error.response?.data?.message || 'Error al crear la ficha clínica');
     } finally {
       setIsSubmitting(false);
     }
@@ -210,6 +229,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
 
   return (
     <>
+    <ToastContainer />
       <div className="alert alert-info">
         <strong>Ingreso Programa Telecuidado</strong>
         <p>
@@ -222,22 +242,6 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
       <div className="card mb-4">
         <div className="card-header">Datos Personales</div>
         <div className="card-body">
-          <div className="row">
-            <div className="col-md-4">
-              <div className="form-group">
-                <label>Fecha</label>
-                <input 
-                  type="date" 
-                  className={`form-control ${errores.fecha ? 'is-invalid' : ''}`}
-                  name="fecha"
-                  value={datosAdulto.fecha}
-                  onChange={handleChange}
-                />
-                {errores.fecha && <div className="invalid-feedback">{errores.fecha}</div>}
-              </div>
-            </div>
-          </div>
-
           <div className="row mt-3">
             <div className="col-md-4">
               <div className="form-group">
@@ -302,15 +306,37 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
             <div className="col-md-4">
               <div className="form-group">
                 <label>Diagnóstico</label>
-                <input
-                  type="text"
+                <select
                   className={`form-control ${errores.diagnostico ? 'is-invalid' : ''}`}
-                  name="diagnostico"
-                  value={datosAdulto.diagnostico}
-                  onChange={handleChange}
-                  placeholder="Ingrese diagnóstico"
-                />
+                  value={diagnosticoSeleccionado}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setDiagnosticoSeleccionado(value);
+                    // Si no es "Otras", limpiar el campo de diagnóstico personalizado
+                    if (value !== 'otro') {
+                      setDiagnosticoOtro('');
+                    }
+                  }}
+                >
+                <option value="">Seleccione un diagnóstico</option>
+                  {diagnosticos.map((diagnostico) => (
+                    <option key={diagnostico.id} value={diagnostico.id}>
+                      {diagnostico.nombre}
+                    </option>
+                  ))}
+                  <option value="otro">Otro diagnóstico</option>
+                </select>
                 {errores.diagnostico && <div className="invalid-feedback">{errores.diagnostico}</div>}
+                {/* Campo para diagnóstico personalizado */}
+                {diagnosticoSeleccionado === 'otro' && (
+                  <input
+                    type="text"
+                    className={`form-control mt-2 ${errores.diagnosticoOtro ? 'is-invalid' : ''}`}
+                    value={diagnosticoOtro}
+                    onChange={(e) => setDiagnosticoOtro(e.target.value)}
+                    placeholder="Especifique el diagnóstico"
+                  />
+                )}
               </div>
             </div>
             <div className="col-md-4">
@@ -386,64 +412,62 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
             </div>
             <div className="row">
               <div className="col-md-6">
-                <div className="form-group">
-                  <label>Tipo de familia</label>
-                  <div className="checkbox-group">
+              <div className="form-group">
+                <label>Tipo de familia</label>
+                <select
+                    className={`form-control ${errores.tiposFamilia ? 'is-invalid' : ''}`}
+                    name="tiposFamilia"
+                    value={tiposFamiliaSeleccionados}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === 'Otras') {
+                            setTipoFamiliaOtro('');
+                            setTiposFamiliaSeleccionados(['Otras']);
+                        } else {
+                            setTiposFamiliaSeleccionados([value]);
+                        }
+                    }}
+                >
+                    <option value="">Seleccione...</option>
                     {tiposFamilia.map((tipo) => (
-                      <div key={tipo.id} className="form-check">
-                        <input
-                          type="checkbox"
-                          className="form-check-input"
-                          id={`tipo-${tipo.id}`}
-                          value={tipo.id}
-                          checked={tiposFamiliaSeleccionados.includes(tipo.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setTiposFamiliaSeleccionados([...tiposFamiliaSeleccionados, tipo.id]);
-                            } else {
-                              setTiposFamiliaSeleccionados(
-                                tiposFamiliaSeleccionados.filter(id => id !== tipo.id)
-                              );
-                            }
-                          }}
-                        />
-                        <label className="form-check-label" htmlFor={`tipo-${tipo.id}`}>
-                          {tipo.nombre}
-                        </label>
-                      </div>
+                        <option key={tipo.id} value={tipo.id}>
+                            {tipo.nombre}
+                        </option>
                     ))}
-                  </div>
+                    <option value="Otras">Otras</option>
+                </select>
+                {tiposFamiliaSeleccionados.includes('Otras') && (
+                    <input
+                        type="text"
+                        className="form-control mt-2"
+                        value={tipoFamiliaOtro}
+                        onChange={(e) => setTipoFamiliaOtro(e.target.value)}
+                        placeholder="Especifique otro tipo de familia"
+                    />
+                )}
+
               </div>
             </div>
             <div className="col-md-6">
-              <div className="form-group">
-                <label>Ciclo vital familiar</label>
-                <div className="checkbox-group">
-                  {ciclosVitales.map((ciclo) => (
-                    <div key={ciclo.id} className="form-check">
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        id={`ciclo-${ciclo.id}`}
-                        value={ciclo.id}
-                        checked={ciclosVitalesSeleccionados.includes(ciclo.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setCiclosVitalesSeleccionados([...ciclosVitalesSeleccionados, ciclo.id]);
-                          } else {
-                            setCiclosVitalesSeleccionados(
-                              ciclosVitalesSeleccionados.filter(id => id !== ciclo.id)
-                            );
-                          }
-                        }}
-                      />
-                      <label className="form-check-label" htmlFor={`ciclo-${ciclo.id}`}>
-                        {ciclo.ciclo}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="form-group">
+              <label>Ciclo vital familiar</label>
+              <select
+                className={`form-control ${errores.ciclosVitales ? 'is-invalid' : ''}`}
+                value={ciclosVitalesSeleccionados.length > 0 ? ciclosVitalesSeleccionados[0] : ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setCiclosVitalesSeleccionados([value]); // Actualiza el estado con el ciclo seleccionado
+                }}
+              >
+                <option value="">Seleccione...</option>
+                {ciclosVitales.map((ciclo) => (
+                  <option key={ciclo.id} value={ciclo.id}>
+                    {ciclo.ciclo}
+                  </option>
+                ))}
+              </select>
+              {errores.ciclosVitales && <div className="invalid-feedback">{errores.ciclosVitales}</div>}
+            </div>
             </div>
           </div>
         </div>
@@ -531,28 +555,38 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
       {/* Factores de Riesgo */}
       <div className="card mb-4">
         <div className="card-header">Factores de Riesgo</div>
-        <div className="card-body">
-          <div className="form-check">
-            <input 
-              type="checkbox" 
-              className="form-check-input" 
-              id="alcoholDrogas"
-              checked={factoresRiesgo.alcoholDrogas}
-              onChange={(e) => setFactoresRiesgo({...factoresRiesgo, alcoholDrogas: e.target.checked})}
-            />
-            <label className="form-check-label" htmlFor="alcoholDrogas">Consumo de Alcohol/Drogas</label>
+          <div className="card-body">
+            <div className="form-check">
+              <input 
+                  type="checkbox" 
+                  className="form-check-input" 
+                  id="alcoholDrogas"
+                  checked={factoresRiesgo.alcoholDrogas}
+                  onChange={(e) => setFactoresRiesgo({...factoresRiesgo, alcoholDrogas: e.target.checked})}
+              />
+              <label className="form-check-label" htmlFor="alcoholDrogas">Consumo de Alcohol/Drogas</label>
+            </div>
+            <div className="form-check">
+              <input 
+                  type="checkbox" 
+                  className="form-check-input"
+                  id="tabaquismo"
+                  checked={factoresRiesgo.tabaquismo}
+                  onChange={(e) => setFactoresRiesgo({...factoresRiesgo, tabaquismo: e.target.checked})}
+              />
+              <label className="form-check-label" htmlFor="tabaquismo">Tabaquismo</label>
+            </div>
+            <div className="form-group mt-3">
+              <label>Otros factores de riesgo</label>
+              <input
+                  type="text"
+                  className="form-control"
+                  value={factoresRiesgo.otros}
+                  onChange={(e) => setFactoresRiesgo({...factoresRiesgo, otros: e.target.value})}
+                  placeholder="Especifique otros factores de riesgo"
+              />
+            </div>
           </div>
-          <div className="form-check">
-            <input 
-              type="checkbox" 
-              className="form-check-input"
-              id="tabaquismo"
-              checked={factoresRiesgo.tabaquismo}
-              onChange={(e) => setFactoresRiesgo({...factoresRiesgo, tabaquismo: e.target.checked})}
-            />
-            <label className="form-check-label" htmlFor="tabaquismo">Tabaquismo</label>
-          </div>
-        </div>
       </div>
 
       {submitError && (

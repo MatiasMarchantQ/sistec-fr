@@ -12,7 +12,6 @@ const RestablecerContrasena = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Extraer token de la URL
     const searchParams = new URLSearchParams(location.search);
     const tokenFromUrl = searchParams.get('token');
     
@@ -24,22 +23,26 @@ const RestablecerContrasena = () => {
     }
   }, [location, navigate]);
 
+  const isValidPassword = (password) => {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return regex.test(password);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validaciones
+  
     if (nuevaContrasena !== confirmarContrasena) {
       toast.error('Las contraseñas no coinciden');
       return;
     }
-
-    if (nuevaContrasena.length < 8) {
-      toast.error('La contraseña debe tener al menos 8 caracteres');
+  
+    if (!isValidPassword(nuevaContrasena)) {
+      toast.error('La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial.');
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/auth/restablecer-contrasena`, 
@@ -48,8 +51,10 @@ const RestablecerContrasena = () => {
           nuevaContrasena 
         }
       );
-
+  
       toast.success(response.data.message);
+      setNuevaContrasena('');
+      setConfirmarContrasena('');
       navigate('/login');
     } catch (error) {
       toast.error(
@@ -69,20 +74,23 @@ const RestablecerContrasena = () => {
             <div className="card-body">
               <form onSubmit={handleSubmit}>
                 <div className="form-group">
-                  <label>Nueva Contraseña</label>
+                  <label htmlFor="nuevaContrasena">Nueva Contraseña</label>
                   <input 
                     type="password"
+                    id="nuevaContrasena"
                     className="form-control"
                     value={nuevaContrasena}
                     onChange={(e) => setNuevaContrasena(e.target.value)}
                     required
                     disabled={loading}
                   />
+                  <small className="form-text text-muted">La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial.</small>
                 </div>
                 <div className="form-group">
-                  <label>Confirmar Contraseña</label>
+                  <label htmlFor="confirmarContrasena">Confirmar Contraseña</label>
                   <input 
                     type="password"
+                    id="confirmarContrasena"
                     className="form-control"
                     value={confirmarContrasena}
                     onChange={(e) => setConfirmarContrasena(e.target.value)}

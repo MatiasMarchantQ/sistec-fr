@@ -14,6 +14,7 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [email, setEmail] = useState(''); // Estado para el correo
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [loadingForgotPassword, setLoadingForgotPassword] = useState(false);
   const navigate = useNavigate();
   const { login, loading } = useAuth();
@@ -29,7 +30,22 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Error durante el login:', error);
-      toast.error('Error al iniciar sesión', {
+      
+      // Mapeo de códigos de error
+      const errorMessages = {
+        'USER_NOT_FOUND': 'No se encontró un usuario con este RUT',
+        'INVALID_PASSWORD': 'Contraseña incorrecta',
+        'ACCOUNT_DISABLED': 'Tu cuenta ha sido desactivada',
+        'ACCOUNT_LOCKED': 'Cuenta bloqueada temporalmente',
+        'MISSING_CREDENTIALS': 'Debes ingresar RUT y contraseña',
+        'SERVER_ERROR': 'Error interno del servidor. Intenta nuevamente más tarde',
+        'default': 'Error al iniciar sesión'
+      };
+  
+      const errorCode = error.response?.data?.code || 'default';
+      const errorMessage = errorMessages[errorCode];
+  
+      toast.error(errorMessage, {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -43,30 +59,37 @@ const Login = () => {
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setLoadingForgotPassword(true);
-
+  
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/auth/recuperar-contrasena`, 
         { email }
       );
-
-      if (!response.ok) {
+  
+      // Verifica si el status de la respuesta es 200
+      if (response.status === 200) {
+        toast.success('Si el correo está registrado, se ha enviado un correo para restablecer la contraseña', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+  
+        setShowForgotPassword(false);
+      } else {
         throw new Error('Error al enviar el correo de recuperación');
       }
-
-      toast.success('Se ha enviado un correo para restablecer tu contraseña', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-
-      setShowForgotPassword(false); // Cerrar el modal después de enviar el correo
     } catch (error) {
       console.error('Error al enviar el correo de recuperación:', error);
-      toast.error(error.message || 'Error al enviar el correo de recuperación', {
+      
+      // Capturar mensajes de error específicos del backend
+      const errorMessage = error.response?.data?.error || 
+                           error.response?.data?.message || 
+                           'Error al enviar el correo de recuperación';
+      
+      toast.error(errorMessage, {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -74,7 +97,13 @@ const Login = () => {
         pauseOnHover: true,
         draggable: true,
       });
+    } finally {
+      setLoadingForgotPassword(false);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -83,18 +112,22 @@ const Login = () => {
         <ul className="navbar-nav ml-auto">
           <li className="nav-item">
             <Link to="#" className="nav-link text-white" onClick={() => setShowForgotPassword(true)}>
-              Olvidé mi contraseña
+              Ir a recursos
             </Link>
           </li>
         </ul>
       </nav>
 
       <div className="hold-transition login-page" style={{ 
-        backgroundImage: 'url(/banner_Fac_Salud-UCM-p3fznpdsj07a1jvjynfznq321kfyi5dthrhd9x5mt4.png)', 
-        backgroundSize: 'cover', 
-        position: 'relative', 
+          backgroundImage: `
+          linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
+          url(/banner_Fac_Salud-UCM-p3fznpdsj07a1jvjynfznq321kfyi5dthrhd9x5mt4.png)
+        `,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        position: 'relative',
         height: '100vh',
-        paddingTop: '60px'
+        paddingTop: '60px',
       }}>
         <div className="overlay" />
         <div className="login-box">
@@ -112,7 +145,7 @@ const Login = () => {
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="RUT sin puntos ni guión (ej: 12345678)"
+                    placeholder="RUT sin puntos ni guión"
                     value={rut}
                     onChange={(e) => setRut(e.target.value)}
                     required
@@ -126,7 +159,7 @@ const Login = () => {
                 </div>
                 <div className="input-group mb-3">
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     className="form-control"
                     placeholder="Contraseña"
                     value={password}
@@ -135,8 +168,17 @@ const Login = () => {
                     disabled={loading}
                   />
                   <div className="input-group-append">
-                    <div className="input-group-text">
-                      <span className="fas fa-lock" />
+                    <div 
+                      className="input-group-text" 
+                      style={{ cursor: 'pointer' }} 
+                      onClick={togglePasswordVisibility}
+                    >
+                      {/* Icono que cambia según la visibilidad */}
+                      {showPassword ? (
+                        <span className="fas fa-eye-slash" />
+                      ) : (
+                        <span className="fas fa-eye" />
+                      )}
                     </div>
                   </div>
                 </div>

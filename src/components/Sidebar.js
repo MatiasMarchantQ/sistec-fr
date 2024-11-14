@@ -26,7 +26,7 @@ const Sidebar = ({ setActiveComponent }) => {
       </div>
       <div className="sidebar">
         <nav className="mt-2">
-          <ul className="nav nav-pills nav-sidebar flex-column" role="menu">
+          <ul className="nav nav-sidebar flex-column" role="menu">
             {/* Menú de Agenda */}
             <li className="nav-item">
               <Link 

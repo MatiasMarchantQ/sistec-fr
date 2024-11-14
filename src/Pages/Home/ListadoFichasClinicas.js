@@ -295,7 +295,7 @@ const ListadoFichasClinicas = () => {
                   <td>
                     {esInfantil 
                       ? ficha.diagnostico_dsm 
-                      : ficha.diagnostico
+                      : ficha.diagnostico?.nombre || ficha.diagnostico_otro
                     }
                   </td>
                   <td>
