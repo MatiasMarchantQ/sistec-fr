@@ -60,7 +60,6 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
         const filteredAsignaciones = asignacionesAgrupadas.filter(asignacion => 
           asignacion.estudiante_id === user.estudiante_id // Filtra solo las asignaciones del estudiante autenticado
         );
-        console.log('A',asignaciones);
 
         setAsignaciones(filteredAsignaciones);
       } else {
@@ -119,34 +118,40 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
     });
 };
 
-  const handleVerMasFichas = async (fichas, institucionId) => {
-    console.log(institucionId)
-    setLoading(true);
-    try {
+const handleVerMasFichas = async (fichas, institucionId) => {
+  console.log(institucionId);
+  setLoading(true);
+  try {
       const token = getToken();
       const apiUrl = process.env.REACT_APP_API_URL;
+
+      // Agregar el término de búsqueda a los parámetros
       const response = await axios.get(
-        `${apiUrl}/fichas-clinicas/institucion/${institucionId}`,
-        { 
-          headers: { Authorization: `Bearer ${token}` },
-          params: { page: 1, limit: 15 }
-        }
+          `${apiUrl}/fichas-clinicas/institucion/${institucionId}`,
+          { 
+              headers: { Authorization: `Bearer ${token}` },
+              params: { 
+                  page: 1, 
+                  limit: 15,
+                  search: searchTerm // Agregar el término de búsqueda
+              }
+          }
       );
 
       setAllFichas(response.data.data);
       setPaginationInfo({
-        page: response.data.pagination.paginaActual,
-        totalPages: response.data.pagination.totalPaginas,
-        totalRegistros: response.data.pagination.totalRegistros,
-        registrosPorPagina: 15
+          page: response.data.pagination.paginaActual,
+          totalPages: response.data.pagination.totalPaginas,
+          totalRegistros: response.data.pagination.totalRegistros,
+          registrosPorPagina: 15
       });
       setShowAllFichasModal(true);
-    } catch (error) {
+  } catch (error) {
       console.error('Error al cargar fichas:', error);
-    } finally {
+  } finally {
       setLoading(false);
-    }
-  };
+  }
+};
 
   const handlePrevMonth = () => {
     if (month === 0) {
@@ -240,15 +245,19 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
 
   const filtrarAsignacionesPorMes = (asignaciones) => {
     return asignaciones.filter(rotacion => {
-      const [fechaInicioStr] = rotacion.periodo.split(' al ');
-      const [dia, mes, anio] = fechaInicioStr.split('-');
-      const fechaInicio = new Date(anio, mes - 1, dia);
-      
-      // Crear fecha del mes y año seleccionados
-      const primerDiaMes = new Date(year, month, 1);
-      const ultimoDiaMes = new Date(year, month + 1, 0);
-  
-      return fechaInicio >= primerDiaMes && fechaInicio <= ultimoDiaMes;
+        const [fechaInicioStr, fechaFinStr] = rotacion.periodo.split(' al ');
+        const [diaInicio, mesInicio, anioInicio] = fechaInicioStr.split('-');
+        const [diaFin, mesFin, anioFin] = fechaFinStr.split('-');
+        
+        const fechaInicio = new Date(anioInicio, mesInicio - 1, diaInicio);
+        const fechaFin = new Date(anioFin, mesFin - 1, diaFin);
+        
+        // Crear fecha del mes y año seleccionados
+        const primerDiaMes = new Date(year, month, 1);
+        const ultimoDiaMes = new Date(year, month + 1, 0);
+
+        // Verificar si la asignación se solapa con el mes actual
+        return (fechaInicio <= ultimoDiaMes && fechaFin >= primerDiaMes);
     });
   };
 
@@ -305,8 +314,8 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
               </div>
               
               <div className="timeline-content">
-              {rotacion.instituciones.map((institucion) => {
-              const uniqueId = `${index}-${institucion.id}`;
+              {rotacion.instituciones.map((institucion, institutionIndex) => {
+              const uniqueId = `${index}-${institucion.id}-${institutionIndex}`;
               const isExpanded = selectedCentro === uniqueId;
               
               return (
@@ -327,12 +336,12 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                   </div>
                   
                   <div className="estudiantes-chips">
-                    {institucion.estudiantes.map((estudiante, idx) => (
-                      <span key={idx} className="estudiante-chip">
-                        <i className="fas fa-user-graduate mr-2"></i>
-                        {estudiante}
-                      </span>
-                    ))}
+                  {institucion.estudiantes.map((estudiante, idx) => (
+                    <span key={`${institucion.id}-estudiante-${idx}`} className="estudiante-chip">
+                      <i className="fas fa-user-graduate mr-2"></i>
+                      {estudiante}
+                    </span>
+                  ))}
                   </div>
 
                   {/* Botones que solo son visibles cuando la card no está expandida */}
@@ -375,12 +384,12 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                         </div>
                       ) : institucion.fichasClinicas && institucion.fichasClinicas.length > 0 ? (
                         <div className="fichas-list">
-                          {institucion.fichasClinicas.slice(0, 2).map((ficha) => (
-                            <div 
-                            key={ficha.id}
-                            className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
-                            onClick={() => handleFichaClick(ficha.id, ficha.tipo)} // Asegúrate de pasar el tipo
-                            >
+                          {institucion.fichasClinicas.slice(0, 2).map((ficha, fichaIndex) => (
+                                <div 
+                                  key={`${institucion.id}-ficha-${ficha.id}-${fichaIndex}`}
+                                  className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
+                                  onClick={() => handleFichaClick(ficha.id, ficha.tipo)}
+                                >
                                 <div className="d-flex justify-content-between align-items-center">
                                     <div>
                                         <i className={`fas fa-${ficha.tipo === 'infantil' ? 'baby' : 'user'} mr-2`}></i>
@@ -394,7 +403,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                                     <span className={`badge badge-${ficha.tipo === 'infantil' ? 'info' : 'primary'} mr-2`}>
                                         {ficha.tipo === 'infantil' ? 'Infantil' : 'Adulto'}
                                     </span>
-                                    <span className="text-muted">{ficha.diagnostico}</span>
+                                    <span className="text-muted">{ficha.diagnostico.nombre}</span>
                                 </div>
                             </div>
                           ))}
@@ -474,68 +483,10 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                 </InputGroup.Text>
                 <Form.Control
                   type="text"
-                  placeholder="Buscar paciente..."
+                  placeholder="Buscar por RUT, nombre o apellidos..."
                   value={searchTerm}
-                  onChange={async (e) => {
-          const searchValue = e.target.value;
-          setSearchTerm(searchValue);
-          setLoading(true);
-          
-          try {
-            const token = getToken();
-            const apiUrl = process.env.REACT_APP_API_URL;
-            
-            // Extraer el ID de institución de selectedCentro
-            const institucionId = selectedCentro ? selectedCentro.split('-')[1] : null;
-            
-            if (!institucionId) {
-              console.error('No se encontró ID de institución');
-              setLoading(false);
-              return;
-            }
-            
-            const response = await axios.get(
-              `${apiUrl}/fichas-clinicas/institucion/${institucionId}`,
-              { 
-                headers: { Authorization: `Bearer ${token}` },
-                params: { 
-                  page: 1, 
-                  limit: 15, 
-                  search: searchValue 
-                }
-              }
-            );
-
-            console.log('Respuesta de búsqueda:', response.data);
-
-            // Verificar si la respuesta tiene datos
-            if (response.data && response.data.data) {
-              setAllFichas(response.data.data);
-              setPaginationInfo({
-                page: response.data.pagination.paginaActual,
-                totalPages: response.data.pagination.totalPaginas,
-                totalRegistros: response.data.pagination.totalRegistros,
-                registrosPorPagina: 15
-              });
-            } else {
-              // Si no hay datos, mostrar un mensaje o limpiar la lista
-              setAllFichas([]);
-              setPaginationInfo({
-                page: 1,
-                totalPages: 0,
-                totalRegistros: 0,
-                registrosPorPagina: 15
-              });
-            }
-          } catch (error) {
-            console.error('Error buscando fichas:', error.response ? error.response.data : error.message);
-            // Mostrar un mensaje de error al usuario
-            setAllFichas([]);
-          } finally {
-            setLoading(false);
-          }
-        }}
-        />
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
       </InputGroup>
     </Form.Group>
 
@@ -548,9 +499,9 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
     ) : (
       <>
         <div className="fichas-list">
-          {allFichas.map((ficha) => (
+        {allFichas.map((ficha, index) => (
             <div 
-              key={ficha.id}
+              key={`ficha-${ficha.id}-${index}`}
               className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
               onClick={() => {
                 handleFichaClick(ficha.id, ficha.tipo);
@@ -568,8 +519,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                 </small>
               </div>
               <div className="mt-1 text-muted small">
-                {ficha.diagnostico}
-              </div>
+                  {ficha.diagnostico ? ficha.diagnostico.nombre : ficha.diagnostico_otro || 'Sin diagnóstico'}              </div>
             </div>
           ))}
         </div>
