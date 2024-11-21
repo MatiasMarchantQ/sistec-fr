@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Form, Button } from 'react-bootstrap';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -11,6 +12,44 @@ const PrimerLlamado = ({
   disabled,
   paciente
 }) => {  
+  const { user } = useAuth();
+  console.log('2',user);
+
+  const preguntasAutoeficacia = [
+    { 
+      label: "¿Qué tan seguro(a) se siente Ud. de poder comer sus alimentos cada 4 ó 5 horas todos los días?", 
+      key: "comerCada4Horas" 
+    },
+    { 
+      label: "¿Qué tan seguro(a) se siente de continuar su dieta cuando tiene que preparar o compartir alimentos con personas que no tienen diabetes?", 
+      key: "continuarDieta" 
+    },
+    { 
+      label: "¿Qué tan seguro(a) se siente de poder escoger los alimentos apropiados para comer cuando tiene hambre?", 
+      key: "escogerAlimentos" 
+    },
+    { 
+      label: "¿Qué tan seguro(a) se siente de poder hacer ejercicios de 15 a 30 minutos, unas 4 o 5 veces por semana?", 
+      key: "hacerEjercicio" 
+    },
+    { 
+      label: "¿Qué tan seguro(a) se siente de poder hacer algo para prevenir que su nivel de azúcar en la sangre disminuya cuando hace ejercicios?", 
+      key: "prevenirBajaAzucar" 
+    },
+    { 
+      label: "¿Qué tan seguro(a) se siente de poder saber qué hacer cuando su nivel de azúcar en la sangre sube o baja más de lo normal para usted?", 
+      key: "saberQueHacer" 
+    },
+    { 
+      label: "¿Qué tan seguro(a) se siente de poder evaluar cuando los cambios en su enfermedad significan que usted debe visitar a su médico?", 
+      key: "evaluarCambios" 
+    },
+    { 
+      label: "¿Qué tan seguro(a) se siente de poder controlar su diabetes para que no interfiera con las cosas que quiere hacer?", 
+      key: "controlarDiabetes" 
+    }
+  ];
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -39,6 +78,10 @@ const PrimerLlamado = ({
       {
         condicion: seguimiento.adherencia.olvido === undefined,
         mensaje: 'Debe completar el Test Morisky-Green'
+      },
+      {
+        condicion: !seguimiento.autoeficacia,
+        mensaje: 'Debe completar la evaluación de autoeficacia'
       }
     ];
 
@@ -49,8 +92,16 @@ const PrimerLlamado = ({
       return;
     }
 
+    const dataToSubmit = {
+      ...seguimiento,
+      estudiante_id: user.estudiante_id || null, // Esto debería ser null
+      usuario_id: user.id || null // Esto debería ser 1
+    };
+  
+    console.log('Data a enviar:', dataToSubmit); // Verifica que esto contenga el usuario_id correcto
+  
     // Si pasa validaciones, llamar a la función de completar
-    onComplete();
+    onComplete(dataToSubmit);
   };
 
   const renderContent = () => {
@@ -655,9 +706,44 @@ const PrimerLlamado = ({
           )}
         </Form.Group>
 
+            <h5>Evaluación de Autoeficacia en Diabetes Tipo 2</h5>
+            <p>En las siguientes preguntas nos gustaría saber qué piensa Ud. de sus habilidades para controlar su enfermedad. Por favor marque el número que mejor corresponda a su nivel de seguridad de que puede realizar en este momento las siguientes tareas.</p>
+    
+            {preguntasAutoeficacia.map((pregunta, index) => (
+              <Form.Group key={index} className="mb-3">
+                <Form.Label>{pregunta.label}</Form.Label>
+                <div className="d-flex align-items-center">
+                  <span className="mr-2">Muy inseguro(a)</span>
+                  <Form.Control 
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={seguimiento.autoeficacia[pregunta.key] || 1}
+                    onChange={(e) => setSeguimiento(prev => ({
+                      ...prev,
+                      autoeficacia: {
+                        ...prev.autoeficacia,
+                        [pregunta.key]: parseInt(e.target.value)
+                      }
+                    }))}
+                  />
+                  <span className="ml-2">Seguro(a)</span>
+                </div>
+                <div className="text-center">{seguimiento.autoeficacia[pregunta.key]}</div>
+              </Form.Group>
+            ))}
+
         <h6>Para finalizar este llamado, recuerde registrar todos los síntomas, dudas y/o comentarios que presente. Además, respete las indicaciones de su médico y del equipo de salud. Muchas gracias por su colaboración, ¡Hasta pronto!</h6>
       </div>
     );
+  };
+
+  const getFormattedDate = () => {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Meses son 0-11
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const exportarPDF = () => {
@@ -697,7 +783,7 @@ const PrimerLlamado = ({
         pdf.addImage(imgData, 'PNG', 5, yPositionForImage, imgWidth, imgHeight);
 
         // Guardar el PDF
-        pdf.save(`${paciente.rut}_1.pdf`);
+        pdf.save(`${paciente.rut}_${getFormattedDate()}_1.pdf`);
     });
 };
 
@@ -708,9 +794,9 @@ const PrimerLlamado = ({
           {renderContent()}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
             <Button type="submit" disabled={disabled}>Guardar</Button>
-            {seguimiento.riesgoInfeccion.herida && (
-              <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
-            )}
+            {seguimiento.riesgoInfeccion.herida || seguimiento.efectosSecundarios.malestar  ? (
+                <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
+            ) : null}
           </div>
         </Form>
       </Card.Body>

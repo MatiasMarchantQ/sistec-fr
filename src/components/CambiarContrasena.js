@@ -36,8 +36,6 @@ const CambiarContrasena = () => {
         }
       );
   
-      console.log('Respuesta del servidor:', response);
-  
       // Actualizar el almacenamiento local
       const storage = localStorage.getItem('accessToken') ? localStorage : sessionStorage;
       let userData = JSON.parse(storage.getItem('userData') || '{}');
@@ -46,8 +44,13 @@ const CambiarContrasena = () => {
         debe_cambiar_contrasena: false
       };
       storage.setItem('userData', JSON.stringify(userData));
+
+      // Limpiar localStorage y sessionStorage
+      localStorage.clear();
+      sessionStorage.clear();
+
   
-      navigate('/home');
+      navigate('/');
     } catch (error) {
       console.error('Error completo:', error);
       setError(

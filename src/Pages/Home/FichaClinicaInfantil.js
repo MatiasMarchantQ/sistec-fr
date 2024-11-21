@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'react-toastify';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -10,6 +11,9 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
         apellidos: '',
         rut: '',
         edad: '',
+        edadAnios: '',
+        edadMeses: '',
+        edadDias: '',
         telefonoPrincipal: '',
         telefonoSecundario: ''
     });
@@ -98,7 +102,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
 
           } catch (error) {
               console.error("Error al cargar datos:", error);
-              setSubmitError("Error al cargar los datos iniciales");
+              toast.error("Error al cargar los datos iniciales");
           }
       };
 
@@ -121,10 +125,10 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
     if (!datosNino.nombres) erroresValidacion.nombres = 'Los nombres son requeridos';
     if (!datosNino.apellidos) erroresValidacion.apellidos = 'Los apellidos son requeridos';
     if (!datosNino.rut) erroresValidacion.rut = 'El RUT es requerido';
-    if (!datosNino.edad) erroresValidacion.edad = 'La edad es requerida';
     if (!datosNino.telefonoPrincipal) erroresValidacion.telefonoPrincipal = 'El teléfono principal es requerido';
   
     setErrores(erroresValidacion);
+    console.log("Validation errors:", erroresValidacion);
     return Object.keys(erroresValidacion).length === 0;
   };
 
@@ -155,21 +159,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
     }));
   };
 
-  const factoresRiesgoNinoArray = Object.entries(factoresRiesgoNino)
-  .filter(([_, value]) => value)
-  .map(([key]) => key);
-
-  const factoresRiesgoFamiliaresArray = Object.entries(factoresRiesgoFamiliares)
-    .filter(([key, value]) => value && key !== 'otras')
-    .map(([key]) => key);
-
-  if (factoresRiesgoFamiliares.otras) {
-    factoresRiesgoFamiliaresArray.push({
-      tipo: 'otras',
-      descripcion: factoresRiesgoFamiliares.otras
-    });
-  }
-
   const handleSubmit = async () => {
     if (!validarFormulario()) {
       return;
@@ -178,13 +167,27 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
     setIsSubmitting(true);
     setSubmitError('');
     setSuccessMessage('');
+
+    // Construir la cadena de edad
+    let edad = '';
+    if (datosNino.edadAnios) {
+        edad += `${datosNino.edadAnios} años`;
+    }
+    if (datosNino.edadMeses) {
+        if (edad) edad += ', '; // Añadir coma si ya hay años
+        edad += `${datosNino.edadMeses} meses`;
+    }
+    if (datosNino.edadDias) {
+        if (edad) edad += ', '; // Añadir coma si ya hay años o meses
+        edad += `${datosNino.edadDias} días`;
+    }
   
     const datosParaEnviar = {
       fechaNacimiento: datosNino.fechaNacimiento,
       nombres: datosNino.nombres,
       apellidos: datosNino.apellidos,
       rut: datosNino.rut,
-      edad: datosNino.edad,
+      edad,
       telefonoPrincipal: datosNino.telefonoPrincipal,
       telefonoSecundario: datosNino.telefonoSecundario,
       puntajeDPM,
@@ -192,18 +195,20 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
       padres,
       conQuienVive,
       tipoFamilia,
+      tipoFamiliaOtro: tipoFamilia === 'Otras' ? otraTipoFamilia : '',
       cicloVitalFamiliar,
       localidad,
       factoresRiesgoNino: Object.keys(factoresRiesgoNino).filter(key => factoresRiesgoNino[key]),
       factoresRiesgoFamiliares: Object.keys(factoresRiesgoFamiliares)
-        .filter(key => factoresRiesgoFamiliares[key] && key !== 'otras'),
-      otrosFactoresRiesgoFamiliares: factoresRiesgoFamiliares.otras,
+            .filter(key => factoresRiesgoFamiliares[key] && key !== 'otras'),
+        otrosFactoresRiesgoFamiliares: factoresRiesgoFamiliares.otras || '',
       estudiante_id: user.estudiante_id,
       usuario_id: user.id,
       institucion_id: institucionId
     };
   
     try {
+      console.log("Datos a enviar:", datosParaEnviar);
       const token = getToken();
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/fichas-clinicas/infantil`,
@@ -214,7 +219,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
       );
   
       if (response.data.success) {
-        setSuccessMessage('Ficha clínica infantil creada exitosamente');
+        toast.success('Ficha clínica infantil creada exitosamente');
         onIngresar(response.data.data);
         // Limpiar el formulario
         setDatosNino({
@@ -222,7 +227,9 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
           nombres: '',
           apellidos: '',
           rut: '',
-          edad: '',
+          edadAnios: '',
+          edadMeses: '',
+          edadDias: '',
           telefonoPrincipal: '',
           telefonoSecundario: ''
         });
@@ -265,11 +272,11 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
         setSuccessMessage('Ficha clínica infantil creada exitosamente');
         onIngresar(response.data.data);
       } else {
-        setSubmitError('Error al crear la ficha clínica infantil');
+        toast.error('Error al crear la ficha clínica infantil');
       }
     } catch (error) {
       console.error('Error al crear la ficha clínica infantil:', error);
-      setSubmitError(error.response?.data?.message || 'Error al crear la ficha clínica infantil');
+      toast.error(error.response?.data?.message || 'Error al crear la ficha clínica infantil');
     } finally {
       setIsSubmitting(false);
     }
@@ -298,7 +305,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
                   type="date" 
                   className="form-control" 
                   name="fechaNacimiento"
-                  value={datosNino .fechaNacimiento}
+                  value={datosNino.fechaNacimiento}
                   onChange={handleChange}
                 />
               </div>
@@ -342,7 +349,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
                   className="form-control" 
                   value={datosNino.rut}
                   onChange={handleChange}
-                  placeholder="Ej: 12.345.678-9" 
+                  placeholder="Ej: 12345678-9" 
                 />
               </div>
             </div>
@@ -352,24 +359,95 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
           <div className="col-md-4">
               <div className="form-group">
                 <label>Edad</label>
-                <select 
-                  name="edad"
-                  className="form-control"
-                  value={datosNino.edad}
-                  onChange={handleChange}
-                >
-                  <option value="">Seleccione...</option>
-                  <option value="4 - 5 meses">4 - 5 meses</option>
-                  <option value="6 - 7 meses">6 - 7 meses</option>
-                  <option value="8 - 9 meses">8 - 9 meses</option>
-                  <option value="10 - 11 meses">10 - 11 meses</option>
-                  <option value="12 a 14 meses">12 a 14 meses</option>
-                  <option value="15 a 17 meses">15 a 17 meses</option>
-                  <option value="18 a 23 meses">18 a 23 meses</option>
-                  <option value="2 años">2 años</option>
-                  <option value="3 años">3 años</option>
-                  <option value="4 años">4 años</option>
-                </select>
+                <div className="row">
+                  <div className="col-md-4">
+                    <div className="form-group">
+                      <input
+                        type="number"
+                        name="edadAnios"
+                        className={`form-control ${
+                          datosNino.edadAnios > 5 ? 'is-invalid' : ''
+                        }`}
+                        placeholder="Años"
+                        value={datosNino.edadAnios || ''}
+                        onInput={(e) => {
+                          const valor = Math.abs(parseInt(e.target.value) || 0);
+                          
+                          // Permite escribir y valida
+                          setDatosNino({
+                            ...datosNino,
+                            edadAnios: valor > 5 ? 5 : valor
+                          });
+                        }}
+                        min="0"
+                        max="5"
+                      />
+                      {datosNino.edadAnios > 5 && (
+                        <div className="invalid-feedback">
+                          La edad no puede superar los 5 años
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="form-group">
+                      <input
+                        type="number"
+                        name="edadMeses"
+                        className={`form-control ${
+                          datosNino.edadMeses > 12 ? 'is-invalid' : ''
+                        }`}
+                        placeholder="Meses"
+                        value={datosNino.edadMeses || ''}
+                        onInput={(e) => {
+                          const valor = Math.abs(parseInt(e.target.value) || 0);
+                          
+                          // Permite escribir y valida
+                          setDatosNino({
+                            ...datosNino,
+                            edadMeses: valor > 12 ? 12 : valor
+                          });
+                        }}
+                        min="0"
+                        max="12"
+                      />
+                      {datosNino.edadMeses > 12 && (
+                        <div className="invalid-feedback">
+                          Los meses no pueden superar 12
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="form-group">
+                      <input
+                        type="number"
+                        name="edadDias"
+                        className={`form-control ${
+                          datosNino.edadDias > 31 ? 'is-invalid' : ''
+                        }`}
+                        placeholder="Días"
+                        value={datosNino.edadDias || ''}
+                        onInput={(e) => {
+                          const valor = Math.abs(parseInt(e.target.value) || 0);
+                          
+                          // Permite escribir y valida
+                          setDatosNino({
+                            ...datosNino,
+                            edadDias: valor > 31 ? 31 : valor
+                          });
+                        }}
+                        min="0"
+                        max="31"
+                      />
+                      {datosNino.edadDias > 31 && (
+                        <div className="invalid-feedback">
+                          Los días no pueden superar 31
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="col-md-4">
@@ -381,7 +459,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
                   className="form-control" 
                   value={datosNino.telefonoPrincipal}
                   onChange={handleChange}
-                  placeholder="+56 9 1234 5678" 
+                  placeholder="9 1234 5678" 
                 />
               </div>
             </div>
@@ -394,7 +472,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
                   className="form-control" 
                   value={datosNino.telefonoSecundario}
                   onChange={handleChange}
-                  placeholder="+56 9 8765 4321" 
+                  placeholder="9 8765 4321" 
                 />
               </div>
             </div>
@@ -556,6 +634,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
                   {tiposFamilia.map(tipo => (
                     <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>
                   ))}
+                  <option value="Otras">Otras</option>
                 </select>
               </div>
               {tipoFamilia === 'Otras' && (
@@ -587,18 +666,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
                   ))}
                 </select>
               </div>
-              {/* {cicloVitalFamiliar === 'Otra' && (
-                <div className="form-group">
-                  <label>Especifique</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    value={otraCicloVital}
-                    onChange={(e) => setOtraCicloVital(e.target.value)}
-                    placeholder="Especifique el ciclo vital familiar"
-                  />
-                </div>
-              )} */}
             </div>
             <div className="col-md-6">
               <div className="form-group">
@@ -641,7 +708,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
           </div>
 
           <h5>Factores de Riesgo Familiar</h5>
-          <div className="row">
+          <div className="row mb-3 pl-2">
             {factoresRiesgoFamiliaresDisponibles.map(factor => (
               factor.nombre !== 'Otras' ? (
                 <div className="col-md-3" key={factor.id}>
@@ -699,15 +766,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
           Volver
         </button>
       </div>
-      {successMessage && (
-        <div className="alert alert-success alert-dismissible fade show" role="alert">
-          <strong><i className="icon fas fa-check"></i> ¡Éxito!</strong> {successMessage}
-          <button type="button" className="close" data-dismiss="alert" aria-label="Close" onClick={() => setSuccessMessage('')}>
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-      )}
-
       {submitError && (
         <div className="alert alert-danger alert-dismissible fade show" role="alert">
           <strong><i className="icon fas fa-ban"></i> Error:</strong> {submitError}

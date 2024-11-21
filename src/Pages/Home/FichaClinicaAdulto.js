@@ -29,9 +29,9 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
   const [ciclosVitales, setCiclosVitales] = useState([]);
   const [diagnosticoSeleccionado, setDiagnosticoSeleccionado] = useState([]);
   const [diagnosticoOtro, setDiagnosticoOtro] = useState('');
-  const [tiposFamiliaSeleccionados, setTiposFamiliaSeleccionados] = useState([]);
+  const [tiposFamiliaSeleccionados, setTiposFamiliaSeleccionados] = useState('');
   const [tipoFamiliaOtro, setTipoFamiliaOtro] = useState('');
-  const [ciclosVitalesSeleccionados, setCiclosVitalesSeleccionados] = useState([]);
+  const [cicloVitalSeleccionado, setCicloVitalSeleccionado] = useState(null);
   const [factoresRiesgo, setFactoresRiesgo] = useState({
     alcoholDrogas: false,
     tabaquismo: false,
@@ -169,7 +169,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
     setDiagnosticoSeleccionado('');
     setDiagnosticoOtro('');
     setTiposFamiliaSeleccionados([]);
-    setCiclosVitalesSeleccionados([]);
+    setCicloVitalSeleccionado('');
     setFactoresRiesgo({
       alcoholDrogas: false,
       tabaquismo: false
@@ -193,7 +193,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
       diagnostico_otro: diagnosticoSeleccionado === 'otro' ? diagnosticoOtro : null,
       tiposFamilia: tiposFamiliaSeleccionados.map(id => parseInt(id)),
       tipoFamiliaOtro: tiposFamiliaSeleccionados.includes('Otras') ? tipoFamiliaOtro : null,
-      ciclosVitalesFamiliares: ciclosVitalesSeleccionados.map(id => parseInt(id)),
+      ciclo_vital_familiar_id: cicloVitalSeleccionado,
       factoresRiesgo,
       estudiante_id: user.estudiante_id,
       usuario_id: user.id,
@@ -290,18 +290,41 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
 
           <div className="row mt-3">
             <div className="col-md-4">
-              <div className="form-group">
-                <label>Edad</label>
-                <input
-                  type="number"
-                  className={`form-control ${errores.edad ? 'is-invalid' : ''}`}
-                  name="edad"
-                  value={datosAdulto.edad}
-                  onChange={handleChange}
-                  placeholder="Ingrese edad"
-                />
-                {errores.edad && <div className="invalid-feedback">{errores.edad}</div>}
-              </div>
+            <div className="form-group">
+  <label>Edad</label>
+  <input
+    type="number"
+    className={`form-control ${errores.edad ? 'is-invalid' : ''}`}
+    name="edad"
+    value={datosAdulto.edad}
+    onInput={(e) => {
+      const valor = e.target.value;
+      
+      // Permite escribir libremente
+      handleChange(e);
+      
+      // Validación posterior
+      const numero = parseInt(valor);
+      if (!isNaN(numero) && (numero < 18 || numero > 120)) {
+        // Si está fuera del rango, marca el error
+        setErrores(erroresAnteriores => ({
+          ...erroresAnteriores,
+          edad: 'La edad debe estar entre 18 y 120 años'
+        }));
+      } else {
+        // Limpia el error si está en el rango
+        setErrores(erroresAnteriores => ({
+          ...erroresAnteriores,
+          edad: ''
+        }));
+      }
+    }}
+    min="18"
+    max="120"
+    placeholder="Ingrese edad"
+  />
+  {errores.edad && <div className="invalid-feedback">{errores.edad}</div>}
+</div>
             </div>
             <div className="col-md-4">
               <div className="form-group">
@@ -319,12 +342,16 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
                   }}
                 >
                 <option value="">Seleccione un diagnóstico</option>
-                  {diagnosticos.map((diagnostico) => (
-                    <option key={diagnostico.id} value={diagnostico.id}>
-                      {diagnostico.nombre}
-                    </option>
-                  ))}
-                  <option value="otro">Otro diagnóstico</option>
+                {console.log('Diagnósticos:', diagnosticos)}
+                {diagnosticos.map((diagnostico, index) => (
+                  <option 
+                    key={`${diagnostico.id}-${index}`}
+                    value={diagnostico.id}
+                  >
+                    {diagnostico.nombre}
+                  </option>
+                ))}
+                <option value="otro">Otro diagnóstico</option>
                 </select>
                 {errores.diagnostico && <div className="invalid-feedback">{errores.diagnostico}</div>}
                 {/* Campo para diagnóstico personalizado */}
@@ -349,8 +376,11 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
                   onChange={handleChange}
                 >
                   <option value="">Seleccione...</option>
-                  {nivelesEscolaridad.map((nivel) => (
-                    <option key={nivel.id} value={nivel.id}>
+                  {nivelesEscolaridad.map((nivel,index) => (
+                    <option 
+                      key={`${nivel.id}-${index}`}
+                      value={nivel.id}
+                    >
                       {nivel.nivel}
                     </option>
                   ))}
@@ -429,10 +459,13 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
                     }}
                 >
                     <option value="">Seleccione...</option>
-                    {tiposFamilia.map((tipo) => (
-                        <option key={tipo.id} value={tipo.id}>
-                            {tipo.nombre}
-                        </option>
+                    {tiposFamilia.map((tipo, index) => (
+                      <option 
+                        key={`${tipo.id}-${index}`}
+                        value={tipo.id}
+                      >
+                        {tipo.nombre}
+                      </option>
                     ))}
                     <option value="Otras">Otras</option>
                 </select>
@@ -453,15 +486,18 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
               <label>Ciclo vital familiar</label>
               <select
                 className={`form-control ${errores.ciclosVitales ? 'is-invalid' : ''}`}
-                value={ciclosVitalesSeleccionados.length > 0 ? ciclosVitalesSeleccionados[0] : ''}
+                value={cicloVitalSeleccionado || ''} // Usa el ID directamente
                 onChange={(e) => {
                   const value = e.target.value;
-                  setCiclosVitalesSeleccionados([value]); // Actualiza el estado con el ciclo seleccionado
+                  setCicloVitalSeleccionado(value); // Actualiza el estado con el ciclo seleccionado
                 }}
               >
                 <option value="">Seleccione...</option>
-                {ciclosVitales.map((ciclo) => (
-                  <option key={ciclo.id} value={ciclo.id}>
+                {ciclosVitales.map((ciclo, index) => (
+                  <option 
+                    key={`${ciclo.id}-${index}`}
+                    value={ciclo.id}
+                  >
                     {ciclo.ciclo}
                   </option>
                 ))}
@@ -577,13 +613,13 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
               <label className="form-check-label" htmlFor="tabaquismo">Tabaquismo</label>
             </div>
             <div className="form-group mt-3">
-              <label>Otros factores de riesgo</label>
+              <label>Especifique el tipo de consumo</label>
               <input
                   type="text"
                   className="form-control"
                   value={factoresRiesgo.otros}
                   onChange={(e) => setFactoresRiesgo({...factoresRiesgo, otros: e.target.value})}
-                  placeholder="Especifique otros factores de riesgo"
+                  placeholder="Ejemplo: cerveza, marihuana, cigarrillo, etc."
               />
             </div>
           </div>

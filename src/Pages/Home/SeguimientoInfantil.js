@@ -204,7 +204,7 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
   const pacienteIdValor = pacienteId.pacienteId || pacienteId;
   const fichaIdValor = fichaId.fichaId || fichaId;
 
-  const { getToken } = useAuth();
+  const { getToken, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -229,6 +229,17 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
 
   const [seguimientosAnteriores, setSeguimientosAnteriores] = useState([]);
   const [selectedSeguimiento, setSelectedSeguimiento] = useState(null);
+  const [showResponsableModal, setShowResponsableModal] = useState(false);
+  const [responsableData, setResponsableData] = useState(null);
+
+  const handleShowResponsable = (seguimiento) => {
+    if (seguimiento.usuario) {
+      setResponsableData(seguimiento.usuario);
+    } else if (seguimiento.estudiante) {
+      setResponsableData(seguimiento.estudiante);
+    }
+    setShowResponsableModal(true);
+  };
 
   const generarRecomendaciones = (grupoEdad) => {
     // Mapeo de rangos de edad para encontrar las recomendaciones correctas
@@ -340,10 +351,16 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
   const guardarSeguimiento = async () => {
     try {
       const token = getToken();
+      
+      // Contar seguimientos anteriores para generar el número de llamado
+      const seguimientosAnterioresCount = seguimientosAnteriores.length;
+      const nuevoNumeroDeLlamado = seguimientosAnterioresCount + 1;
+  
       const seguimientoParaEnviar = {
         pacienteId: pacienteIdValor,
         fecha: seguimiento.fecha,
         grupoEdad: seguimiento.grupoEdad,
+        numero_llamado: nuevoNumeroDeLlamado, // Añadir número de llamado
         areaDPM: {
           motorGrueso: seguimiento.areaDPM.motorGrueso ? 1 : 0,
           motorFino: seguimiento.areaDPM.motorFino ? 1 : 0,
@@ -351,7 +368,9 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
           cognoscitivo: seguimiento.areaDPM.cognoscitivo ? 1 : 0,
           socioemocional: seguimiento.areaDPM.socioemocional ? 1 : 0
         },
-        tipo_paciente: 'infantil'
+        tipo_paciente: 'infantil',
+        usuario_id: user.id, 
+        estudiante_id: user.estudiante_id
       };
   
       const response = await axios.post(
@@ -360,12 +379,36 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      alert('Seguimiento guardado correctamente');
-      setSeguimientosAnteriores(prev => [...prev, {
+      // Añadir el nuevo seguimiento a la lista
+      const nuevoSeguimiento = {
         ...response.data,
-        // Generar recomendaciones en el cliente
-        recomendaciones: seguimiento.recomendaciones
-      }]);
+        numero_llamado: nuevoNumeroDeLlamado,
+        recomendaciones: seguimientoParaEnviar.recomendaciones
+      };
+  
+      setSeguimientosAnteriores(prev => [...prev, nuevoSeguimiento]);
+      
+      // Opcional: Reiniciar el estado de seguimiento
+      setSeguimiento({
+        fecha: new Date().toISOString().split('T')[0],
+        pacienteId: pacienteId,
+        grupoEdad: '4-5 meses',
+        areaDPM: {
+          motorGrueso: null,
+          motorFino: null,
+          cognoscitivo: null,
+          comunicacion: null,
+          socioemocional: null
+        },
+        recomendaciones: {
+          areaMotora: '',
+          areaLenguaje: '',
+          areaSocioemocional: '',
+          areaCognitiva: ''
+        }
+      });
+  
+      alert('Seguimiento guardado correctamente');
     } catch (error) {
       console.error('Error al guardar seguimiento', error);
       alert(`Error: ${error.response?.data?.message || error.message}`);
@@ -429,12 +472,21 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
     if (!hitosGrupo) {
       return <div>No hay hitos disponibles para este grupo de edad</div>;
     }
+
+    // Mapeo de nombres de áreas
+    const nombresAreas = {
+      motorGrueso: 'Motor Grueso',
+      motorFino: 'Motor Fino',
+      cognoscitivo: 'Cognoscitivo',
+      comunicacion: 'Comunicación',
+      socioemocional: 'Socioemocional'
+    };
     
     return (
       <Accordion>
         {Object.entries(hitosGrupo).map(([area, hitos], index) => (
           <Accordion.Item key={index} eventKey={index.toString()}>
-            <Accordion.Header>{area}</Accordion.Header>
+            <Accordion.Header>{nombresAreas[area]}</Accordion.Header>
             <Accordion.Body>
               <Form>
                 {hitos.map((hito, hitoIndex) => (
@@ -624,6 +676,7 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
           <Table striped bordered>
             <thead>
               <tr>
+                <th>N°</th>
                 <th>Fecha</th>
                 <th>Nombre completo</th>
                 <th>Edad</th>
@@ -654,12 +707,19 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
                       >
                         Ver Detalles
                       </Button>
+                      <Button 
+                        variant="secondary" 
+                        onClick={() => handleShowResponsable(seguimiento)}
+                        style={{ marginLeft: '10px' }}
+                      >
+                        Responsable de la llamada
+                      </Button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="3" className="text-center">
+                  <td colSpan="5" className="text-center">
                     No hay seguimientos anteriores
                   </td>
                 </tr>
@@ -668,6 +728,32 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
           </Table>
         </Card.Body>
       </Card>
+
+      {/* Modal para mostrar información del responsable */}
+      <Modal 
+        show={showResponsableModal} 
+        onHide={() => setShowResponsableModal(false)}
+        size ="lg"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Información del Responsable</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {responsableData ? (
+            <Card>
+              <Card.Header>Datos del Responsable</Card.Header>
+              <Card.Body>
+                <p><strong>Nombres:</strong> {responsableData.nombres}</p>
+                <p><strong>Apellidos:</strong> {responsableData.apellidos}</p>
+                <p><strong>RUT:</strong> {responsableData.rut}</p>
+                <p><strong>Correo:</strong> {responsableData.correo}</p>
+              </Card.Body>
+            </Card>
+          ) : (
+            <p>No se encontró información del responsable.</p>
+          )}
+        </Modal.Body>
+      </Modal>
 
       <Modal 
         show={!!selectedSeguimiento} 

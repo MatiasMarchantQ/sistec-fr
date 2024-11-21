@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Form, Button, Card, Table, Modal, InputGroup, Pagination } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Card, Table, Modal, InputGroup, Pagination, Dropdown } from 'react-bootstrap';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import './Estudiantes.css';
 
@@ -16,6 +17,9 @@ const Estudiantes = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
+  const [selectedEstudiante, setSelectedEstudiante] = useState(null);
+  const [cambioContrasenaModal, setCambioContrasenaModal] = useState(false);
+  const [nuevaContrasena, setNuevaContrasena] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [nuevoEstudiante, setNuevoEstudiante] = useState({
     nombres: '',
@@ -173,6 +177,41 @@ const Estudiantes = () => {
       }
     });
   };
+
+  const enviarCredencialesMasivoPorAno = async () => {
+    try {
+      const token = getToken();
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/estudiantes/enviar-credenciales-masivo`,
+        { ano_cursado: ano }, // Usar el año del filtro actual
+        {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json' 
+          }
+        }
+      );
+  
+      // Mostrar resumen de envío
+      const { total_procesados, exitosos, fallidos, resultados, errores } = response.data;
+  
+      // Usar toast para notificaciones
+      toast.success(`Envío de credenciales completado. 
+        Total procesados: ${total_procesados}, 
+        Exitosos: ${exitosos}, 
+        Fallidos: ${fallidos}`);
+  
+      // Si hay errores, mostrar en consola o en un modal
+      if (errores && errores.length > 0) {
+        console.error('Errores en envío masivo:', errores);
+        toast.warn('Algunos correos no pudieron ser enviados');
+      }
+  
+    } catch (error) {
+      console.error('Error al enviar credenciales masivamente:', error);
+      toast.error('No se pudieron enviar las credenciales masivamente');
+    }
+  };
   
   const aplicarEdicionMasiva = async () => {
     try {
@@ -234,6 +273,52 @@ const Estudiantes = () => {
       estadoFiltro !== 'activos' || // Verifica si el estado no es "activos"
       searchTerm !== '' // Verifica si hay un término de búsqueda
     );
+  };
+
+  // Nueva función para manejar el envío individual de credenciales
+  const enviarCredencialIndividual = async (estudiante) => {
+    try {
+      const token = getToken();
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/estudiantes/${estudiante.id}/enviar-credencial`,
+        {},
+        {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json' 
+          }
+        }
+      );
+
+      toast.success(`Credenciales enviadas a ${estudiante.nombres} ${estudiante.apellidos}`);
+    } catch (error) {
+      console.error('Error al enviar credenciales:', error);
+      toast.error('No se pudieron enviar las credenciales');
+    }
+  };
+
+  // Función para cambiar contraseña
+  const handleCambioContrasena = async () => {
+    try {
+      const token = getToken();
+      const response = await axios.put(
+        `${process.env.REACT_APP_API_URL}/estudiantes/${selectedEstudiante.id}/cambiar-contrasena`,
+        { nuevaContrasena },
+        {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json' 
+          }
+        }
+      );
+
+      toast.success('Contraseña cambiada exitosamente');
+      setCambioContrasenaModal(false);
+      setNuevaContrasena('');
+    } catch (error) {
+      console.error('Error al cambiar contraseña:', error);
+      toast.error('No se pudo cambiar la contraseña');
+    }
   };
 
   return (
@@ -322,9 +407,9 @@ const Estudiantes = () => {
               <th>RUT</th>
               <th>Correo</th>
               <th>Años Cursados</th>
-              {/* <th>Semestre</th> */}
               <th>Estado</th>
-              <th>Acciones</th>
+              <th>Editar</th>
+              {/* <th>Enviar credencial</th> */}
             </tr>
           </thead>
           <tbody>
@@ -367,18 +452,6 @@ const Estudiantes = () => {
                   ) : estudiante.correo}
                 </td>
                 <td>{estudiante.anos_cursados}</td>
-                {/* <td>
-                  {editingId === estudiante.id ? (
-                    <Form.Select
-                      value={editedFields.semestre || estudiante.semestre}
-                      onChange={(e) => handleFieldChange(estudiante.id, 'semestre', e.target.value)}
-                    >
-                      <option value="">Seleccione semestre</option>
-                      <option value="1">Primer semestre</option>
-                      <option value="2">Segundo semestre</option>
-                    </Form.Select>
-                  ) : estudiante.semestre}
-                </td> */}
                 <td>
                   <Form.Check
                     type="switch"
@@ -394,34 +467,64 @@ const Estudiantes = () => {
                   />
                 </td>
                 <td>
-                  {editingId === estudiante.id ? (
-                    <>
-                      <Button
-                        variant="success"
-                        size="sm"
-                        className="me-2"
-                        onClick={() => handleSaveChanges(estudiante.id)}
-                      >
-                        <i className="fas fa-save"></i>
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setEditingId(null)}
-                      >
-                        <i className="fas fa-times"></i>
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      variant="warning"
-                      size="sm"
-                      onClick={() => handleEdit(estudiante.id)}
-                    >
-                      <i className="fas fa-edit"></i>
-                    </Button>
-                  )}
-                </td>
+  <Dropdown>
+    <Dropdown.Toggle variant="secondary" id={`dropdown-${estudiante.id}`}>
+      Acciones
+    </Dropdown.Toggle>
+
+    <Dropdown.Menu>
+      {editingId === estudiante.id ? (
+        <>
+          <Dropdown.Item 
+            onClick={() => handleSaveChanges(estudiante.id)}
+          >
+            <i className="fas fa-save me-2"></i>Guardar Cambios
+          </Dropdown.Item>
+          <Dropdown.Item 
+            onClick={() => setEditingId(null)}
+          >
+            <i className="fas fa-times me-2"></i>Cancelar
+          </Dropdown.Item>
+        </>
+      ) : (
+        <>
+          <Dropdown.Item 
+            onClick={() => handleEdit(estudiante.id)}
+          >
+            <i className="fas fa-edit me-2"></i>Editar
+          </Dropdown.Item>
+          <Dropdown.Item 
+            onClick={() => {
+              setSelectedEstudiante(estudiante);
+              setCambioContrasenaModal(true);
+            }}
+          >
+            <i className="fas fa-key me-2"></i>Cambiar Contraseña
+          </Dropdown.Item>
+          <Dropdown.Item 
+            onClick={() => {
+              const confirmar = window.confirm(`¿Está seguro de enviar credenciales a ${estudiante.nombres} ${estudiante.apellidos}?`);
+              if (confirmar) {
+                enviarCredencialIndividual(estudiante);
+              }
+            }}
+          >
+            <i className="fas fa-envelope me-2"></i>Enviar Credencial
+          </Dropdown.Item>
+        </>
+      )}
+    </Dropdown.Menu>
+  </Dropdown>
+</td>
+                {/* <td>
+                  <Button 
+                    variant="info" 
+                    size="sm" 
+                    onClick={() => enviarCredencialesPorCorreo(estudiante)}
+                  >
+                    <i className="fas fa-envelope"></i>
+                  </Button>
+                </td> */}
               </tr>
             ))}
           </tbody>
@@ -454,8 +557,7 @@ const Estudiantes = () => {
       </Col>
     </Row>
 
-    {/* Botón de edición masiva */}
-    <Row className="mt-3 ">
+    <Row className="mt-3">
       <Col>
         <Button
           variant="warning"
@@ -464,9 +566,22 @@ const Estudiantes = () => {
         >
           <i className="fas fa-edit"></i> Edición Masiva
         </Button>
+        <Button
+          variant="info"
+          className="ms-2"
+          onClick={() => {
+            // Modal o confirmación para envío masivo de credenciales
+            const confirmar = window.confirm(`¿Está seguro de enviar credenciales a todos los estudiantes del año ${ano}?`);
+            if (confirmar) {
+              enviarCredencialesMasivoPorAno();
+            }
+          }}
+        >
+          <i className="fas fa-envelope"></i> Enviar Credenciales por Año
+        </Button>
       </Col>
     </Row>
-
+  
     {/* Modal de edición masiva */}
     <Modal show={editarMasivoModal} onHide={() => setEditarMasivoModal(false)}>
       <Modal.Header closeButton>
@@ -574,6 +689,40 @@ const Estudiantes = () => {
             <Button type="submit" variant="primary" className="mt-3">Registrar</Button>
           </Form>
         </Modal.Body>
+      </Modal>
+
+      <Modal show={cambioContrasenaModal} onHide={() => setCambioContrasenaModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Cambiar Contraseña</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedEstudiante && (
+            <div>
+              <p>Cambiando contraseña para: {selectedEstudiante.nombres} {selectedEstudiante.apellidos}</p>
+              <Form.Group>
+                <Form.Label>Nueva Contraseña</Form.Label>
+                <Form.Control
+                  type="password"
+                  value={nuevaContrasena}
+                  onChange={(e) => setNuevaContrasena(e.target.value)}
+                  placeholder="Ingrese nueva contraseña"
+                />
+              </Form.Group>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setCambioContrasenaModal(false)}>
+            Cancelar
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleCambioContrasena}
+            disabled={!nuevaContrasena}
+          >
+            Cambiar Contraseña
+          </Button>
+        </Modal.Footer>
       </Modal>
   </Container>
 );

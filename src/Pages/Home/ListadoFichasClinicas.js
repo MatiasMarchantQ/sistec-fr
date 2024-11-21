@@ -27,7 +27,7 @@ const ListadoFichasClinicas = () => {
   const [pagina, setPagina] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [totalElementos, setTotalElementos] = useState(0);
-  const limite = 10; 
+  const limite = 2; 
 
   // Calcular estados de página
   const isFirstPage = pagina === 1;
@@ -89,7 +89,7 @@ const ListadoFichasClinicas = () => {
       console.error('Error al cargar instituciones', error);
       setInstituciones([]);
       if (error.response && error.response.status === 401) {
-        navigate('/login');
+        navigate('/home');
       }
     }
   };
@@ -130,7 +130,7 @@ const ListadoFichasClinicas = () => {
       setFichas([]);
 
       if (error.response && error.response.status === 401) {
-        navigate('/login');
+        navigate('/');
       }
     }
   };

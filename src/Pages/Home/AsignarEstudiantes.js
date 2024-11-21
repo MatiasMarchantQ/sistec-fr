@@ -500,6 +500,7 @@ const handleEliminarAsignacion = async (asignacionId) => {
                 type="date"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
+                min={new Date().toISOString().split('T')[0]} // Establece la fecha mínima a hoy
                 required
               />
             </Form.Group>
@@ -509,7 +510,17 @@ const handleEliminarAsignacion = async (asignacionId) => {
               <Form.Control
                 type="date"
                 value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)}
+                onChange={(e) => {
+                  // Asegura que la fecha fin no sea anterior a la fecha de inicio
+                  const newFechaFin = e.target.value;
+                  if (!fechaInicio || newFechaFin >= fechaInicio) {
+                    setFechaFin(newFechaFin);
+                  } else {
+                    // Opcional: mostrar un mensaje de error
+                    toast.error('La fecha fin debe ser posterior o igual a la fecha de inicio');
+                  }
+                }}
+                min={fechaInicio || new Date().toISOString().split('T')[0]} // Usa fecha de inicio o fecha actual
                 required
               />
             </Form.Group>

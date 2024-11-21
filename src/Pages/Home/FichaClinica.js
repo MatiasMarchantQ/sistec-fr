@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Tab, Container } from 'react-bootstrap';
-import { useLocation } from 'react-router-dom';
+import { Tabs, Tab, Container, Button } from 'react-bootstrap';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -8,8 +8,62 @@ import './FichaClinica.css';
 
 import SeguimientoInfantil from './SeguimientoInfantil';
 import SeguimientoAdulto from './SeguimientoAdulto';
+import Reevaluacion from './Reevaluacion';
 
-const FichaClinicaAdulto = ({ fichaClinica }) => {
+const FichaClinicaAdulto = ({ fichaClinica, onDiagnosticoChange, editable }) => {
+  const { getToken } = useAuth();
+  const [diagnostico, setDiagnostico] = useState(fichaClinica.diagnostico || '');
+  const [valorHbA1c, setValorHbA1c] = useState(fichaClinica.factoresRiesgo?.valorHbac1 || '');
+  const [isEditingDiagnostico, setIsEditingDiagnostico] = useState(false);
+  const [isEditingHbA1c, setIsEditingHbA1c] = useState(false);
+  const [originalDiagnostico, setOriginalDiagnostico] = useState(diagnostico);
+  const [originalHbA1c, setOriginalHbA1c] = useState(valorHbA1c);
+
+  const handleDiagnosticoChange = (e) => {
+    setDiagnostico(e.target.value);
+  };
+
+  const handleSaveDiagnostico = () => {
+    if (onDiagnosticoChange) {
+      onDiagnosticoChange(diagnostico);
+    }
+    setIsEditingDiagnostico(false);
+  };
+
+  const handleHbA1cChange = (e) => {
+    setValorHbA1c(e.target.value);
+  };
+
+  const handleCancelDiagnostico = () => {
+    setDiagnostico(originalDiagnostico); // Restablece al valor original
+    setIsEditingDiagnostico(false);
+  };
+
+  const handleCancelHbA1c = () => {
+    setValorHbA1c(originalHbA1c); // Restablece al valor original
+    setIsEditingHbA1c(false);
+  };
+
+  const handleSaveHbA1c = async () => {
+    try {
+      const token = getToken();
+      await axios.patch(
+        `${process.env.REACT_APP_API_URL}/fichas-clinicas/${fichaClinica.id}`,
+        { factoresRiesgo: { valorHbac1: valorHbA1c } },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      // Actualizar el estado local
+      setValorHbA1c(valorHbA1c);
+      setIsEditingHbA1c(false);
+    } catch (error) {
+      console.error('Error actualizando valor HbA1c:', error);
+      // Manejar el error (mostrar mensaje, etc.)
+    }
+  };
+
   return (
     <>
       <div className="row mb-4">
@@ -21,7 +75,7 @@ const FichaClinicaAdulto = ({ fichaClinica }) => {
               <p><strong>RUT:</strong> {fichaClinica.paciente?.rut}</p>
               <p><strong>Nombres:</strong> {fichaClinica.paciente?.nombres}</p>
               <p><strong>Apellidos:</strong> {fichaClinica.paciente?.apellidos}</p>
-              <p><strong>Edad:</strong> {fichaClinica.paciente?.edad}</p>
+              <p><strong>Edad:</strong> {fichaClinica.paciente?.edad} Años</p>
             </div>
             <div className="col-md-6">
               <p><strong>Teléfono 1:</strong> {fichaClinica.paciente?.telefonoPrincipal}</p>
@@ -36,7 +90,43 @@ const FichaClinicaAdulto = ({ fichaClinica }) => {
           <h5 className="border-bottom pb-2">Información Médica</h5>
           <div className="row">
             <div className="col-md-6">
-              <p><strong>Diagnóstico:</strong> {fichaClinica.diagnostico}</p>
+              <p>
+                <strong>Diagnóstico:</strong> 
+                {editable && isEditingDiagnostico ? (
+                  <div className="d-flex align-items-center">
+                    <input 
+                      type="text" 
+                      className="form-control form-control-sm me-2" 
+                      value={diagnostico}
+                      onChange={handleDiagnosticoChange}
+                    />
+                    <button 
+                      className="btn btn-sm btn-success" 
+                      onClick={handleSaveDiagnostico}
+                    >
+                      <i className="fas fa-check"></i>
+                    </button>
+                    <button 
+                        className="btn btn-sm btn-danger ms-2 me-2" 
+                        onClick={handleCancelDiagnostico}
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                  </div>
+                ) : (
+                  <span className="ms-2">
+                    {diagnostico}
+                    {editable && (
+                      <button 
+                        className="btn btn-sm btn-link" 
+                        onClick={() => setIsEditingDiagnostico(true)}
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+                    )}
+                  </span>
+                )}
+              </p>
               <p>
                 <strong>Escolaridad:</strong> {
                   (fichaClinica.escolaridad && 
@@ -68,9 +158,46 @@ const FichaClinicaAdulto = ({ fichaClinica }) => {
         <div className="col-md-4">
           <h5 className="border-bottom pb-2">Factores de Riesgo</h5>
           <ul className="list-unstyled">
-            <li><strong>Valor HbA1c:</strong> {fichaClinica.factoresRiesgo?.valorHbac1 || 'N/A'}</li>
+          <p>
+                <strong>Valor HbA1c:</strong> 
+                {editable && isEditingHbA1c ? (
+                  <div className="d-flex align-items-center">
+                    <input 
+                      type="text" 
+                      className="form-control form-control-sm me-2" 
+                      value={valorHbA1c}
+                      onChange={handleHbA1cChange}
+                    />
+                    <button 
+                      className="btn btn-sm btn-success" 
+                      onClick={handleSaveHbA1c}
+                    >
+                      <i className="fas fa-check"></i>
+                    </button>
+                    <button 
+                      className="btn btn-sm btn-danger ms-2" 
+                      onClick={handleCancelHbA1c}
+                    >
+                      <i className="fas fa-times"></i>
+                    </button>
+                  </div>
+                ) : (
+                  <span className="ms-2">
+                    {valorHbA1c || 'N/A'}%
+                    {editable && (
+                      <button 
+                        className="btn btn-sm btn-link" 
+                        onClick={() => setIsEditingHbA1c(true)}
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+                    )}
+                  </span>
+                )}
+              </p>
             <li><strong>Alcohol/Drogas:</strong> {fichaClinica.factoresRiesgo?.alcoholDrogas ? 'Sí' : 'No'}</li>
             <li><strong>Tabaquismo:</strong> {fichaClinica.factoresRiesgo?.tabaquismo ? 'Sí' : 'No'}</li>
+            <li><strong>Específico:</strong> {fichaClinica.factoresRiesgo?.otros || 'N/A'}</li>
           </ul>
         </div>
 
@@ -79,7 +206,7 @@ const FichaClinicaAdulto = ({ fichaClinica }) => {
           <ul className="list-unstyled">
             {fichaClinica.ciclosVitalesFamiliares && fichaClinica.ciclosVitalesFamiliares.length > 0 ? (
               fichaClinica.ciclosVitalesFamiliares.map((ciclo, index) => (
-                <li key={index}>{ciclo.ciclo}</li>
+                <li key={ciclo.id || index}>{ciclo.ciclo}</li>
               ))
             ) : (
               <li>No hay ciclos vitales registrados</li>
@@ -90,9 +217,9 @@ const FichaClinicaAdulto = ({ fichaClinica }) => {
         <div className="col-md-4">
           <h5 className="border-bottom pb-2">Tipos de Familia</h5>
           <ul className="list-unstyled">
-            {fichaClinica.tiposFamilia && fichaClinica.tiposFamilia.length > 0 ? (
-              fichaClinica.tiposFamilia.map((tipo, index) => (
-                <li key={index}>{tipo.nombre}</li>
+            {fichaClinica.informacionFamiliar?.tiposFamilia && fichaClinica.informacionFamiliar.tiposFamilia.length > 0 ? (
+              fichaClinica.informacionFamiliar.tiposFamilia.map((tipo, index) => (
+                <li key={tipo.id || index}>{tipo.nombre}</li>
               ))
             ) : (
               <li>No hay tipos de familia registrados</li>
@@ -106,13 +233,21 @@ const FichaClinicaAdulto = ({ fichaClinica }) => {
         <div className="col-12">
           <h5 className="border-bottom pb-2">Información</h5>
           <div className="d-flex gap-4">
-            {fichaClinica.estudiante_id && (
-              <p className="mb-0"><strong>ID Estudiante:</strong> {fichaClinica.estudiante_id}</p>
+            {fichaClinica.estudiante && fichaClinica.estudiante.id && (
+              <p className="mb-0">
+                <strong>Estudiante:</strong> {`${fichaClinica.estudiante.nombres || ''} ${fichaClinica.estudiante.apellidos || ''}`.trim()}
+              </p>
             )}
-            {fichaClinica.usuario_id && (
-              <p className="mb-0"><strong>ID Usuario:</strong> {fichaClinica.usuario_id}</p>
+            {fichaClinica.usuario && fichaClinica.usuario.id && (
+              <p className="mb-0">
+                <strong>Usuario:</strong> {`${fichaClinica.usuario.nombres || ''} ${fichaClinica.usuario.apellidos || ''}`.trim()}
+              </p>
             )}
-            <p className="mb-0"><strong>ID Institución:</strong> {fichaClinica.institucion_id}</p>
+            {fichaClinica.institucion && fichaClinica.institucion.id && (
+              <p className="mb-0">
+                <strong>Institución:</strong> {fichaClinica.institucion.nombre || ''}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -121,6 +256,52 @@ const FichaClinicaAdulto = ({ fichaClinica }) => {
 };
 
 const FichaClinicaInfantil = ({ fichaClinica }) => {
+  const [puntajeDPM, setPuntajeDPM] = useState(fichaClinica.evaluacionPsicomotora?.puntajeDPM || '');
+  const [diagnosticoDSM, setDiagnosticoDSM] = useState(fichaClinica.evaluacionPsicomotora?.diagnosticoDSM || '');
+
+  const [isEditingPuntajeDPM, setIsEditingPuntajeDPM] = useState(false);
+  const [isEditingDiagnosticoDSM, setIsEditingDiagnosticoDSM] = useState(false);
+
+const handleSavePuntajeDPM = () => {
+    // Aquí puedes agregar la lógica para guardar el puntaje DPM
+    setIsEditingPuntajeDPM(false);
+  };
+
+  const handleCancelPuntajeDPM = () => {
+    setPuntajeDPM(fichaClinica.evaluacionPsicomotora?.puntajeDPM || '');
+    setIsEditingPuntajeDPM(false);
+  };
+
+  const handleSaveDiagnosticoDSM = () => {
+    // Aquí puedes agregar la lógica para guardar el diagnóstico DSM
+    setIsEditingDiagnosticoDSM(false);
+  };
+
+  const handleCancelDiagnosticoDSM = () => {
+    setDiagnosticoDSM(fichaClinica.evaluacionPsicomotora?.diagnosticoDSM || '');
+    setIsEditingDiagnosticoDSM(false);
+  };
+
+  const handlePuntajeDPMChange = (e) => {
+    const selectedValue = e.target.value;
+    setPuntajeDPM(selectedValue);
+
+    // Actualizar el diagnóstico DSM basado en la selección
+    switch(selectedValue) {
+      case "Menor a 30":
+        setDiagnosticoDSM("Retraso");
+        break;
+      case "Entre 30 y 40":
+        setDiagnosticoDSM("Riesgo");
+        break;
+      case "Mayor a 40":
+        setDiagnosticoDSM("Normal");
+        break;
+      default:
+        setDiagnosticoDSM("");
+    }
+  };
+
   return (
     <>
       <div className="row mb-4">
@@ -145,8 +326,57 @@ const FichaClinicaInfantil = ({ fichaClinica }) => {
           <h5 className="border-bottom pb-2">Evaluación Psicomotora</h5>
           <div className="row">
             <div className="col-md-6">
-              <p><strong>Puntaje DPM:</strong> {fichaClinica.evaluacionPsicomotora?.puntajeDPM || 'N/A'}</p>
-              <p><strong>Diagnóstico DSM:</strong> {fichaClinica.evaluacionPsicomotora?.diagnosticoDSM || 'N/A'}</p>
+            <p>
+              <strong>Puntaje DPM:</strong> 
+              {isEditingPuntajeDPM ? (
+                <div className="d-flex align-items-center">
+                  <select 
+                    className="form-control" 
+                    value={puntajeDPM} 
+                    onChange={handlePuntajeDPMChange}
+                  >
+                    <option value="">Seleccione...</option>
+                    <option value="Menor a 30">Menor a 30</option>
+                    <option value="Entre 30 y 40">Entre 30 y 40</option>
+                    <option value="Mayor a 40">Mayor a 40</option>
+                  </select>
+                  <button 
+                    className="btn btn-sm btn-success" 
+                    onClick={handleSavePuntajeDPM}
+                  >
+                    <i className="fas fa-check"></i>
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-danger ms-2" 
+                    onClick={handleCancelPuntajeDPM}
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+              ) : (
+                <span className="ms-2">
+                  {puntajeDPM || 'N/A'}
+                  <button 
+                    className="btn btn-sm btn-link" 
+                    onClick={() => setIsEditingPuntajeDPM(true)}
+                  >
+                    <i className="fas fa-edit"></i>
+                  </button>
+                </span>
+              )}
+            </p>
+            <p>
+                <div className="form-group">
+                  <label>Diagnóstico DSM</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={diagnosticoDSM}
+                    readOnly
+                    placeholder={puntajeDPM ? diagnosticoDSM : "Seleccione Puntaje DPM o TEPSI"}
+                  />
+              </div>
+            </p> 
             </div>
           </div>
         </div>
@@ -177,7 +407,13 @@ const FichaClinicaInfantil = ({ fichaClinica }) => {
         </div>
         <div className="col-md-6">
           <h6>Tipo de Familia:</h6>
-          <p>{fichaClinica.informacionFamiliar?.tipoFamilia?.nombre || 'No especificado'}</p>
+          {fichaClinica.informacionFamiliar?.tiposFamilia && fichaClinica.informacionFamiliar.tiposFamilia.length > 0 ? (
+            fichaClinica.informacionFamiliar.tiposFamilia.map((tipo, index) => (
+              <p key={tipo.id || index}>{tipo.nombre}</p>
+            ))
+          ) : (
+            <p>No especificado</p>
+          )}
           <h6>Ciclo Vital Familiar:</h6>
           <p>{fichaClinica.informacionFamiliar?.cicloVitalFamiliar?.ciclo || 'No especificado'}</p>
         </div>
@@ -188,26 +424,52 @@ const FichaClinicaInfantil = ({ fichaClinica }) => {
         <div className="col-md-6">
           <h6>Factores de Riesgo Niño:</h6>
           <ul className="list-unstyled">
-            {fichaClinica.factoresRiesgo?.nino?.length > 0 ? (
-              fichaClinica.factoresRiesgo.nino.map((factor, index) => (
-                <li key={index}>{factor.nombre}</li>
-              ))
-            ) : (
-              <li>No hay factores de riesgo registrados</li>
-            )}
+          {fichaClinica.factoresRiesgo?.nino?.length > 0 ? (
+            fichaClinica.factoresRiesgo.nino.map((factor, index) => (
+              <li key={factor.id || index}>{factor.nombre}</li>
+            ))
+          ) : (
+            <li>No hay factores de riesgo registrados</li>
+          )}
           </ul>
         </div>
         <div className="col-md-6">
           <h6> Factores de Riesgo Familiares:</h6>
           <ul className="list-unstyled">
-            {fichaClinica.factoresRiesgo?.familiares?.length > 0 ? (
-              fichaClinica.factoresRiesgo.familiares.map((factor, index) => (
-                <li key={index}>{factor.nombre} {factor.otras ? `(${factor.otras})` : ''}</li>
-              ))
-            ) : (
-              <li>No hay factores de riesgo familiares registrados</li>
-            )}
+          {fichaClinica.factoresRiesgo?.familiares?.length > 0 ? (
+            fichaClinica.factoresRiesgo.familiares.map((factor, index) => (
+              <li key={factor.id || index}>
+                {factor.nombre} {factor.otras ? `(${factor.otras})` : ''}
+              </li>
+            ))
+          ) : (
+            <li>No hay factores de riesgo familiares registrados</li>
+          )}
           </ul>
+        </div>
+      </div>
+
+      {/* IDs de Sistema */}
+      <div className="row mt-4">
+        <div className="col-12">
+          <h5 className="border-bottom pb-2">Información</h5>
+          <div className="d-flex gap-4">
+            {fichaClinica.estudiante && fichaClinica.estudiante.id && (
+              <p className="mb-0">
+                <strong>Estudiante:</strong> {`${fichaClinica.estudiante.nombres || ''} ${fichaClinica.estudiante.apellidos || ''}`.trim()}
+              </p>
+            )}
+            {fichaClinica.usuario && fichaClinica.usuario.id && (
+              <p className="mb-0">
+                <strong>Usuario:</strong> {`${fichaClinica.usuario.nombres || ''} ${fichaClinica.usuario.apellidos || ''}`.trim()}
+              </p>
+            )}
+            {fichaClinica.institucion && fichaClinica.institucion.id && (
+              <p className="mb-0">
+                <strong>Institución:</strong> {fichaClinica.institucion.nombre || ''}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </>
@@ -227,7 +489,7 @@ const formatearFichaAdulto = (fichaClinica) => {
       telefonoPrincipal: fichaClinica.paciente?.telefonoPrincipal || 'N/A',
       telefonoSecundario: fichaClinica.paciente?.telefonoSecundario || 'N/A'
     },
-    diagnostico: fichaClinica.diagnostico || 'N/A',
+    diagnostico: fichaClinica.diagnostico?.nombre || 'N/A', // Cambio aquí
     escolaridad: {
       id: fichaClinica.escolaridad?.id || null,
       nivel: fichaClinica.escolaridad?.nivel || 'No especificado'
@@ -240,19 +502,39 @@ const formatearFichaAdulto = (fichaClinica) => {
     factoresRiesgo: {
       valorHbac1: fichaClinica.factoresRiesgo?.valorHbac1 || null,
       alcoholDrogas: fichaClinica.factoresRiesgo?.alcoholDrogas || false,
-      tabaquismo: fichaClinica.factoresRiesgo?.tabaquismo || false
+      tabaquismo: fichaClinica.factoresRiesgo?.tabaquismo || false,
+      otros: fichaClinica.factoresRiesgo?.otros || null,
     },
-    ciclosVitalesFamiliares: (fichaClinica.ciclosVitalesFamiliares || []).map(c => ({
-      id: c.id || null,
-      ciclo: c.ciclo || 'N/A'
-    })),
+    ciclosVitalesFamiliares: [
+      {
+        id: fichaClinica.cicloVitalFamiliar?.id || null,
+        ciclo: fichaClinica.cicloVitalFamiliar?.ciclo || 'N/A'
+      }
+    ],
     tiposFamilia: (fichaClinica.tiposFamilia || []).map(t => ({
       id: t.id || null,
       nombre: t.nombre || 'N/A'
     })),
-    estudiante_id: fichaClinica.estudiante_id || null,
-    usuario_id: fichaClinica.usuario_id || null,
-    institucion_id: fichaClinica.institucion_id || null,
+    informacionFamiliar: {
+      tiposFamilia: (fichaClinica.tiposFamilia || []).map(t => ({
+        id: t.id || null,
+        nombre: t.nombre || 'N/A'
+      }))
+    },
+    estudiante: {
+      id: fichaClinica.estudiante?.id || null,
+      nombres: fichaClinica.estudiante?.nombres || '',
+      apellidos: fichaClinica.estudiante?.apellidos || '',
+    },
+    usuario: {
+      id: fichaClinica.usuario?.id || null,
+      nombres: fichaClinica.usuario?.nombres || '',
+      apellidos: fichaClinica.usuario?.apellidos || '',
+    },
+    institucion: {
+      id: fichaClinica.institucion?.id || null,
+      nombre: fichaClinica.institucion?.nombre || '',
+    },
     createdAt: fichaClinica.createdAt || null,
     updatedAt: fichaClinica.updatedAt || null
   };
@@ -276,10 +558,10 @@ const formatearFichaInfantil = (fichaClinica) => {
     },
     informacionFamiliar: {
       conQuienVive: fichaClinica.informacionFamiliar?.conQuienVive || 'N/A',
-      tipoFamilia: {
-        id: fichaClinica.informacionFamiliar?.tipoFamilia?.id || null,
-        nombre: fichaClinica.informacionFamiliar?.tipoFamilia?.nombre || 'No especificado'
-      },
+      tiposFamilia: (fichaClinica.informacionFamiliar?.tiposFamilia || []).map(tipo => ({
+        id: tipo.id || null,
+        nombre: tipo.nombre || 'No especificado'
+      })),
       cicloVitalFamiliar: {
         id: fichaClinica.informacionFamiliar?.cicloVitalFamiliar?.id || null,
         ciclo: fichaClinica.informacionFamiliar?.cicloVitalFamiliar?.ciclo || 'No especificado'
@@ -306,9 +588,20 @@ const formatearFichaInfantil = (fichaClinica) => {
         otras: factor.otras || ''
       }))
     },
-    estudiante_id: fichaClinica.estudiante_id || null,
-    usuario_id: fichaClinica.usuario_id || null,
-    institucion_id: fichaClinica.institucion_id || null,
+    estudiante: {
+      id: fichaClinica.estudiante?.id || null,
+      nombres: fichaClinica.estudiante?.nombres || '',
+      apellidos: fichaClinica.estudiante?.apellidos || '',
+    },
+    usuario: {
+      id: fichaClinica.usuario?.id || null,
+      nombres: fichaClinica.usuario?.nombres || '',
+      apellidos: fichaClinica.usuario?.apellidos || '',
+    },
+    institucion: {
+      id: fichaClinica.institucion?.id || null,
+      nombre: fichaClinica.institucion?.nombre || '',
+    },
     createdAt: fichaClinica.createdAt || null,
     updatedAt: fichaClinica.updatedAt || null
   };
@@ -317,38 +610,39 @@ const formatearFichaInfantil = (fichaClinica) => {
 const FichaClinica = () => {
   const { user, getToken } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const { fichaId, tipo } = location.state || {};
   const [fichaClinica, setFichaClinica] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('informacion');
 
+  // Definición de fetchFichaClinica como función
+  const fetchFichaClinica = async () => {
+    try {
+      setLoading(true);
+      const token = getToken();
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_URL}/fichas-clinicas/${fichaId}?tipo=${tipo}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      const formattedData = tipo === 'adulto' 
+        ? formatearFichaAdulto(response.data.data) 
+        : formatearFichaInfantil(response.data.data);
+
+      setFichaClinica(formattedData);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error al obtener la ficha clínica:', err);
+      setError('Error al cargar los datos de la ficha clínica');
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchFichaClinica = async () => {
-      try {
-        setLoading(true);
-        const token = getToken();
-        const response = await axios.get(
-          `${process.env.REACT_APP_API_URL}/fichas-clinicas/${fichaId}?tipo=${tipo}`,
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        );
-  
-        const formattedData = tipo === 'adulto' 
-          ? formatearFichaAdulto(response.data.data) 
-          : formatearFichaInfantil(response.data.data);
-  
-        setFichaClinica(formattedData);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error al obtener la ficha clínica:', err);
-        setError('Error al cargar los datos de la ficha clínica');
-        setLoading(false);
-      }
-    };
-  
     if (fichaId && tipo) {
       fetchFichaClinica();
     } else {
@@ -356,6 +650,37 @@ const FichaClinica = () => {
       setError('No se proporcionó un ID de ficha clínica válido o un tipo');
     }
   }, [fichaId, tipo, getToken]);
+
+  // Función para volver al listado de fichas clínicas
+  const handleVolver = () => {
+    navigate('?component=listado-fichas-clinicas', { 
+      state: { 
+        tipo: tipo
+      } 
+    });
+  };
+
+  const handleDiagnosticoChange = async (nuevoDiagnostico) => {
+    try {
+      const token = getToken();
+      await axios.patch(
+        `${process.env.REACT_APP_API_URL}/fichas-clinicas/${fichaId}`,
+        { diagnostico: nuevoDiagnostico },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      // Actualizar el estado local
+      setFichaClinica(prev => ({
+        ...prev,
+        diagnostico: nuevoDiagnostico
+      }));
+    } catch (error) {
+      console.error('Error actualizando diagnóstico:', error);
+      // Manejar el error (mostrar mensaje, etc.)
+    }
+  };
 
   if (loading) {
     return <div className="text-center">Cargando...</div>;
@@ -367,9 +692,20 @@ const FichaClinica = () => {
 
   return (
     <Container fluid className="mt-4">
-      <h2 className="mb-4 text-center">
-        Ficha Clínica - {fichaClinica.paciente?.nombres} {fichaClinica.paciente?.apellidos}
-      </h2>
+        <Button 
+          variant="" 
+          onClick={handleVolver}
+          style={{
+            border: 'none',
+            boxShadow: 'none',
+            color: 'black'
+          }}
+        >
+          <i className="fas fa-arrow-left me-8 pr-1"></i>Volver
+        </Button>
+        <h2 className="text-center mb-0 pb-2">
+          Ficha Clínica {tipo === 'adulto' ? 'Adulto' : 'Infantil'} - {fichaClinica.paciente?.nombres} {fichaClinica.paciente?.apellidos}
+        </h2>
       
       <Tabs 
         id="ficha-clinica-tabs"
@@ -384,10 +720,10 @@ const FichaClinica = () => {
             </div>
             <div className="card-body">
               {tipo === 'adulto' ? (
-                <FichaClinicaAdulto fichaClinica={fichaClinica} />
-              ) : (
-                <FichaClinicaInfantil fichaClinica={fichaClinica} />
-              )}
+                  <FichaClinicaAdulto fichaClinica={fichaClinica} />
+                ) : (
+                  <FichaClinicaInfantil fichaClinica={fichaClinica} />
+                )}
             </div>
           </div>
         </Tab>
@@ -405,6 +741,24 @@ const FichaClinica = () => {
             />
           )}
         </Tab>
+
+        <Tab eventKey="reevaluacion" title="Reevaluación">
+  <div className="card mb-4">
+    <div className="card-header text-white bg-primary">
+      <i className="fas fa-refresh me-2"></i>Reevaluación del Paciente
+    </div>
+    <div className="card-body">
+      {tipo === 'adulto' ? (
+        <FichaClinicaAdulto 
+          fichaClinica={fichaClinica} onDiagnosticoChange={handleDiagnosticoChange} 
+          editable={true} 
+        />
+      ) : (
+        <FichaClinicaInfantil fichaClinica={fichaClinica} />
+      )}
+    </div>
+  </div>
+</Tab>
       </Tabs>
     </Container>
   );

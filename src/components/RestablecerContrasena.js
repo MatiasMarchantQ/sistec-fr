@@ -19,7 +19,7 @@ const RestablecerContrasena = () => {
       setToken(tokenFromUrl);
     } else {
       toast.error('Token de restablecimiento inválido');
-      navigate('/login');
+      navigate('/');
     }
   }, [location, navigate]);
 

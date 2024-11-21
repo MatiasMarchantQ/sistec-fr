@@ -49,7 +49,20 @@ const procesarSeguimiento = (seguimientoData = {}) => {
     fecha: seguimientoData.fecha || new Date().toISOString().split('T')[0],
     pacienteId: seguimientoData.paciente_id || null,
     fichaId: seguimientoData.ficha_id || null,
-    
+    usuario: {
+      id: seguimientoData.usuario?.id || null,
+      nombres: seguimientoData.usuario?.nombres || null,
+      apellidos: seguimientoData.usuario?.apellidos || null,
+      rut: seguimientoData.usuario?.rut || null,
+      correo: seguimientoData.usuario?.correo || null,
+    },
+    estudiante: {
+        id: seguimientoData.estudiante?.id || null,
+        nombres: seguimientoData.estudiante?.nombres || null,
+        apellidos: seguimientoData.estudiante?.apellidos || null,
+        rut: seguimientoData.estudiante?.rut || null,
+        correo: seguimientoData.estudiante?.correo || null,
+    },
     riesgoInfeccion: {
       herida: riesgoInfeccion.herida ?? null,
       fechaHerida: riesgoInfeccion.fechaHerida || null,
@@ -150,6 +163,7 @@ const procesarSeguimiento = (seguimientoData = {}) => {
 
 const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
   const { getToken } = useAuth();
+  const { user } = useAuth();
 
   // Crear referencia para el acordeón
   const accordionRef = useRef(null);
@@ -214,6 +228,7 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
 
       // Determinar el índice del acordeón basado en el seguimiento procesado
       const indiceAcordeon = determinarIndiceAcordeon(seguimientoProcesado);
+      console.log('Seguimiento procesado:', seguimientoProcesado);
             
       // Actualizar el estado del seguimiento con los datos recuperados
       setSeguimiento(prevSeguimiento => ({
@@ -324,7 +339,9 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
                 autoeficacia: procesado.autoeficacia,
                 otrosSintomas: procesado.otrosSintomas,
                 manejoSintomas: procesado.manejoSintomas,
-                comentarios: procesado.comentarios
+                comentarios: procesado.comentarios,
+                usuario: procesado.usuario,
+                estudiante: procesado.estudiante
             };
         });
 
@@ -371,13 +388,14 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
   // Función para guardar seguimiento
   const guardarSeguimiento = async (etapa) => {
     try {
-      const token = getToken();
-        
+      const token = getToken();        
       // Preparar datos para enviar
       const datosParaEnviar = {
         pacienteId,  
         fichaId,     
         fecha: new Date().toISOString().split('T')[0],
+        usuario_id: user.id || null,
+        estudiante_id: user.estudiante_id || null
       };
 
   
@@ -432,6 +450,18 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
             malestar: seguimiento.efectosSecundarios.malestar,
             intervencion: seguimiento.efectosSecundarios.intervencion,
             realizaIntervencion: seguimiento.efectosSecundarios.realizaIntervencion
+          };
+
+          // Autoeficacia
+          datosParaEnviar.autoeficacia = {
+            comerCada4Horas: seguimiento.autoeficacia.comerCada4Horas || 0,
+            continuarDieta: seguimiento.autoeficacia.continuarDieta || 0,
+            escogerAlimentos: seguimiento.autoeficacia.escogerAlimentos || 0,
+            hacerEjercicio: seguimiento.autoeficacia.hacerEjercicio || 0,
+            prevenirBajaAzucar: seguimiento.autoeficacia.prevenirBajaAzucar || 0,
+            saberQueHacer: seguimiento.autoeficacia.saberQueHacer || 0,
+            evaluarCambios: seguimiento.autoeficacia.evaluarCambios || 0,
+            controlarDiabetes: seguimiento.autoeficacia.controlarDiabetes || 0
           };
           break;
         
@@ -517,7 +547,6 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
     }
   };
 
-
   return (
     <Container fluid className="p-4">
       <h2 className="mb-4">Seguimiento de Adulto - Telecuidado</h2>
@@ -579,25 +608,58 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
       <Card className="mt-4">
       <Card.Header>Seguimientos Anteriores</Card.Header>
       <Card.Body>
-        <Table striped bordered>
-          <thead>
-            <tr>
-              <th>Número de Llamado</th>
-              <th>Fecha</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {seguimientosAnteriores.map(seguimiento => (
+      <Table striped bordered>
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Número de Llamado</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {seguimientosAnteriores.map(seguimiento => {
+            // Función para determinar el índice del acordeón
+            const determinarIndiceAcordeon = (seguimientoData) => {
+              if (seguimientoData.riesgoInfeccion?.herida !== null || 
+                  seguimientoData.riesgoGlicemia?.hipoglicemia !== null || 
+                  seguimientoData.riesgoHipertension?.dolorPecho !== null) {
+                return 0; // Primer acordeón
+              }
+            
+              if (seguimientoData.nutricion?.comidasDia !== null || 
+                  seguimientoData.actividadFisica?.realiza !== null || 
+                  seguimientoData.eliminacion?.poliuria !== null) {
+                return 1; // Segundo acordeón
+              }
+            
+              if (seguimientoData.sintomasDepresivos?.puntajeTotal !== null || 
+                  seguimientoData.autoeficacia?.comerCada4Horas !== null) {
+                return 2; // Tercer acordeón
+              }
+            
+              // Si no se puede determinar, devolver 0 por defecto
+              return 0;
+            };
+
+            const indiceAcordeon = determinarIndiceAcordeon(seguimiento);
+
+            return (
               <tr key={seguimiento.id}>
                 <td>{seguimiento.numeroLlamado}</td>
+                <td>
+                  {indiceAcordeon === 0 ? 'Primer Llamado' : 
+                  indiceAcordeon === 1 ? 'Segundo Llamado' : 
+                  indiceAcordeon === 2 ? 'Tercer Llamado' : 
+                  'No identificado'}
+                </td>
                 <td>{seguimiento.fecha}</td>
                 <td>
                   <Button 
                     variant="info" 
                     onClick={() => setSelectedSeguimiento(seguimiento)}
                   >
-                    Ver Detalles
+                    Responsable de la llamada
                   </Button>
                   <Button 
                     variant="success" 
@@ -608,14 +670,15 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
                   </Button>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </Table>
+            );
+          })}
+        </tbody>
+      </Table>
       </Card.Body>
     </Card>
 
       <Modal 
-      show={!!selectedSeguimiento} 
+      show={!!selectedSeguimiento}
       onHide={() => setSelectedSeguimiento(null)}
       size="lg"
     >
@@ -626,99 +689,32 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
         {selectedSeguimiento && (
           <div>
             <h4>Número de Llamado: {selectedSeguimiento.numeroLlamado}</h4>
-            
-            {/* Primer Llamado - Riesgos */}
-            <Card className="mb-3">
-              <Card.Header>Riesgos y Adherencia</Card.Header>
-              <Card.Body>
-                <h5>Riesgo de Infección</h5>
-                <p><strong>Herida en pies:</strong> {selectedSeguimiento.riesgoInfeccion?.herida ? 'Sí' : 'No'}</p>
-                {selectedSeguimiento.riesgoInfeccion?.herida && (
-                  <>
-                    <p><strong>Fecha de Herida:</strong> {selectedSeguimiento.riesgoInfeccion.fechaHerida}</p>
-                    <p><strong>Dolor Neuropático:</strong> {selectedSeguimiento.riesgoInfeccion.dolorNeuropatico ? 'Sí' : 'No'}</p>
-                    <p><strong>Intensidad del Dolor:</strong> {selectedSeguimiento.riesgoInfeccion.intensidadDolor}</p>
-                  </>
-                )}
+            {console.log('Selected Seguimiento:', selectedSeguimiento)}
+            {/* Mostrar información del Usuario o del Estudiante */}
+            {selectedSeguimiento.usuario ? (
+              <Card className="mb-3">
+                <Card.Header>Información del Usuario</Card.Header>
+                <Card.Body>
+                  <p><strong>Nombres:</strong> {selectedSeguimiento.usuario.nombres}</p>
+                  <p><strong>Apellidos:</strong> {selectedSeguimiento.usuario.apellidos}</p>
+                  <p><strong>RUT:</strong> {selectedSeguimiento.usuario.rut}</p>
+                  <p><strong>Correo:</strong> {selectedSeguimiento.usuario.correo}</p>
+                </Card.Body>
+              </Card>
+            ) : selectedSeguimiento.estudiante ? (
+              <Card className="mb-3">
+                <Card.Header>Información del Estudiante</Card.Header>
+                <Card.Body>
+                  <p><strong>Nombres:</strong> {selectedSeguimiento.estudiante.nombres}</p>
+                  <p><strong>Apellidos:</strong> {selectedSeguimiento.estudiante.apellidos}</p>
+                  <p><strong>RUT:</strong> {selectedSeguimiento.estudiante.rut}</p>
+                  <p><strong>Correo:</strong> {selectedSeguimiento.estudiante.correo}</p>
+                </Card.Body>
+              </Card>
+            ) : (
+              <p>No se encontró información del usuario ni del estudiante.</p>
+            )}
 
-                <h5>Riesgo de Glicemia</h5>
-                <p><strong>Hipoglicemia:</strong> {selectedSeguimiento.riesgoGlicemia?.hipoglicemia ? 'Sí' : 'No'}</p>
-                <p><strong>Hiperglicemia:</strong> {selectedSeguimiento.riesgoGlicemia?.hiperglicemia ? 'Sí' : 'No'}</p>
-
-                <h5>Riesgo de Hipertensión</h5>
-                <p><strong>Dolor de Pecho:</strong> {selectedSeguimiento.riesgoHipertension?.dolorPecho ? 'Sí' : 'No'}</p>
-                <p><strong>Dolor de Cabeza:</strong> {selectedSeguimiento.riesgoHipertension?.dolorCabeza ? 'Sí' : 'No'}</p>
-                <p><strong>Zumbido de Oídos:</strong> {selectedSeguimiento.riesgoHipertension?.zumbidoOidos ? 'Sí' : 'No'}</p>
-
-                <h5>Adherencia al Tratamiento</h5>
-                <p><strong>Olvido de Medicamento:</strong> {selectedSeguimiento.adherencia?.olvido ? 'Sí' : 'No'}</p>
-                <p><strong>Toma a Hora Indicada:</strong> {selectedSeguimiento.adherenciaTratamiento?.moriskyGreen?.tomaHoraIndicada ? 'Sí' : 'No'}</p>
-              </Card.Body>
-            </Card>
-
-            {/* Segundo Llamado - Nutrición y Actividad */}
-            <Card className="mb-3">
-              <Card.Header>Nutrición y Actividad Física</Card.Header>
-              <Card.Body>
-                <h5>Nutrición</h5>
-                <p><strong>Comidas al Día:</strong> {selectedSeguimiento.nutricion?.comidasDia}</p>
-                <p><strong>Desayuno:</strong> {selectedSeguimiento.nutricion?.comidas?.desayuno}</p>
-                <p><strong>Almuerzo:</strong> {selectedSeguimiento.nutricion?.comidas?.almuerzo}</p>
-                <p><strong>Once:</strong> {selectedSeguimiento.nutricion?.comidas?.once}</p>
-                <p><strong>Cena:</strong> {selectedSeguimiento.nutricion?.comidas?.cena}</p>
-                <p><strong>Alimentos No Recomendados:</strong> {selectedSeguimiento.nutricion?.alimentosNoRecomendados}</p>
-
-                <h5>Actividad Física</h5>
-                <p><strong>Realiza Actividad:</strong> {selectedSeguimiento.actividadFisica?.realiza ? 'Sí' : 'No'}</p>
-                <p><strong>Tipo:</strong> {selectedSeguimiento.actividadFisica?.tipo}</p>
-                <p><strong>Frecuencia:</strong> {selectedSeguimiento.actividadFisica?.frecuencia}</p>
-
-                <h5>Eliminación</h5>
-                <p><strong>Poliuria:</strong> {selectedSeguimiento.eliminacion?.poliuria ? 'Sí' : 'No'}</p>
-                <p><strong>Urgencia Miccional:</strong> {selectedSeguimiento.eliminacion?.urgenciaMiccional ? 'Sí' : 'No'}</p>
-                <p><strong>Tenesmo Vesical:</strong> {selectedSeguimiento.eliminacion?.tenesmoVesical ? 'Sí' : 'No'}</p>
-              </Card.Body>
-            </Card>
-
-            {/* Tercer Llamado - Síntomas Depresivos y Autoeficacia */}
-            <Card className="mb-3">
-              <Card.Header>Síntomas Depresivos y Autoeficacia</Card.Header>
-              <Card.Body>
-                <h5>Síntomas Depresivos (PHQ-9)</h5>
-                {selectedSeguimiento.sintomasDepresivos ? (
-                  <>
-                    <p><strong>Puntajes:</strong> {selectedSeguimiento.sintomasDepresivos?.puntajes.join(', ')}</p>
-                    <p><strong>Puntaje Total:</strong> {selectedSeguimiento.sintomasDepresivos?.puntajeTotal}</p>
-                    <p><strong>Nivel de Dificultad:</strong> {
-                      ['Nada en absoluto', 'Algo difícil', 'Muy difícil', 'Extremadamente difícil'][selectedSeguimiento.sintomasDepresivos?.nivelDificultad]
-                    }</p>
-                  </>
-                ) : (
-                  <p>No se reportaron síntomas depresivos.</p>
-                )}
-
-                <h5>Autoeficacia</h5>
-                {[
-                  { label: "Comer cada 4-5 horas", key: "comerCada4Horas" },
-                  { label: "Continuar dieta en situaciones sociales", key: "continuarDieta" },
-                  { label: "Escoger alimentos apropiados", key: "escogerAlimentos" },
-                  { label: "Hacer ejercicio 15-30 minutos", key: "hacerEjercicio" },
-                  { label: "Prevenir baja de azúcar", key: "prevenirBajaAzucar" },
-                  { label: "Saber qué hacer con niveles de azúcar", key: "saberQueHacer" },
-                  { label: "Evaluar cambios para visitar médico", key: "evaluarCambios" },
-                  { label: "Controlar diabetes para hacer actividades", key: "controlarDiabetes" }
-                ].map((item) => (
-                  <p key={item.key}>
-                    <strong>{item.label}:</strong> {selectedSeguimiento.autoeficacia?.[item.key] || 0}/10
-                  </p>
-                ))}
-
-                <h5>Otros Datos</h5>
-                <p><strong>Otros Síntomas:</strong> {selectedSeguimiento.otrosSintomas || 'No reportados'}</p>
-                <p><strong>Manejo de Síntomas:</strong> {selectedSeguimiento.manejoSintomas || 'No especificado'}</p>
-                <p><strong>Comentarios:</strong> {selectedSeguimiento.comentarios || 'Sin comentarios'}</p>
-              </Card.Body>
-            </Card>
           </div>
         )}
       </Modal.Body>

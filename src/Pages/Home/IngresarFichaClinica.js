@@ -126,7 +126,7 @@ const IngresarFichaClinica = () => {
           disabled={isTipoFichaDisabled}
         >
           <option value="">Seleccione...</option>
-          <option value="adultoMayor">Adulto</option>
+          <option value="adulto">Adulto</option>
           <option value="infantil">Infantil</option>
         </select>
         {isTipoFichaDisabled && !isFromAgenda && (
@@ -143,7 +143,7 @@ const IngresarFichaClinica = () => {
           institucionId={institucionSeleccionada}
         />
       )}
-      {tipoFicha === 'adultoMayor' && (
+      {tipoFicha === 'adulto' && (
         <FichaClinicaAdulto 
           onVolver={handleVolver} 
           onIngresar={handleIngresar}

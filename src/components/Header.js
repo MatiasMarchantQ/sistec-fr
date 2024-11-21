@@ -194,7 +194,7 @@ const Header = () => {
 
   return (
     <nav className="main-header navbar navbar-expand navbar-light custom-header">
-      <h1 className="navbar-brand mb-0">Programa de Telecuidado</h1>
+      <h1 className="navbar-brand mb-0">FACSA - Programa de Telecuidado</h1>
 
       <ul className="navbar-nav ml-auto">
         {!isLoginPage && user && (

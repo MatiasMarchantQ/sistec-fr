@@ -321,7 +321,9 @@ const Usuarios = () => {
                     required
                   >
                     <option value="">Seleccione un rol</option>
-                    {roles.map(rol => (
+                    {roles
+                    .filter(rol => rol.nombre !== 'Estudiante')
+                    .map(rol => (
                       <option key={rol.id} value={rol.id}>
                         {rol.nombre}
                       </option>
