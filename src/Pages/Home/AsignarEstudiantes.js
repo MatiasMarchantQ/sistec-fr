@@ -30,14 +30,14 @@ const AsignarEstudiantes = () => {
   const [totalAsignaciones, setTotalAsignaciones] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
-  const [anoSeleccionado, setAnoSeleccionado] = useState('');
+  const [anoSeleccionado, setAnoSeleccionado] = useState('2024');
   const limit = 10;
   const totalPages = Math.ceil(totalElements / limit);
 
   const getAniosOptions = () => {
     const currentYear = new Date().getFullYear();
     const years = [];
-    for (let i = -5; i <= 1; i++) {
+    for (let i = -9; i <= 0; i++) {
       years.push(currentYear + i);
     }
     return years;

@@ -12,17 +12,24 @@ const Login = () => {
   const [rut, setRut] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const [email, setEmail] = useState(''); // Estado para el correo
+  const [email, setEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loadingForgotPassword, setLoadingForgotPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showDirectorModal, setShowDirectorModal] = useState(false);
+  
+  // Nuevos estados para el modal
+  const [modalRut, setModalRut] = useState('');
+  const [modalPassword, setModalPassword] = useState('');
+
   const navigate = useNavigate();
-  const { login, loading } = useAuth();
+  const { login, loginDirector } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await login(rut, password, rememberMe);
+      const response = await login(rut, password, rememberMe, 3);
       if (response.debe_cambiar_contrasena) {
         navigate('/cambiar-contrasena');
       } else {
@@ -31,7 +38,6 @@ const Login = () => {
     } catch (error) {
       console.error('Error durante el login:', error);
       
-      // Mapeo de códigos de error
       const errorMessages = {
         'USER_NOT_FOUND': 'No se encontró un usuario con este RUT',
         'INVALID_PASSWORD': 'Contraseña incorrecta',
@@ -56,6 +62,31 @@ const Login = () => {
     }
   };
 
+  const handleDirectorLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await loginDirector(modalRut, modalPassword, false);
+      
+      setShowDirectorModal(false);
+      navigate('/home');
+    } catch (error) {
+      console.error('Error durante el login de director:', error);
+      
+      toast.error('Error al iniciar sesión', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setLoadingForgotPassword(true);
@@ -66,7 +97,6 @@ const Login = () => {
         { email }
       );
   
-      // Verifica si el status de la respuesta es 200
       if (response.status === 200) {
         toast.success('Si el correo está registrado, se ha enviado un correo para restablecer la contraseña', {
           position: "top-right",
@@ -84,7 +114,6 @@ const Login = () => {
     } catch (error) {
       console.error('Error al enviar el correo de recuperación:', error);
       
-      // Capturar mensajes de error específicos del backend
       const errorMessage = error.response?.data?.error || 
                            error.response?.data?.message || 
                            'Error al enviar el correo de recuperación';
@@ -173,7 +202,6 @@ const Login = () => {
                       style={{ cursor: 'pointer' }} 
                       onClick={togglePasswordVisibility}
                     >
-                      {/* Icono que cambia según la visibilidad */}
                       {showPassword ? (
                         <span className="fas fa-eye-slash" />
                       ) : (
@@ -204,6 +232,7 @@ const Login = () => {
                     type="submit" 
                     className="btn btn-primary btn-block"
                     disabled={loading}
+                    style={{marginBottom: '10px'}}
                   >
                     {loading ? (
                       <span>
@@ -213,6 +242,9 @@ const Login = () => {
                       'Iniciar Sesión'
                     )}
                   </button>
+                  <p>
+                    ¿Eres un Director/Docente? <a href="#" onClick={() => setShowDirectorModal(true)}>Inicia sesión aquí</a>
+                  </p>
                 </div>
               </form>
             </div>
@@ -220,7 +252,111 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Modal para restablecer contraseña */}
+      {showDirectorModal && (
+        <div 
+          className="modal fade show" 
+          style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)', paddingTop: '6rem' }} 
+          tabIndex="-1" 
+          role="dialog"
+        >
+          <div className="modal-dialog" role="document" style={{ 
+              maxWidth: '30%',
+              margin: '0 auto'
+            }}>
+            <div className="modal-content">
+              <div style={{margin: 12}}>
+                <button 
+                  type="button" 
+                  className="close" 
+                  onClick={() => setShowDirectorModal(false)}
+                >
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="login-logo">
+                  <p className="brand-link">
+                    <img src="/Logo UCM - Horizontal.jpg" alt="Logo UCM" style={{height: 100}}/>
+                  </p>
+                </div>
+                <p className="login-box-msg">Iniciar sesión como Director/Docente</p>
+
+                <form onSubmit={handleDirectorLogin}>
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="modalRut"
+                      placeholder="RUT sin puntos ni guión"
+                      value={modalRut}
+                      onChange={(e) => setModalRut(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <div className="input-group">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        className="form-control"
+                        id="modalPassword"
+                        placeholder="Contraseña"
+                        value={modalPassword}
+                        onChange={(e) => setModalPassword(e.target.value)}
+                        required
+                      />
+                      <div className="input-group-append">
+                        <button 
+                          className="btn btn-outline-secondary" 
+                          type="button"
+                          onClick={togglePasswordVisibility}
+                        >
+                          {showPassword ? (
+                            <i className="fas fa-eye-slash" />
+                          ) : (
+                            <i className="fas fa-eye" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <div className="custom-control custom-checkbox">
+                      <input 
+                        type="checkbox" 
+                        className="custom-control-input" 
+                        id="directorRememberMe"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                      />
+                      <label 
+                        className="custom-control-label" 
+                        htmlFor="directorRememberMe"
+                      >
+                        Recuérdame
+                      </label>
+                    </div>
+                  </div>
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary btn-block"
+                    disabled={loading}
+                    style={{marginBottom: 70}}
+                  >
+                    {loading ? (
+                      <span>
+                        <i className="fas fa-spinner fa-spin"></i> Cargando...
+                      </span>
+                    ) : (
+                      'Iniciar Sesión'
+                    )}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showForgotPassword && (
         <div 
           className="modal fade show" 

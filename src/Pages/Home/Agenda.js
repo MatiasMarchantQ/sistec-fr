@@ -19,7 +19,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
     page: 1,
     totalPages: 0,
     totalRegistros: 0,
-    registrosPorPagina: 2
+    registrosPorPagina: 3
   });
   const [asignaciones, setAsignaciones] = useState([]);
   const [selectedCentro, setSelectedCentro] = useState(null);
@@ -81,22 +81,23 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
   // Fetch asignaciones
   const fetchAsignaciones = async () => {
     try {
-      const token = getToken();
-      const apiUrl = process.env.REACT_APP_API_URL;
-      const response = await axios.get(`${apiUrl}/asignaciones`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+        const token = getToken();
+        const apiUrl = process.env.REACT_APP_API_URL;
+        const response = await axios.get(`${apiUrl}/asignaciones`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
 
-      const asignacionesAgrupadas = agruparAsignacionesPorPeriodo(response.data.asignaciones);
-      const filteredAsignaciones = user.rol_id === 3
-        ? asignacionesAgrupadas.filter(asignacion => asignacion.estudiante_id === user.estudiante_id)
-        : asignacionesAgrupadas;
+        // Agrupar asignaciones
+        const asignacionesAgrupadas = agruparAsignacionesPorPeriodo(response.data.asignaciones);
+        const filteredAsignaciones = user.rol_id === 3
+            ? asignacionesAgrupadas.filter(asignacion => asignacion.estudiante_id === user.estudiante_id)
+            : asignacionesAgrupadas;
 
-      setAsignaciones(filteredAsignaciones);
+        setAsignaciones(filteredAsignaciones);
     } catch (error) {
-      console.error("Error fetching asignaciones:", error);
+        console.error("Error fetching asignaciones:", error);
     }
-  };
+};
 
   useEffect(() => {
     fetchAsignaciones();
@@ -284,18 +285,18 @@ const handleCentroClick = async (periodoId, centroId) => {
 };
 
 const filtrarAsignacionesPorMes = (asignaciones) => {
-    return asignaciones.filter(rotacion => {
-        const [fechaInicioStr, fechaFinStr] = rotacion.periodo.split(' al ');
-        const [diaInicio, mesInicio, anioInicio] = fechaInicioStr.split('-');
-        const [diaFin, mesFin, anioFin] = fechaFinStr.split('-');
-        
-        const fechaInicio = new Date(anioInicio, mesInicio - 1, diaInicio);
-        const fechaFin = new Date(anioFin, mesFin - 1, diaFin);
-        
-        const primerDiaMes = new Date(year, month, 1);
-        const ultimoDiaMes = new Date(year, month + 1, 0);
+    const primerDiaMes = new Date(year, month, 1);
+    const ultimoDiaMes = new Date(year, month + 1, 0);
 
-        return (fechaInicio <= ultimoDiaMes && fechaFin >= primerDiaMes);
+    return asignaciones.filter(rotacion => {
+        const fechaInicio = new Date(rotacion.fecha_inicio);
+        const fechaFin = new Date(rotacion.fecha_fin);
+
+        // Filtrar por mes y por estudiante
+        return (
+            (fechaInicio <= ultimoDiaMes && fechaFin >= primerDiaMes) &&
+            (rotacion.estudiante_id === user.estudiante_id) // Asegúrate de que el estudiante coincida
+        );
     });
 };
 
@@ -481,7 +482,7 @@ return (
                     page: 1,
                     totalPages: 0,
                     totalRegistros: 0,
-                    registrosPorPagina: 2
+                    registrosPorPagina: 3
                 });
                 setAllFichas([]); // Limpiar las fichas al cerrar el modal
             }}

@@ -180,6 +180,46 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginDirector = async (rut, contrasena, rememberMe) => {
+    try {
+      setLoading(true);
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/login/directores`, {
+        rut,
+        contrasena,
+        rememberMe
+      });
+  
+      const { accessToken, refreshToken, nombres, rol_id } = response.data;
+      const storage = rememberMe ? localStorage : sessionStorage;
+      
+      storage.setItem('accessToken', accessToken);
+      storage.setItem('refreshToken', refreshToken);
+  
+      setToken(accessToken);
+  
+      const decoded = jwtDecode(accessToken);
+      const userData = {
+        id: decoded.id,
+        rol_id: rol_id || decoded.rol_id,
+        nombres: nombres || decoded.nombres
+      };
+  
+      // Guardar userData en storage
+      storage.setItem('userData', JSON.stringify(userData));
+  
+      setUser(userData);
+      setError('');      
+      return response.data;
+    } catch (error) {
+      console.error('Error durante el login de director:', error);      
+      setError('Error de autenticación');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+
   const logout = async () => {
     try {
       setLoading(true);
@@ -219,6 +259,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     login,
+    loginDirector,
     logout,
     getToken,
     setError

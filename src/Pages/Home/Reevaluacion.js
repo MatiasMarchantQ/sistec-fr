@@ -1,222 +1,162 @@
-import React, { useState } from 'react';
-import { Button, Form } from 'react-bootstrap';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
+import FichaClinicaAdulto from './FichaClinicaAdulto';
+import FichaClinicaInfantil from './FichaClinicaInfantil';
 
-const Reevaluacion = ({ fichaClinica, onSave, tipo }) => {
-  const { getToken } = useAuth();
+const Reevaluacion = () => {
+  const { user, getToken } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [fichaOriginal, setFichaOriginal] = useState(null);
+  const [datosIniciales, setDatosIniciales] = useState(null);
+  const [tipoFicha, setTipoFicha] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const { fichaId, tipo, paciente } = location.state || {};
+    console.log('Datos recibidos en Reevaluación:', {
+      fichaId, 
+      tipo, 
+      paciente
+    });
+    
+    if (!fichaId || !tipo) {
+      toast.error('No se proporcionó un ID de ficha válido');
+      navigate(-1);
+      return;
+    }
   
-  // Inicializa el estado con todos los campos de fichaClinica
-  const [formData, setFormData] = useState({
-    diagnostico: fichaClinica.diagnostico || '',
-    ocupacion: fichaClinica.ocupacion || '',
-    conQuienVive: fichaClinica.conQuienVive || '',
-    horarioLlamada: fichaClinica.horarioLlamada || '',
-    direccion: fichaClinica.direccion || '',
-    escolaridad: fichaClinica.escolaridad?.nivel || '',
-    valorHbac1: fichaClinica.factoresRiesgo?.valorHbac1 || '',
-    alcoholDrogas: fichaClinica.factoresRiesgo?.alcoholDrogas || false,
-    tabaquismo: fichaClinica.factoresRiesgo?.tabaquismo || false,
-    otros: fichaClinica.factoresRiesgo?.otros || '',
-    // Campos específicos para niños
-    puntajeDPM: fichaClinica.evaluacionPsicomotora?.puntajeDPM || '',
-    diagnosticoDSM: fichaClinica.evaluacionPsicomotora?.diagnosticoDSM || '',
-  });
+    const fetchFichaOriginal = async () => {
+      try {
+        const token = getToken();
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_URL}/fichas-clinicas/${fichaId}?tipo=${tipo}`,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
+    
+        // Añade un log para ver la estructura completa de los datos
+        console.log('Datos de la ficha original:', response.data);
+    
+        // Verificación más detallada
+        if (!response.data.data) {
+          throw new Error("No se encontraron datos de la ficha");
+        }
+    
+        // Intenta obtener institucion_id de diferentes formas
+        const institucionId = 
+          response.data.data.institucion?.id || // Accede al ID de la institución
+          response.data.data.institucionId || 
+          (response.data.data.paciente && response.data.data.paciente.institucion_id) ||
+          user.institucion_id; // Fallback al ID de institución del usuario actual
+    
+        if (!institucionId) {
+          throw new Error("No se pudo encontrar un institucion_id válido");
+        }
+    
+        setFichaOriginal({
+          ...response.data.data,
+          institucion_id: institucionId
+        });
+        setTipoFicha(tipo);
+    
+        // Preparar datos iniciales basados en el tipo de ficha
+        const prepararDatosIniciales = () => {
+          if (tipo === 'adulto') {
+            return {
+              // Datos personales básicos
+              nombres: response.data.data.paciente?.nombres || '',
+              apellidos: response.data.data.paciente?.apellidos || '',
+              rut: response.data.data.paciente?.rut || '',
+              edad: response.data.data.paciente?.edad || '',
+              telefonoPrincipal: response.data.data.paciente?.telefonoPrincipal || '',
+              telefonoSecundario: response.data.data.paciente?.telefonoSecundario || '',
+        
+              // Información adicional
+              diagnostico: response.data.data.diagnostico?.id || '',
+              escolaridad: response.data.data.escolaridad?.id || '',
+              ocupacion: response.data.data.ocupacion || '',
+              direccion: response.data.data.direccion || '',
+              
+              // Factores de riesgo
+              valorHbac1: response.data.data.factoresRiesgo?.valorHbac1 || '',
+              alcoholDrogas: response.data.data.factoresRiesgo?.alcoholDrogas || false,
+              tabaquismo: response.data.data.factoresRiesgo?.tabaquismo || false,
+              otrosFactoresRiesgo: response.data.data.factoresRiesgo?.otros || '',
+        
+              // Contexto familiar
+              conQuienVive: response.data.data.conQuienVive || '',
+              horarioLlamada: response.data.data.horarioLlamada || '',
+              conectividad: response.data.data.conectividad || '',
+              cicloVitalFamiliar: response.data.data.cicloVitalFamiliar?.id || '',
+              tiposFamilia: response.data.data.tiposFamilia?.map(tipo => tipo.id) || [],
+            };
+          }
+          // Añade lógica similar para fichas infantiles si es necesario
+        };
+    
+        setDatosIniciales(prepararDatosIniciales());
+        setLoading(false);
+      } catch (err) {
+        console.error('Error al obtener la ficha original:', err);
+        toast.error('No se pudo cargar la ficha original: ' + err.message);
+        setLoading(false);
+        navigate(-1);
+      }
+    };
+  
+    fetchFichaOriginal();
+  }, [location.state, getToken, navigate, user.institucion_id]);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value,
+  const handleReevaluacionExitosa = (nuevaFicha) => {
+    toast.success('Reevaluación registrada exitosamente');
+    navigate('?component=listado-fichas-clinicas', { 
+      state: { 
+        tipo: tipoFicha,
+        nuevaFichaId: nuevaFicha.id 
+      } 
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const token = getToken();
-    
-    try {
-      await axios.put(`${process.env.REACT_APP_API_URL}/fichas-clinicas/${fichaClinica.id}`, {
-        ...fichaClinica,
-        ...formData, // Combina los datos existentes con los nuevos
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      // Llama a la función onSave para refrescar los datos
-      onSave();
-    } catch (error) {
-      console.error('Error al guardar la reevaluación:', error);
-    }
-  };
-
+  if (loading) {
+    return <div>Cargando...</div>;
+  }
+  
   return (
-    <Form onSubmit={handleSubmit}>
-      <h5 className="border-bottom pb-2">Datos Personales</h5>
-      <div className="row mb-4">
-        <div className="col-md-6">
-          <p><strong>ID:</strong> {fichaClinica.id}</p>
-          <p><strong>RUT:</strong> {fichaClinica.paciente?.rut}</p>
-          <p><strong>Nombres:</strong> {fichaClinica.paciente?.nombres}</p>
-          <p><strong>Apellidos:</strong> {fichaClinica.paciente?.apellidos}</p>
-          <p><strong>Edad:</strong> {fichaClinica.paciente?.edad} Años</p>
-        </div>
-        <div className="col-md-6">
-          <Form.Group controlId="formDireccion">
-            <Form.Label>Dirección</Form.Label>
-            <Form.Control
-              type="text"
-              name="direccion"
-              value={formData.direccion}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
-          <Form.Group controlId="formConQuienVive">
-            <Form.Label>Con quién vive</Form.Label>
-            <Form.Control
-              type="text"
-              name="conQuienVive"
-              value={formData.conQuienVive}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
-        </div>
-      </div>
-
-      <h5 className="border-bottom pb-2">Información Médica</h5>
-      <div className="row mb-4">
-        <div className="col-md-6">
-          <Form.Group controlId="formDiagnostico">
-            <Form.Label>Diagnóstico</Form.Label>
-            <Form.Control
-              type="text"
-              name="diagnostico"
-              value={formData.diagnostico}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
-          <Form.Group controlId="formEscolaridad">
-            < Form.Label>Escolaridad</Form.Label>
-            <Form.Control
-              type="text"
-              name="escolaridad"
-              value={formData.escolaridad}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
-        </div>
-        <div className="col-md-6">
-          <Form.Group controlId="formOcupacion">
-            <Form.Label>Ocupación</Form.Label>
-            <Form.Control
-              type="text"
-              name="ocupacion"
-              value={formData.ocupacion}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
-          <Form.Group controlId="formHorarioLlamada">
-            <Form.Label>Horario de Llamada</Form.Label>
-            <Form.Control
-              type="text"
-              name="horarioLlamada"
-              value={formData.horarioLlamada}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
-        </div>
-      </div>
-
-      {tipo === 'infantil' && (
-        <>
-          <h5 className="border-bottom pb-2">Evaluación Psicomotora</h5>
-          <div className="row mb-4">
-            <div className="col-md-6">
-              <Form.Group controlId="formPuntajeDPM">
-                <Form.Label>Puntaje DPM</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="puntajeDPM"
-                  value={formData.puntajeDPM}
-                  onChange={handleChange}
-                  required
-                />
-              </Form.Group>
-            </div>
-            <div className="col-md-6">
-              <Form.Group controlId="formDiagnosticoDSM">
-                <Form.Label>Diagnóstico DSM</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="diagnosticoDSM"
-                  value={formData.diagnosticoDSM}
-                  onChange={handleChange}
-                  required
-                />
-              </Form.Group>
-            </div>
-          </div>
-        </>
-      )}
-
-      <h5 className="border-bottom pb-2">Factores de Riesgo</h5>
-      <div className="row mb-4">
-        <div className="col-md-6">
-          <Form.Group controlId="formValorHbac1">
-            <Form.Label>Valor HbA1c</Form.Label>
-            <Form.Control
-              type="text"
-              name="valorHbac1"
-              value={formData.valorHbac1}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
-        </div>
-        <div className="col-md-6">
-          <Form.Group controlId="formAlcoholDrogas">
-            <Form.Check
-              type="checkbox"
-              name="alcoholDrogas"
-              label="Consumo de Alcohol/Drogas"
-              checked={formData.alcoholDrogas}
-              onChange={handleChange}
-            />
-          </Form.Group>
-          <Form.Group controlId="formTabaquismo">
-            <Form.Check
-              type="checkbox"
-              name="tabaquismo"
-              label="Tabaquismo"
-              checked={formData.tabaquismo}
-              onChange={handleChange}
-            />
-          </Form.Group>
-        </div>
-      </div>
-
-      <Form.Group controlId="formOtros">
-        <Form.Label>Otros Factores de Riesgo</Form.Label>
-        <Form.Control
-          as="textarea"
-          rows={3}
-          name="otros"
-          value={formData.otros}
-          onChange={handleChange}
+    <div className="container">
+      <ToastContainer />
+      <h2 className="text-center mb-4">
+        Reevaluación - {tipoFicha === 'adulto' ? 'Adulto' : 'Infantil'}
+      </h2>
+  
+      {tipoFicha === 'adulto' ? (
+        <FichaClinicaAdulto
+          key="reevaluacion-adulto"
+          datosIniciales={datosIniciales}
+          onVolver={() => navigate(-1)}
+          onIngresar={handleReevaluacionExitosa}
+          esReevaluacion={true}
+          fichaOriginalId={fichaOriginal.id}
+          institucionId={fichaOriginal.institucion_id}
         />
-      </Form.Group>
-
-      <Button variant="primary" type="submit">
-        Guardar Reevaluación
-      </Button>
-    </Form>
+      ) : (
+        <FichaClinicaInfantil
+          key="reevaluacion-infantil"
+          datosIniciales={datosIniciales}
+          onVolver={() => navigate(-1)}
+          onIngresar={handleReevaluacionExitosa}
+          esReevaluacion={true}
+          fichaOriginalId={fichaOriginal.id}
+          institucionId={fichaOriginal.institucion_id}
+        />
+      )}
+    </div>
   );
-};
-
-export default Reevaluacion;
+  };
+  
+  export default Reevaluacion;

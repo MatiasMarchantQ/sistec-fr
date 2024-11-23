@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Table, Form, Row, Col, Button, Pagination } from 'react-bootstrap';
+import { Container, Table, Form, Row, Col, Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -14,63 +14,63 @@ const ListadoFichasClinicas = () => {
   const [tiposInstituciones, setTiposInstituciones] = useState([]);
   const [instituciones, setInstituciones] = useState([]);
   const [institucionesFiltradas, setInstitucionesFiltradas] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Estados de filtros
+  // Estados de filtros y paginación
   const [filtros, setFiltros] = useState({
     tipoInstitucion: '',
     institucion: '',
     textoBusqueda: '',
-    tipoFicha: '' // todos, adulto o infantil
+    tipoFicha: ''
   });
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
 
-  // Estados de paginación
-  const [pagina, setPagina] = useState(1);
-  const [totalPaginas, setTotalPaginas] = useState(0);
-  const [totalElementos, setTotalElementos] = useState(0);
-  const limite = 2; 
-
-  // Calcular estados de página
-  const isFirstPage = pagina === 1;
-  const isLastPage = pagina === totalPaginas;
-
-
-  const goToPage = (numeroPagina) => {
-    setPagina(numeroPagina);
-  };
-
-  // Cargar datos iniciales
+  // Efecto para cargar datos iniciales
   useEffect(() => {
     const cargarDatosIniciales = async () => {
+      setIsLoading(true);
       try {
         await Promise.all([
           cargarTiposInstituciones(),
-          cargarInstituciones(),
-          buscarFichas()
+          cargarInstituciones()
         ]);
+        await buscarFichas(1);
       } catch (error) {
-        console.error('Error al cargar datos iniciales', error);
+        console.error('Error al cargar datos iniciales:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     cargarDatosIniciales();
-  }, [pagina, filtros]);
+  }, []);
 
-  // Funciones de carga 
+  // Efecto para filtrar instituciones cuando cambia el tipo
+  useEffect(() => {
+    if (filtros.tipoInstitucion) {
+      const filtradas = instituciones.filter(
+        inst => inst.tipo_id === parseInt(filtros.tipoInstitucion)
+      );
+      setInstitucionesFiltradas(filtradas);
+      // Limpiar la institución seleccionada si no está en las filtradas
+      if (filtros.institucion && !filtradas.some(inst => inst.id === parseInt(filtros.institucion))) {
+        setFiltros(prev => ({ ...prev, institucion: '' }));
+      }
+    } else {
+      setInstitucionesFiltradas(instituciones);
+    }
+  }, [filtros.tipoInstitucion, instituciones]);
+
   const cargarTiposInstituciones = async () => {
     try {
       const token = getToken();
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/obtener/tipos-instituciones`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
-      // Ajusta según la estructura de la respuesta
-      const tipos = Array.isArray(response.data) 
-        ? response.data 
-        : [];
-      
-      setTiposInstituciones(tipos);
+      setTiposInstituciones(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
-      console.error('Error al cargar tipos de instituciones', error);
+      console.error('Error al cargar tipos de instituciones:', error);
       setTiposInstituciones([]);
     }
   };
@@ -81,84 +81,100 @@ const ListadoFichasClinicas = () => {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/instituciones`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
-      const instits = response.data?.instituciones || response.data || [];
-      
-      setInstituciones(instits);
+      setInstituciones(response.data?.instituciones || []);
     } catch (error) {
-      console.error('Error al cargar instituciones', error);
+      console.error('Error al cargar instituciones:', error);
       setInstituciones([]);
-      if (error.response && error.response.status === 401) {
+      if (error.response?.status === 401) {
         navigate('/home');
       }
     }
   };
-  
-  // Efecto para filtrar instituciones cuando cambia el tipo de institución
-  useEffect(() => {
-    if (filtros.tipoInstitucion) {
-      const filteredInsts = instituciones.filter(
-        inst => inst.tipo_id === parseInt(filtros.tipoInstitucion)
-      );
-      setInstitucionesFiltradas(filteredInsts);
-    } else {
-      setInstitucionesFiltradas(instituciones);
-    }
-  }, [filtros.tipoInstitucion, instituciones]);
-  
-  // Función para buscar fichas clínicas
-  const buscarFichas = async () => {
-    try {
-      const token = getToken();
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/fichas-clinicas`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-        params: {
-          ...filtros,
-          tipoFicha: filtros.tipoFicha === '' ? null : filtros.tipoFicha,
-          pagina,
-          limite
-        }
-      });
-  
-      const fichasRecibidas = response.data?.fichas || [];
-      const totalPaginas = response.data?.totalPaginas || 0;
-      const totalElementos = response.data?.total || 0;
-  
-      setFichas(fichasRecibidas);
-    } catch (error) {
-      console.error('Error al buscar fichas', error);
-      setFichas([]);
 
-      if (error.response && error.response.status === 401) {
-        navigate('/');
-      }
+  // Función para cambiar de página
+  const cambiarPagina = async (nuevaPagina) => {
+    if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas && !isLoading) {
+      await buscarFichas(nuevaPagina);
     }
   };
 
-  // Limpiar filtros
-  const limpiarFiltros = () => {
+
+  const buscarFichas = async (pagina = paginaActual) => {
+    setIsLoading(true);
+    try {
+      const token = getToken();
+      const params = new URLSearchParams({
+        ...filtros,
+        pagina: pagina.toString(),
+        limite: '10'
+      });
+
+      // Remover parámetros vacíos
+      for (const [key, value] of params.entries()) {
+        if (!value) params.delete(key);
+      }
+
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/fichas-clinicas`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        params: params
+      });
+
+      if (response.data.success) {
+        setFichas(response.data.fichas);
+        setTotalPaginas(Math.ceil(response.data.total / response.data.limite));
+        setPaginaActual(pagina);
+      } else {
+        throw new Error(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error al buscar fichas:', error);
+      setFichas([]);
+      if (error.response?.status === 401) {
+        navigate('/');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleChangeFiltro = (e) => {
+    const { name, value } = e.target;
+    setFiltros(prev => {
+      const newFiltros = { ...prev, [name]: value };
+      
+      // Si cambia el tipo de institución, resetear la institución
+      if (name === 'tipoInstitucion') {
+        newFiltros.institucion = '';
+      }
+      
+      return newFiltros;
+    });
+  };
+
+  const aplicarFiltros = async () => {
+    await buscarFichas(1); // Resetear a primera página al aplicar filtros
+  };
+
+  const limpiarFiltros = async () => {
     setFiltros({
       tipoInstitucion: '',
       institucion: '',
       textoBusqueda: '',
       tipoFicha: ''
     });
-    setPagina(1);
+    await buscarFichas(1);
   };
 
-  // Manejar cambios en los filtros
-  const handleChangeFiltro = (e) => {
-    const { name, value } = e.target;
-    setFiltros(prevFiltros => ({
-      ...prevFiltros,
-      [name]: value
-    }));
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      aplicarFiltros();
+    }
   };
 
-  // Ver detalles de una ficha
   const verDetallesFicha = (id, tipo) => {
-    navigate('/home', { 
-      state: { 
+    navigate('/home', {
+      state: {
         component: 'ficha-clinica',
         fichaId: id,
         tipo: tipo
@@ -169,64 +185,59 @@ const ListadoFichasClinicas = () => {
   return (
     <Container fluid className="p-4">
       <h1 className="mb-4">Listado de Fichas Clínicas</h1>
-      
+
       {/* Formulario de Filtros */}
-      <Form className="mb-4">
+      <Form className="mb-4" onSubmit={(e) => { e.preventDefault(); aplicarFiltros(); }}>
         <Row>
-        <Col md={3}>
-          <Form.Group>
-            <Form.Label>Tipo de Institución</Form.Label>
-            <Form.Control 
-              as="select" 
-              name="tipoInstitucion"
-              value={filtros.tipoInstitucion}
-              onChange={(e) => {
-                handleChangeFiltro(e);
-                // Resetear la institución si cambia el tipo
-                setFiltros(prev => ({
-                  ...prev,
-                  institucion: ''
-                }));
-              }}
-            >
-              <option value="">Todos los Tipos</option>
-              {tiposInstituciones.map(tipo => (
-                <option key={tipo.id} value={tipo.id}>
-                  {tipo.tipo}
-                </option>
-              ))}
-            </Form.Control>
-          </Form.Group>
-        </Col>
-        <Col md={3}>
-          <Form.Group>
-            <Form.Label>Institución</Form.Label>
-            <Form.Control 
-              as="select" 
-              name="institucion"
-              value={filtros.institucion}
-              onChange={handleChangeFiltro}
-              disabled={!filtros.tipoInstitucion}
-            >
-              <option value="">Todas las Instituciones</option>
-              {institucionesFiltradas.map(inst => (
-                <option key={inst.id} value={inst.id}>
-                  {inst.nombre}
-                </option>
-              ))}
-            </Form.Control>
-          </Form.Group>
-        </Col>
+          <Col md={3}>
+            <Form.Group>
+              <Form.Label>Tipo de Institución</Form.Label>
+              <Form.Control
+                as="select"
+                name="tipoInstitucion"
+                value={filtros.tipoInstitucion}
+                onChange={handleChangeFiltro}
+                disabled={isLoading}
+              >
+                <option value="">Todos los Tipos</option>
+                {tiposInstituciones.map(tipo => (
+                  <option key={tipo.id} value={tipo.id}>
+                    {tipo.tipo}
+                  </option>
+                ))}
+              </Form.Control>
+            </Form.Group>
+          </Col>
+          <Col md={3}>
+            <Form.Group>
+              <Form.Label>Institución</Form.Label>
+              <Form.Control
+                as="select"
+                name="institucion"
+                value={filtros.institucion}
+                onChange={handleChangeFiltro}
+                disabled={!filtros.tipoInstitucion || isLoading}
+              >
+                <option value="">Todas las Instituciones</option>
+                {institucionesFiltradas.map(inst => (
+                  <option key={inst.id} value={inst.id}>
+                    {inst.nombre}
+                  </option>
+                ))}
+              </Form.Control>
+            </Form.Group>
+          </Col>
           <Col md={3}>
             <Form.Group>
               <Form.Label>Tipo de Ficha</Form.Label>
-              <Form.Control 
-                as="select" 
+              <Form.Control
+                as="select"
                 name="tipoFicha"
                 value={filtros.tipoFicha}
                 onChange={handleChangeFiltro}
+                disabled={isLoading}
               >
-                <option value="">Todos los Tipos de Ficha</option>
+                <option value="">Todos los Tipos</option>
                 <option value="adulto">Adulto</option>
                 <option value="infantil">Infantil</option>
               </Form.Control>
@@ -235,30 +246,34 @@ const ListadoFichasClinicas = () => {
           <Col md={3}>
             <Form.Group>
               <Form.Label>Buscar</Form.Label>
-              <Form.Control 
+              <Form.Control
                 type="text"
                 name="textoBusqueda"
-                placeholder="Buscar por nombre, RUT..."
+                placeholder="Buscar por nombre o RUT..."
                 value={filtros.textoBusqueda}
                 onChange={handleChangeFiltro}
+                onKeyPress={handleKeyPress}
+                disabled={isLoading}
               />
             </Form.Group>
           </Col>
         </Row>
         <Row className="mt-3">
           <Col>
-            <Button 
-              variant="primary" 
-              onClick={buscarFichas} 
+            <Button
+              type="submit"
+              variant="primary"
               className="me-2"
+              disabled={isLoading}
             >
-              Buscar
+              {isLoading ? 'Buscando...' : 'Buscar'}
             </Button>
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               onClick={limpiarFiltros}
+              disabled={isLoading}
             >
-              Limpiar
+              Limpiar Filtros
             </Button>
           </Col>
         </Row>
@@ -277,35 +292,48 @@ const ListadoFichasClinicas = () => {
           </tr>
         </thead>
         <tbody>
-          {fichas && fichas.length > 0 ? (
+          {isLoading ? (
+            <tr>
+              <td colSpan="6" className="text-center">
+                Cargando fichas...
+              </td>
+            </tr>
+          ) : fichas.length > 0 ? (
             fichas.map(ficha => {
               const esInfantil = ficha.PacienteInfantil !== undefined;
-              
+              const paciente = esInfantil
+                ? ficha.PacienteInfantil
+                : ficha.PacienteAdulto;
+
+              const fechaOriginal = esInfantil
+                ? ficha.createdAt
+                : (ficha.fecha_evaluacion || ficha.createdAt);
+
+              const fecha = new Date(fechaOriginal)
+                .toLocaleDateString('es-CL', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric'
+                });
+
+              const diagnostico = esInfantil
+                ? ficha.diagnostico_dsm
+                : (ficha.diagnostico?.nombre || ficha.diagnostico_otro || 'Sin diagnóstico');
+
               return (
                 <tr key={ficha.id}>
-                  <td>{new Date(ficha.createdAt).toLocaleDateString()}</td>
+                  <td>{fecha}</td>
                   <td>{esInfantil ? 'Infantil' : 'Adulto'}</td>
-                  <td>
-                    {esInfantil 
-                      ? `${ficha.PacienteInfantil.nombres} ${ficha.PacienteInfantil.apellidos}` 
-                      : `${ficha.PacienteAdulto.nombres} ${ficha.PacienteAdulto.apellidos}`
-                    }
-                  </td>
+                  <td>{`${paciente.nombres} ${paciente.apellidos}`}</td>
                   <td>{ficha.Institucion.nombre}</td>
+                  <td>{diagnostico}</td>
                   <td>
-                    {esInfantil 
-                      ? ficha.diagnostico_dsm 
-                      : ficha.diagnostico?.nombre || ficha.diagnostico_otro
-                    }
-                  </td>
-                  <td>
-                    <Button 
-                      variant="info" 
+                    <Button
+                      variant="info"
                       size="sm"
                       onClick={() => verDetallesFicha(
-                        ficha.id, 
-                        esInfantil ? 'infantil' : 'adulto'
-                      )}
+                        ficha.id,
+                        esInfantil ? 'infantil' : 'adulto')}
                     >
                       Ver Detalles
                     </Button>
@@ -324,40 +352,25 @@ const ListadoFichasClinicas = () => {
       </Table>
 
       {/* Paginación */}
-      <Row className="mt-3">
-        <Col>
-          <div className="d-flex justify-content-start align-items-center">
-            <Pagination size="sm me-3">
-              <Pagination.First 
-                onClick={() => goToPage(1)} 
-                disabled={isFirstPage}
-              />
-              <Pagination.Prev
-                disabled={isFirstPage}
-                onClick={() => goToPage(pagina - 1)}
-              />
-              
-              {/* Generar números de página */}
-              {[...Array(totalPaginas)].map((_, index) => (
-                <Pagination.Item
-                  key={index}
-                  active={pagina === index + 1}
-                  onClick={() => goToPage(index + 1)}
-                >
-                  {index + 1}
-                </Pagination.Item>
-              ))}
-              
-              <Pagination.Next
-                disabled={isLastPage}
-                onClick={() => goToPage(pagina + 1)}
-              />
-              <Pagination.Last 
-                onClick={() => goToPage(totalPaginas)} 
-                disabled={isLastPage}
-              />
-            </Pagination>
-          </div>
+      <Row className="mt-4">
+        <Col className="d-flex justify-content-between align-items-center">
+          <Button
+            variant="secondary"
+            onClick={() => cambiarPagina(paginaActual - 1)}
+            disabled={paginaActual === 1 || isLoading}
+          >
+            Anterior
+          </Button>
+          <span>
+            Página {paginaActual} de {totalPaginas}
+          </span>
+          <Button
+            variant="secondary"
+            onClick={() => cambiarPagina(paginaActual + 1)}
+            disabled={paginaActual === totalPaginas || isLoading}
+          >
+            Siguiente
+          </Button>
         </Col>
       </Row>
     </Container>

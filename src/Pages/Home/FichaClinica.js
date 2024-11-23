@@ -10,59 +10,9 @@ import SeguimientoInfantil from './SeguimientoInfantil';
 import SeguimientoAdulto from './SeguimientoAdulto';
 import Reevaluacion from './Reevaluacion';
 
-const FichaClinicaAdulto = ({ fichaClinica, onDiagnosticoChange, editable }) => {
-  const { getToken } = useAuth();
-  const [diagnostico, setDiagnostico] = useState(fichaClinica.diagnostico || '');
+const FichaClinicaAdulto = ({ fichaClinica }) => {
+  const navigate = useNavigate();
   const [valorHbA1c, setValorHbA1c] = useState(fichaClinica.factoresRiesgo?.valorHbac1 || '');
-  const [isEditingDiagnostico, setIsEditingDiagnostico] = useState(false);
-  const [isEditingHbA1c, setIsEditingHbA1c] = useState(false);
-  const [originalDiagnostico, setOriginalDiagnostico] = useState(diagnostico);
-  const [originalHbA1c, setOriginalHbA1c] = useState(valorHbA1c);
-
-  const handleDiagnosticoChange = (e) => {
-    setDiagnostico(e.target.value);
-  };
-
-  const handleSaveDiagnostico = () => {
-    if (onDiagnosticoChange) {
-      onDiagnosticoChange(diagnostico);
-    }
-    setIsEditingDiagnostico(false);
-  };
-
-  const handleHbA1cChange = (e) => {
-    setValorHbA1c(e.target.value);
-  };
-
-  const handleCancelDiagnostico = () => {
-    setDiagnostico(originalDiagnostico); // Restablece al valor original
-    setIsEditingDiagnostico(false);
-  };
-
-  const handleCancelHbA1c = () => {
-    setValorHbA1c(originalHbA1c); // Restablece al valor original
-    setIsEditingHbA1c(false);
-  };
-
-  const handleSaveHbA1c = async () => {
-    try {
-      const token = getToken();
-      await axios.patch(
-        `${process.env.REACT_APP_API_URL}/fichas-clinicas/${fichaClinica.id}`,
-        { factoresRiesgo: { valorHbac1: valorHbA1c } },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      // Actualizar el estado local
-      setValorHbA1c(valorHbA1c);
-      setIsEditingHbA1c(false);
-    } catch (error) {
-      console.error('Error actualizando valor HbA1c:', error);
-      // Manejar el error (mostrar mensaje, etc.)
-    }
-  };
 
   return (
     <>
@@ -90,43 +40,7 @@ const FichaClinicaAdulto = ({ fichaClinica, onDiagnosticoChange, editable }) => 
           <h5 className="border-bottom pb-2">Información Médica</h5>
           <div className="row">
             <div className="col-md-6">
-              <p>
-                <strong>Diagnóstico:</strong> 
-                {editable && isEditingDiagnostico ? (
-                  <div className="d-flex align-items-center">
-                    <input 
-                      type="text" 
-                      className="form-control form-control-sm me-2" 
-                      value={diagnostico}
-                      onChange={handleDiagnosticoChange}
-                    />
-                    <button 
-                      className="btn btn-sm btn-success" 
-                      onClick={handleSaveDiagnostico}
-                    >
-                      <i className="fas fa-check"></i>
-                    </button>
-                    <button 
-                        className="btn btn-sm btn-danger ms-2 me-2" 
-                        onClick={handleCancelDiagnostico}
-                      >
-                        <i className="fas fa-times"></i>
-                      </button>
-                  </div>
-                ) : (
-                  <span className="ms-2">
-                    {diagnostico}
-                    {editable && (
-                      <button 
-                        className="btn btn-sm btn-link" 
-                        onClick={() => setIsEditingDiagnostico(true)}
-                      >
-                        <i className="fas fa-edit"></i>
-                      </button>
-                    )}
-                  </span>
-                )}
-              </p>
+            <p><strong>Diagnostico:</strong> {fichaClinica.diagnostico}</p>
               <p>
                 <strong>Escolaridad:</strong> {
                   (fichaClinica.escolaridad && 
@@ -158,43 +72,7 @@ const FichaClinicaAdulto = ({ fichaClinica, onDiagnosticoChange, editable }) => 
         <div className="col-md-4">
           <h5 className="border-bottom pb-2">Factores de Riesgo</h5>
           <ul className="list-unstyled">
-          <p>
-                <strong>Valor HbA1c:</strong> 
-                {editable && isEditingHbA1c ? (
-                  <div className="d-flex align-items-center">
-                    <input 
-                      type="text" 
-                      className="form-control form-control-sm me-2" 
-                      value={valorHbA1c}
-                      onChange={handleHbA1cChange}
-                    />
-                    <button 
-                      className="btn btn-sm btn-success" 
-                      onClick={handleSaveHbA1c}
-                    >
-                      <i className="fas fa-check"></i>
-                    </button>
-                    <button 
-                      className="btn btn-sm btn-danger ms-2" 
-                      onClick={handleCancelHbA1c}
-                    >
-                      <i className="fas fa-times"></i>
-                    </button>
-                  </div>
-                ) : (
-                  <span className="ms-2">
-                    {valorHbA1c || 'N/A'}%
-                    {editable && (
-                      <button 
-                        className="btn btn-sm btn-link" 
-                        onClick={() => setIsEditingHbA1c(true)}
-                      >
-                        <i className="fas fa-edit"></i>
-                      </button>
-                    )}
-                  </span>
-                )}
-              </p>
+          <p><strong>Valor HbA1c: </strong>{valorHbA1c}%</p>
             <li><strong>Alcohol/Drogas:</strong> {fichaClinica.factoresRiesgo?.alcoholDrogas ? 'Sí' : 'No'}</li>
             <li><strong>Tabaquismo:</strong> {fichaClinica.factoresRiesgo?.tabaquismo ? 'Sí' : 'No'}</li>
             <li><strong>Específico:</strong> {fichaClinica.factoresRiesgo?.otros || 'N/A'}</li>
@@ -256,52 +134,6 @@ const FichaClinicaAdulto = ({ fichaClinica, onDiagnosticoChange, editable }) => 
 };
 
 const FichaClinicaInfantil = ({ fichaClinica }) => {
-  const [puntajeDPM, setPuntajeDPM] = useState(fichaClinica.evaluacionPsicomotora?.puntajeDPM || '');
-  const [diagnosticoDSM, setDiagnosticoDSM] = useState(fichaClinica.evaluacionPsicomotora?.diagnosticoDSM || '');
-
-  const [isEditingPuntajeDPM, setIsEditingPuntajeDPM] = useState(false);
-  const [isEditingDiagnosticoDSM, setIsEditingDiagnosticoDSM] = useState(false);
-
-const handleSavePuntajeDPM = () => {
-    // Aquí puedes agregar la lógica para guardar el puntaje DPM
-    setIsEditingPuntajeDPM(false);
-  };
-
-  const handleCancelPuntajeDPM = () => {
-    setPuntajeDPM(fichaClinica.evaluacionPsicomotora?.puntajeDPM || '');
-    setIsEditingPuntajeDPM(false);
-  };
-
-  const handleSaveDiagnosticoDSM = () => {
-    // Aquí puedes agregar la lógica para guardar el diagnóstico DSM
-    setIsEditingDiagnosticoDSM(false);
-  };
-
-  const handleCancelDiagnosticoDSM = () => {
-    setDiagnosticoDSM(fichaClinica.evaluacionPsicomotora?.diagnosticoDSM || '');
-    setIsEditingDiagnosticoDSM(false);
-  };
-
-  const handlePuntajeDPMChange = (e) => {
-    const selectedValue = e.target.value;
-    setPuntajeDPM(selectedValue);
-
-    // Actualizar el diagnóstico DSM basado en la selección
-    switch(selectedValue) {
-      case "Menor a 30":
-        setDiagnosticoDSM("Retraso");
-        break;
-      case "Entre 30 y 40":
-        setDiagnosticoDSM("Riesgo");
-        break;
-      case "Mayor a 40":
-        setDiagnosticoDSM("Normal");
-        break;
-      default:
-        setDiagnosticoDSM("");
-    }
-  };
-
   return (
     <>
       <div className="row mb-4">
@@ -326,57 +158,8 @@ const handleSavePuntajeDPM = () => {
           <h5 className="border-bottom pb-2">Evaluación Psicomotora</h5>
           <div className="row">
             <div className="col-md-6">
-            <p>
-              <strong>Puntaje DPM:</strong> 
-              {isEditingPuntajeDPM ? (
-                <div className="d-flex align-items-center">
-                  <select 
-                    className="form-control" 
-                    value={puntajeDPM} 
-                    onChange={handlePuntajeDPMChange}
-                  >
-                    <option value="">Seleccione...</option>
-                    <option value="Menor a 30">Menor a 30</option>
-                    <option value="Entre 30 y 40">Entre 30 y 40</option>
-                    <option value="Mayor a 40">Mayor a 40</option>
-                  </select>
-                  <button 
-                    className="btn btn-sm btn-success" 
-                    onClick={handleSavePuntajeDPM}
-                  >
-                    <i className="fas fa-check"></i>
-                  </button>
-                  <button 
-                    className="btn btn-sm btn-danger ms-2" 
-                    onClick={handleCancelPuntajeDPM}
-                  >
-                    <i className="fas fa-times"></i>
-                  </button>
-                </div>
-              ) : (
-                <span className="ms-2">
-                  {puntajeDPM || 'N/A'}
-                  <button 
-                    className="btn btn-sm btn-link" 
-                    onClick={() => setIsEditingPuntajeDPM(true)}
-                  >
-                    <i className="fas fa-edit"></i>
-                  </button>
-                </span>
-              )}
-            </p>
-            <p>
-                <div className="form-group">
-                  <label>Diagnóstico DSM</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={diagnosticoDSM}
-                    readOnly
-                    placeholder={puntajeDPM ? diagnosticoDSM : "Seleccione Puntaje DPM o TEPSI"}
-                  />
-              </div>
-            </p> 
+            <p><strong>Puntaje DPM:</strong> {fichaClinica.evaluacionPsicomotora?.puntajeDPM}</p>
+            <p><strong>Diagnóstico DSM:</strong> {fichaClinica.evaluacionPsicomotora?.diagnosticoDSM}</p> 
             </div>
           </div>
         </div>
@@ -480,6 +263,8 @@ const formatearFichaAdulto = (fichaClinica) => {
   return {
     id: fichaClinica.id || null,
     fecha: fichaClinica.fecha || null,
+    is_reevaluacion: fichaClinica.is_reevaluacion || false,
+    fichaOriginalId: fichaClinica.ficha_original_id || null,
     paciente: {
       id: fichaClinica.paciente?.id || null,
       nombres: fichaClinica.paciente?.nombres || 'N/A',
@@ -616,6 +401,14 @@ const FichaClinica = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('informacion');
+  const [reevaluaciones, setReevaluaciones] = useState([]);
+  const [expandido, setExpandido] = useState(false);
+
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  const [totalPaginas, setTotalPaginas] = useState(0);
+  const reevaluacionesPorPagina = 5;
 
   // Definición de fetchFichaClinica como función
   const fetchFichaClinica = async () => {
@@ -659,27 +452,49 @@ const FichaClinica = () => {
       } 
     });
   };
-
-  const handleDiagnosticoChange = async (nuevoDiagnostico) => {
+  const fetchReevaluaciones = async (pagina = 1, fechaInicio = '', fechaFin = '') => {
     try {
       const token = getToken();
-      await axios.patch(
-        `${process.env.REACT_APP_API_URL}/fichas-clinicas/${fichaId}`,
-        { diagnostico: nuevoDiagnostico },
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_URL}/fichas-clinicas/reevaluaciones/${fichaId}`,
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            tipo,
+            pagina,
+            fechaInicio,
+            fechaFin,
+            limite: reevaluacionesPorPagina
+          }
         }
       );
 
-      // Actualizar el estado local
-      setFichaClinica(prev => ({
-        ...prev,
-        diagnostico: nuevoDiagnostico
-      }));
+      setReevaluaciones(response.data.data);
+      setTotalPaginas(response.data.totalPaginas);
+      setPaginaActual(pagina);
     } catch (error) {
-      console.error('Error actualizando diagnóstico:', error);
-      // Manejar el error (mostrar mensaje, etc.)
+      console.error('Error al obtener reevaluaciones:', error);
+      setReevaluaciones([]);
     }
+  };
+  
+  useEffect(() => {
+    if (fichaId && tipo) {
+      setReevaluaciones([]); // Limpiar reevaluaciones al cambiar de ficha
+      fetchFichaClinica();
+      fetchReevaluaciones();
+    } else {
+      setLoading(false);
+      setError('No se proporcionó un ID de ficha clínica válido o un tipo');
+    }
+  }, [fichaId, tipo]);
+
+  const handleFiltrar = () => {
+    fetchReevaluaciones(1, fechaInicio, fechaFin);
+  };
+
+  const cambiarPagina = (numeroPagina) => {
+    fetchReevaluaciones(numeroPagina, fechaInicio, fechaFin);
   };
 
   if (loading) {
@@ -743,22 +558,180 @@ const FichaClinica = () => {
         </Tab>
 
         <Tab eventKey="reevaluacion" title="Reevaluación">
-  <div className="card mb-4">
-    <div className="card-header text-white bg-primary">
-      <i className="fas fa-refresh me-2"></i>Reevaluación del Paciente
-    </div>
-    <div className="card-body">
-      {tipo === 'adulto' ? (
-        <FichaClinicaAdulto 
-          fichaClinica={fichaClinica} onDiagnosticoChange={handleDiagnosticoChange} 
-          editable={true} 
-        />
-      ) : (
-        <FichaClinicaInfantil fichaClinica={fichaClinica} />
-      )}
-    </div>
-  </div>
-</Tab>
+          <div className="card mb-4">
+            <div className="card-header text-white bg-primary">
+              <i className="fas fa-refresh me-2"></i>Reevaluación del Paciente
+            </div>
+            <div className="card-body">
+              {/* Botón para iniciar reevaluación */}
+              <div className="text-center mb-4">
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => navigate('?component=reevaluacion', { 
+                    state: { 
+                      fichaId: fichaClinica.id, 
+                      tipo: tipo,
+                      paciente: fichaClinica.paciente
+                    } 
+                  })}
+                >
+                  Iniciar Nueva Reevaluación
+                </button>
+              </div>
+
+              {/* Sección para mostrar reevaluaciones existentes */}
+              {reevaluaciones && reevaluaciones.length > 0 ? (
+                <div>
+                  <div className="row mb-4">
+                    <div className="col-md-4">
+                      <label>Fecha Inicio</label>
+                      <input 
+                        type="date" 
+                        className="form-control" 
+                        value={fechaInicio}
+                        onChange={(e) => setFechaInicio(e.target.value)}
+                      />
+                    </div>
+                    <div className="col-md-4">
+                      <label>Fecha Fin</label>
+                      <input 
+                        type="date" 
+                        className="form-control" 
+                        value={fechaFin}
+                        onChange={(e) => setFechaFin(e.target.value)}
+                      />
+                    </div>
+                    <div className="col-md-4 d-flex align-items-end">
+                      <button 
+                        className="btn btn-primary" 
+                        onClick={handleFiltrar}
+                      >
+                        Filtrar
+                      </button>
+                    </div>
+                  </div>
+
+                  <h5 className="border-bottom pb-2">Reevaluaciones Previas</h5>
+                  {reevaluaciones.map((reevaluacion, index) => (
+                    <div key={reevaluacion.id} className="card mb-3">
+                      <div 
+                        className="card-header d-flex justify-content-between align-items-center" 
+                        onClick={() => setExpandido(index === expandido ? null : index)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div className="me-auto"> {/* Esto se asegura de que el contenido a la izquierda permanezca a la izquierda */}
+                          <strong>Reevaluación {index + 1}</strong>
+                        </div>
+                        <div className="d-flex align-items-center">
+                          <span>{new Date(reevaluacion.fecha).toLocaleDateString()}</span>
+                          <i className={`fas fa-chevron-${expandido === index ? 'up' : 'down'} ms-2`}></i> {/* Agregar un margen a la izquierda del ícono */}
+                        </div>
+                      </div>
+                      {expandido === index && (
+                        <div className="card-body">
+                          <div className="row">
+                            <div className="col-md-6">
+                              <h6 className="border-bottom pb-2">Información Personal</h6>
+                              <p><strong>Diagnóstico:</strong> {reevaluacion.diagnostico?.nombre || 'N/A'}</p>
+                              <p><strong>Ocupación:</strong> {reevaluacion.ocupacion || 'N/A'}</p>
+                              <p><strong>Escolaridad:</strong> {reevaluacion.escolaridad?.nivel || 'N/A'}</p>
+                              <p><strong>Con quién vive:</strong> {reevaluacion.conQuienVive || 'N/A'}</p>
+                            </div>
+                            <div className="col-md-6">
+                              <h6 className="border-bottom pb-2">Factores de Riesgo</h6>
+                              <p><strong>Valor HbA1c:</strong> {reevaluacion.factoresRiesgo?.valorHbac1 || 'N/A'}%</p>
+                              <ul>
+                                <li>Alcohol/Drogas: {reevaluacion.factoresRiesgo?.alcoholDrogas ? 'Sí' : 'No'}</li>
+                                <li>Tabaquismo: {reevaluacion.factoresRiesgo?.tabaquismo ? 'Sí' : 'No'}</li>
+                                <li>Otros: {reevaluacion.factoresRiesgo?.otros || 'N/A'}</li>
+                              </ul>
+                            </div>
+                          </div>
+                          <div className="row mt-3">
+                            <div className="col-md-6">
+                              <h6 className="border-bottom pb-2">Información Familiar</h6>
+                              <p><strong>Ciclo Vital Familiar:</strong> {reevaluacion.cicloVitalFamiliar?.ciclo || 'N/A'}</p>
+                              <p><strong>Tipos de Familia:</strong></p>
+                              <ul>
+                                {reevaluacion.tiposFamilia && reevaluacion.tiposFamilia.length > 0 ? (
+                                  reevaluacion.tiposFamilia.map((tipo, idx) => (
+                                    <li key={idx}>{tipo.nombre}</li>
+                                  ))
+                                ) : (
+                                  <li>No hay tipos de familia registrados</li>
+                                )}
+                              </ul>
+                            </div>
+                            <div className="col-md-6">
+                              <h6 className="border-bottom pb-2">Información Adicional</h6>
+                              <p><strong>Dirección:</strong> {reevaluacion.direccion || 'N/A'}</p>
+                              <p><strong>Horario de Llamada:</strong> {reevaluacion.horarioLlamada || 'N/A'}</p>
+                              <p><strong>Conectividad:</strong> {reevaluacion.conectividad || 'N/A'}</p>
+                            </div>
+                          </div>
+                          <div className="row mt-3">
+                            <div className="col-12">
+                              <h6 className="border-bottom pb-2">Observaciones</h6>
+                              <p>{reevaluacion.observaciones || 'Sin observaciones'}</p>
+                            </div>
+                          </div>
+                          <div className="row mt-3">
+                            <div className="col-md-6">
+                              <h6 className="border-bottom pb-2">{reevaluacion.estudiante ? 'Estudiante' : 'Usuario'}</h6>
+                              <p>
+                                <strong>Nombre:</strong> {
+                                  reevaluacion.estudiante 
+                                    ? `${reevaluacion.estudiante.nombres} ${reevaluacion.estudiante.apellidos}` 
+                                    : reevaluacion.usuario 
+                                      ? `${reevaluacion.usuario.nombres} ${reevaluacion.usuario.apellidos}` 
+                                      : 'N/A'
+                                }
+                              </p>
+                              <p>
+                                <strong>{reevaluacion.estudiante ? 'Email' : 'Correo'}:</strong> {
+                                  reevaluacion.estudiante?.correo || 
+                                  reevaluacion.usuario?.correo || 
+                                  'N/A'
+                                }
+                              </p>
+                            </div>
+                            <div className="col-md-6">
+                              <h6 className="border-bottom pb-2">Institución</h6>
+                              <p><strong>Nombre:</strong> {reevaluacion.institucion?.nombre || 'N/A'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Componente de paginación */}
+                  <nav>
+                    <ul className="pagination justify-content-center">
+                      {[...Array(totalPaginas)].map((_, index) => (
+                        <li 
+                          key={index} 
+                          className={`page-item ${paginaActual === index + 1 ? 'active' : ''}`}
+                        >
+                          <button 
+                            className="page-link" 
+                            onClick={() => cambiarPagina(index + 1)}
+                          >
+                            {index + 1}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </nav>
+                </div>
+              ) : (
+                <div className="alert alert-info text-center">
+                  No se han realizado reevaluaciones previas
+                </div>
+              )}
+            </div>
+          </div>
+        </Tab>
       </Tabs>
     </Container>
   );

@@ -1,10 +1,10 @@
-import React, { useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
+const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciales }) => {
   const { user, getToken } = useAuth();
   const initialDatosAdulto = {
     nombres: '',
@@ -24,10 +24,9 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
   };
 
   const [datosAdulto, setDatosAdulto] = useState(initialDatosAdulto);
-
   const [tiposFamilia, setTiposFamilia] = useState([]);
   const [ciclosVitales, setCiclosVitales] = useState([]);
-  const [diagnosticoSeleccionado, setDiagnosticoSeleccionado] = useState([]);
+  const [diagnosticoSeleccionado, setDiagnosticoSeleccionado] = useState('');
   const [diagnosticoOtro, setDiagnosticoOtro] = useState('');
   const [tiposFamiliaSeleccionados, setTiposFamiliaSeleccionados] = useState('');
   const [tipoFamiliaOtro, setTipoFamiliaOtro] = useState('');
@@ -37,14 +36,67 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
     tabaquismo: false,
     otros: ''
   });
-
   const [diagnosticos, setDiagnosticos] = useState([]);
   const [nivelesEscolaridad, setNivelesEscolaridad] = useState([]);
   const [errores, setErrores] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  
+  // Añadir el estado para escolaridad
+  const [escolaridadSeleccionada, setEscolaridadSeleccionado] = useState('');
 
+  useEffect(() => {
+    console.log('Datos Iniciales Recibidos:', datosIniciales);
+
+    // Cargar datos iniciales si están disponibles
+    if (datosIniciales) {
+      setDatosAdulto(prev => ({
+        ...prev,
+        nombres: datosIniciales.nombres || '',
+        apellidos: datosIniciales.apellidos || '',
+        rut: datosIniciales.rut || '',
+        edad: datosIniciales.edad || '',
+        ocupacion: datosIniciales.ocupacion || '',
+        direccion: datosIniciales.direccion || '',
+        conQuienVive: datosIniciales.conQuienVive || '',
+        telefonoPrincipal: datosIniciales.telefonoPrincipal || '',
+        telefonoSecundario: datosIniciales.telefonoSecundario || '',
+        horarioLlamada: datosIniciales.horarioLlamada || '',
+        conectividad: datosIniciales.conectividad || '',
+        valorHbac1: datosIniciales.valorHbac1 || '',
+        
+        // Añadir diagnóstico y escolaridad directamente al estado de datosAdulto
+        diagnostico: datosIniciales.diagnostico?.id || datosIniciales.diagnostico || '',
+        escolaridad: datosIniciales.escolaridad?.id || datosIniciales.escolaridad || ''
+      }));
+
+      // Asignar los estados adicionales
+      setDiagnosticoSeleccionado(datosIniciales.diagnostico?.id || datosIniciales.diagnostico || '');
+      setEscolaridadSeleccionado(datosIniciales.escolaridad?.id || datosIniciales.escolaridad || '');
+      setTiposFamiliaSeleccionados(
+        datosIniciales.tiposFamilia?.id || 
+        datosIniciales.tiposFamilia || 
+        ''
+      );
+      setCicloVitalSeleccionado(
+        datosIniciales.cicloVitalFamiliar?.id || 
+        datosIniciales.cicloVitalFamiliar || 
+        ''
+      );
+      setFactoresRiesgo({
+        alcoholDrogas: datosIniciales.alcoholDrogas || 
+                       datosIniciales.factoresRiesgo?.alcoholDrogas || 
+ false,
+        tabaquismo: datosIniciales.tabaquismo || 
+                    datosIniciales.factoresRiesgo?.tabaquismo || 
+                    false,
+        otros: datosIniciales.otrosFactoresRiesgo || 
+               datosIniciales.factoresRiesgo?.otros || 
+               ''
+      });
+    }
+  }, [datosIniciales]);
 
   useEffect(() => {
     obtenerNivelesEscolaridad();
@@ -172,7 +224,8 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
     setCicloVitalSeleccionado('');
     setFactoresRiesgo({
       alcoholDrogas: false,
-      tabaquismo: false
+      tabaquismo: false,
+      otros: ''
     });
     setErrores({});
   };
@@ -197,7 +250,8 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
       factoresRiesgo,
       estudiante_id: user.estudiante_id,
       usuario_id: user.id,
-      institucion_id: institucionId
+      institucion_id: institucionId,
+      isReevaluacion: datosIniciales ? true : false
     };
   
     try {
@@ -613,7 +667,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId }) => {
               <label className="form-check-label" htmlFor="tabaquismo">Tabaquismo</label>
             </div>
             <div className="form-group mt-3">
-              <label>Especifique el tipo de consumo</label>
+              <label>Especifique</label>
               <input
                   type="text"
                   className="form-control"

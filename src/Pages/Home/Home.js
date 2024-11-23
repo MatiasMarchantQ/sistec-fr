@@ -19,6 +19,7 @@ import FichaClinica from './FichaClinica';
 import IngresarFichaClinica from './IngresarFichaClinica';
 import ListadoEstudiantes from './ListadoEstudiantes';
 import ListadoFichasClinicas from './ListadoFichasClinicas';
+import Reevaluacion from './Reevaluacion';
 
 const Home = () => {
   const location = useLocation();
@@ -50,6 +51,8 @@ const Home = () => {
         />;
       case 'ficha-clinica':
         return <FichaClinica id={selectedFichaId} />;
+      case 'reevaluacion': 
+        return <Reevaluacion />;
       case 'instituciones':
         return <Instituciones />;
       case 'usuarios':
