@@ -66,7 +66,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await loginDirector(modalRut, modalPassword, false);
+      const response = await loginDirector(modalRut, modalPassword, rememberMe);
       
       setShowDirectorModal(false);
       navigate('/home');

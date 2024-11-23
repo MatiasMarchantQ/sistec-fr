@@ -47,8 +47,8 @@ const AsignarEstudiantes = () => {
 
   useEffect(() => {
     fetchData(currentPage);
-  }, [currentPage, searchTerm, anoSeleccionado]);
-
+  }, [currentPage, searchTerm, anoSeleccionado, asignaciones.length]);
+  
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const day = String(date.getUTCDate()).padStart(2, '0');
@@ -72,17 +72,20 @@ const AsignarEstudiantes = () => {
           estado: estadoFiltro
         }
       });
-      setEstudiantes(estudiantesRes.data.estudiantes || []);
+      const estudiantes = estudiantesRes.data.estudiantes || [];
+      setEstudiantes(estudiantes);
       setTotalElements(estudiantesRes.data.total);
       setCurrentPage(page);
   
-      const tiposInstitucionesRes = await axios.get(`${apiUrl}/obtener/tipos-instituciones`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setTiposInstituciones(tiposInstitucionesRes.data || []);
-  
+      // Obtener asignaciones solo para los estudiantes en la página actual
+      const estudianteIds = estudiantes.map(est => est.id);
       const asignacionesRes = await axios.get(`${apiUrl}/asignaciones`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        params: {
+          estudiante_id: estudianteIds.join(','), // Pasar múltiples IDs si es necesario
+          page: 1, // O la página que deseas para las asignaciones
+          limit: 100 // O un número que consideres adecuado para obtener todas las asignaciones
+        }
       });
       setAsignaciones(asignacionesRes.data.asignaciones || []);
       setTotalAsignaciones(asignacionesRes.data.total);
@@ -147,8 +150,29 @@ const AsignarEstudiantes = () => {
     try {
       const token = getToken();
       const apiUrl = process.env.REACT_APP_API_URL;
-      const nuevasAsignaciones = await Promise.all(selectedEstudiantes.map(async (estudiante) => {
-        const response = await axios.post(`${apiUrl}/asignaciones`, {
+      
+      // Primero, verificar si hay asignaciones existentes para este período
+      const asignacionesExistentes = asignaciones.filter(asig => 
+        asig.receptor_id === parseInt(receptorSeleccionado) &&
+        ((new Date(asig.fecha_inicio) <= new Date(fechaFin) && 
+          new Date(asig.fecha_fin) >= new Date(fechaInicio)))
+      );
+  
+      if (asignacionesExistentes.length > 0) {
+        const detallesAsignaciones = asignacionesExistentes.map(asig => {
+          const estudiante = estudiantes.find(e => e.id === asig.estudiante_id);
+          return `- ${estudiante?.nombres} ${estudiante?.apellidos}: ${formatDate(asig.fecha_inicio)} a ${formatDate(asig.fecha_fin)}`;
+        }).join('\n');
+  
+        setErrorMessage(
+          `Ya existen asignaciones para este receptor en este periodo:\n\n${detallesAsignaciones}\n\nPor favor, seleccione un periodo diferente.`
+        );
+        return;
+      }
+  
+      // Si no hay conflictos, proceder con la creación de asignaciones
+      await Promise.all(selectedEstudiantes.map(async (estudiante) => {
+        await axios.post(`${apiUrl}/asignaciones`, {
           estudiante_id: estudiante.id,
           institucion_id: parseInt(institucionSeleccionada),
           receptor_id: parseInt(receptorSeleccionado),
@@ -157,20 +181,15 @@ const AsignarEstudiantes = () => {
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        return response.data; // Asegúrate de que esta línea esté retornando correctamente los datos.
       }));
   
-      // Actualiza el estado solo si hay nuevas asignaciones
-      if (nuevasAsignaciones.length > 0) {
-        setAsignaciones([...asignaciones, ...nuevasAsignaciones]);
-      }
-  
+      await fetchData(currentPage);
       setShowAsignarModal(false);
       resetearFormulario();
+      setSelectedEstudiantes([]);
       toast.success('Asignaciones creadas exitosamente!');
     } catch (error) {
       console.error("Error al crear asignaciones:", error);
-      console.error("Detalles del error:", error.response);
       const errorMsg = error.response?.data?.error || "Error al crear las asignaciones. Por favor, intente de nuevo.";
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
@@ -213,6 +232,7 @@ const handleGuardarEdicion = async () => {
     );
 
     // Cerrar el modal y limpiar el formulario
+    await fetchData(currentPage);
     setShowEditarModal(false);
     resetearFormulario();
     toast.success('Asignación actualizada exitosamente!');
@@ -230,8 +250,7 @@ const handleEliminarAsignacion = async (asignacionId) => {
     await axios.delete(`${apiUrl}/asignaciones/${asignacionId}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    const asignacionesActualizadas = asignaciones.filter(a => a.id !== asignacionId);
-    setAsignaciones(asignacionesActualizadas);
+    await fetchData(currentPage); // Agregar esta línea después de eliminar
     toast.success("Asignación eliminada exitosamente!");
   } catch (error) {
     console.error("Error al eliminar asignación:", error);
@@ -365,33 +384,33 @@ const handleEliminarAsignacion = async (asignacionId) => {
                 <td>{estudiante.apellidos}</td>
                 <td>{estudiante.correo}</td>
                 <td>
-                    {asignaciones.filter(asig => asig.estudiante_id === estudiante.id).map((asignacion, idx) => (
-                      <div key={idx} className="asignacion-item">
-                        <div>
-                          {asignacion.Institucion?.nombre || 'Institución no especificada'} - 
-                          {asignacion.Institucion?.receptores?.map(receptor => receptor.nombre).join(', ') || 'Receptor no especificado'} <br/>
-                          {formatDate(asignacion.fecha_inicio)} a {formatDate(asignacion.fecha_fin)}
-                          </div>
-                        <div>
-                        <Button 
-                          variant="outline-primary" 
-                            size="sm" 
-                            onClick={() => handleEditarAsignacion(asignacion)}
-                            className="me-2"
-                          >
-                            <i className="fas fa-edit"></i>
-                          </Button>
-                          <Button 
-                            variant="outline-danger" 
-                            size="sm" 
-                            onClick={() => handleEliminarAsignacion(asignacion.id)}
-                          >
-                            <i className="fas fa-trash"></i>
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </td>
+  {asignaciones.filter(asig => asig.estudiante_id === estudiante.id).map((asignacion, idx) => (
+    <div key={idx} className="asignacion-item">
+      <div>
+        {asignacion.Institucion?.nombre || 'Institución no especificada'} - 
+        {asignacion.Receptor?.nombre || 'Receptor no especificado'} <br/>
+        {formatDate(asignacion.fecha_inicio)} a {formatDate(asignacion.fecha_fin)}
+      </div>
+      <div>
+        <Button 
+          variant="outline-primary" 
+          size="sm" 
+          onClick={() => handleEditarAsignacion(asignacion)}
+          className="me-2"
+        >
+          <i className="fas fa-edit"></i>
+        </Button>
+        <Button 
+          variant="outline-danger" 
+          size="sm" 
+          onClick={() => handleEliminarAsignacion(asignacion.id)}
+        >
+          <i className="fas fa-trash"></i>
+        </Button>
+      </div>
+    </div>
+  ))}
+</td>
                   <td>{estudiante.anos_cursados}</td>
                 <td>
                   <Button 
@@ -407,6 +426,14 @@ const handleEliminarAsignacion = async (asignacionId) => {
           </tbody>
         </Table>
       </Card>
+
+      <Button 
+        variant="primary" 
+        onClick={() => setShowAsignarModal(true)}
+        disabled={selectedEstudiantes.length === 0}
+      >
+        Asignar Institución y Receptor a Seleccionados ({selectedEstudiantes.length})
+      </Button>
 
       {/* Paginación */}
       <div className="asignar-estudiantes__pagination d-flex justify-content-between align-items-center mb-3">
@@ -450,88 +477,118 @@ const handleEliminarAsignacion = async (asignacionId) => {
         </nav>
       </div>
 
-      <Button 
-        variant="primary" 
-        onClick={() => setShowAsignarModal(true)}
-        disabled={selectedEstudiantes.length === 0}
-      >
-        Asignar Institución y Receptor a Seleccionados ({selectedEstudiantes.length})
-      </Button>
-
-      <Modal show={showAsignarModal} onHide={() => setShowAsignarModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Asignar Institución y Receptor</Modal.Title>
+      <Modal show={showAsignarModal} onHide={() => setShowAsignarModal(false)} size="lg">
+        <Modal.Header closeButton className="bg-light">
+          <Modal.Title>
+            <i className="fas fa-user-plus mr-2"></i>
+            Asignar Institución y Receptor
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Tipo de Institución</Form.Label>
-              <Form.Select onChange={handleTipoInstitucionChange} required>
-                <option value="">Seleccione un tipo de institución</option>
-                {tiposInstituciones.map(tipo => (
-                  <option key={tipo.id} value={tipo.id}>{tipo.tipo}</option>
-                ))}
-              </Form.Select>
-            </Form.Group>
+          <Row>
+            <Col md={8}>
+              <Form>
+                <Form.Group className="mb-3">
+                  <Form.Label>Tipo de Institución</Form.Label>
+                  <Form.Select onChange={handleTipoInstitucionChange} required>
+                    <option value="">Seleccione un tipo de institución</option>
+                    {tiposInstituciones.map(tipo => (
+                      <option key={tipo.id} value={tipo.id}>{tipo.tipo}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Institución</Form.Label>
-              <Form.Select onChange={handleInstitucionChange} required>
-                <option value="">Seleccione una institución</option>
-                {instituciones.map(institucion => (
-                  <option key={institucion.id} value={institucion.id}>{institucion.nombre}</option>
-                ))}
-              </Form.Select>
-            </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>Institución</Form.Label>
+                  <Form.Select onChange={handleInstitucionChange} required>
+                    <option value="">Seleccione una institución</option>
+                    {instituciones.map(institucion => (
+                      <option key={institucion.id} value={institucion.id}>{institucion.nombre}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Receptor</Form.Label>
-              <Form.Select onChange={(e) => setReceptorSeleccionado(e.target.value)} required>
-                <option value="">Seleccione un receptor</option>
-                {receptores.map(receptor => (
-                  <option key={receptor.id} value={receptor.id}>{receptor.nombre}</option>
-                ))}
-              </Form.Select>
-            </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>Receptor</Form.Label>
+                  <Form.Select onChange={(e) => setReceptorSeleccionado(e.target.value)} required>
+                    <option value="">Seleccione un receptor</option>
+                    {receptores.map(receptor => (
+                      <option key={receptor.id} value={receptor.id}>{receptor.nombre}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Fecha Inicio</Form.Label>
-              <Form.Control
-                type="date"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-                min={new Date().toISOString().split('T')[0]} // Establece la fecha mínima a hoy
-                required
-              />
-            </Form.Group>
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Fecha Inicio</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={fechaInicio}
+                        onChange={(e) => setFechaInicio(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Fecha Fin</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={fechaFin}
+                        onChange={(e) => {
+                          const newFechaFin = e.target.value;
+                          if (!fechaInicio || newFechaFin >= fechaInicio) {
+                            setFechaFin(newFechaFin);
+                          } else {
+                            toast.error('La fecha fin debe ser posterior o igual a la fecha de inicio');
+                          }
+                        }}
+                        min={fechaInicio || new Date().toISOString().split('T')[0]}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Form>
+            </Col>
+            
+            <Col md={4}>
+              <div className="card card-info">
+                <div className="card-header">
+                  <h3 className="card-title">
+                    <i className="fas fa-users mr-2"></i>
+                    Estudiantes Seleccionados
+                  </h3>
+                </div>
+                <div className="card-body p-0" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  <ul className="list-group list-group-flush">
+                    {selectedEstudiantes.map((estudiante, index) => (
+                      <li key={index} className="list-group-item">
+                        <i className="fas fa-user mr-2"></i>
+                        {estudiante.nombres} {estudiante.apellidos}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="card-footer bg-light">
+                  <small>Total: {selectedEstudiantes.length} estudiante(s)</small>
+                </div>
+              </div>
+            </Col>
+          </Row>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Fecha Fin</Form.Label>
-              <Form.Control
-                type="date"
-                value={fechaFin}
-                onChange={(e) => {
-                  // Asegura que la fecha fin no sea anterior a la fecha de inicio
-                  const newFechaFin = e.target.value;
-                  if (!fechaInicio || newFechaFin >= fechaInicio) {
-                    setFechaFin(newFechaFin);
-                  } else {
-                    // Opcional: mostrar un mensaje de error
-                    toast.error('La fecha fin debe ser posterior o igual a la fecha de inicio');
-                  }
-                }}
-                min={fechaInicio || new Date().toISOString().split('T')[0]} // Usa fecha de inicio o fecha actual
-                required
-              />
-            </Form.Group>
-
-            {errorMessage && (
-              <Alert variant="danger">{errorMessage}</Alert>
-            )}
-          </Form>
+          {errorMessage && (
+            <Alert variant="danger" className="mt-3">
+              <i className="fas fa-exclamation-triangle mr-2"></i>
+              <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{errorMessage}</pre>
+            </Alert>
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowAsignarModal(false)}>
+            <i className="fas fa-times mr-2"></i>
             Cancelar
           </Button>
           <Button 
@@ -539,6 +596,7 @@ const handleEliminarAsignacion = async (asignacionId) => {
             onClick={handleAsignarCentro}
             disabled={!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin}
           >
+            <i className="fas fa-save mr-2"></i>
             Asignar
           </Button>
         </Modal.Footer>

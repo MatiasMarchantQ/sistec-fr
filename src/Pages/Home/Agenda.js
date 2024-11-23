@@ -2,29 +2,43 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
-import { Modal, Form, InputGroup } from 'react-bootstrap';
+import { Modal, Form, InputGroup, Row, Col, Pagination } from 'react-bootstrap';
 import './Agenda.css';
 
 const Agenda = ({ onFichaSelect, setActiveComponent }) => {
   const { user, getToken } = useAuth();
-  const currentDate = new Date();
   const navigate = useNavigate();
+  const currentDate = new Date();
 
   // Estado
   const [month, setMonth] = useState(currentDate.getMonth());
   const [year, setYear] = useState(currentDate.getFullYear());
   const [showAllFichasModal, setShowAllFichasModal] = useState(false);
   const [allFichas, setAllFichas] = useState([]);
+  const [asignaciones, setAsignaciones] = useState([]);
+  const [selectedCentro, setSelectedCentro] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [fechasFiltro, setFechasFiltro] = useState({ fechaInicio: '', fechaFin: '' });
+  const [filtroReevaluacion, setFiltroReevaluacion] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const [paginationInfo, setPaginationInfo] = useState({
     page: 1,
     totalPages: 0,
     totalRegistros: 0,
-    registrosPorPagina: 3
+    registrosPorPagina: 10
   });
-  const [asignaciones, setAsignaciones] = useState([]);
-  const [selectedCentro, setSelectedCentro] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  // Añadir nuevos estados al inicio del componente
+    const [modalSearchTerm, setModalSearchTerm] = useState('');
+    const [modalFechasFiltro, setModalFechasFiltro] = useState({ fechaInicio: '', fechaFin: '' });
+    const [modalFiltroReevaluacion, setModalFiltroReevaluacion] = useState('');
+    const [modalPaginationInfo, setModalPaginationInfo] = useState({
+        page: 1,
+        totalPages: 0,
+        totalRegistros: 0,
+        registrosPorPagina: 5
+    });
 
   // Funciones auxiliares
   const getMonthName = (monthIndex) => {
@@ -42,6 +56,15 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
     const year = date.getUTCFullYear();
     return `${day}-${month}-${year}`;
   };
+
+  const getSemester = () => {
+    if (month >= 2 && month <= 6) return '1er Semestre';
+    if (month >= 7 && month <= 11) return '2do Semestre';
+    return 'Fuera de Semestre';
+  };
+
+  const getPrevMonth = () => month === 0 ? getMonthName(11) : getMonthName(month - 1);
+  const getNextMonth = () => month === 11 ? getMonthName(0) : getMonthName(month + 1);
 
   const handlePrevMonth = () => {
     if (month === 0) {
@@ -61,77 +84,179 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
     }
   };
 
-  const getSemester = () => {
-    if (month >= 2 && month <= 6) {
-      return '1er Semestre';
-    } else if (month >= 7 && month <= 11) {
-      return '2do Semestre';
-    } else {
-      return 'Fuera de Semestre';
-    }
-  };
+    const agruparAsignacionesPorPeriodo = (asignaciones) => {
+        if (!Array.isArray(asignaciones)) {
+            console.log('agruparAsignacionesPorPeriodo: asignaciones no es un array');
+            return [];
+        }
 
-  const getPrevMonth = () => {
-    return month === 0 ? getMonthName(11) : getMonthName(month - 1);
-  };
+    console.log('Agrupando asignaciones:', asignaciones.length);
 
-  const getNextMonth = () => {
-    return month === 11 ? getMonthName(0) : getMonthName(month + 1);
-  };
-  // Fetch asignaciones
-  const fetchAsignaciones = async () => {
+    const grupos = {};
+    
+    asignaciones.forEach(asignacion => {
+        if (!asignacion.fecha_inicio || !asignacion.fecha_fin) {
+            console.log('Asignación sin fechas:', asignacion);
+            return;
+        }
+
+        const periodo = `${formatDate(asignacion.fecha_inicio)} al ${formatDate(asignacion.fecha_fin)}`;
+        
+        if (!grupos[periodo]) {
+            grupos[periodo] = {
+                periodo,
+                instituciones: {}
+            };
+        }
+
+        const institucionId = asignacion.institucion_id;
+        if (!grupos[periodo].instituciones[institucionId]) {
+            grupos[periodo].instituciones[institucionId] = {
+                id: institucionId,
+                nombre: asignacion.Institucion?.nombre || 'Institución sin nombre',
+                receptora: asignacion.Receptor ? 
+                    `${asignacion.Receptor.cargo} ${asignacion.Receptor.nombre}` : 
+                    'Sin receptor',
+                estudiantes: []
+            };
+        }
+
+        if (asignacion.Estudiante) {
+            grupos[periodo].instituciones[institucionId].estudiantes.push(
+                `${asignacion.Estudiante.nombres} ${asignacion.Estudiante.apellidos}`
+            );
+        }
+    });
+
+    // Convertir el objeto de grupos a un array y las instituciones a array
+    const resultado = Object.values(grupos).map(grupo => ({
+        ...grupo,
+        instituciones: Object.values(grupo.instituciones)
+    }));
+
+    console.log('Grupos resultantes:', resultado);
+    return resultado;
+};
+
+// Actualiza la función fetchAsignaciones para manejar mejor los datos
+const fetchAsignaciones = async () => {
     try {
+        setLoading(true);
+        setError(null);
         const token = getToken();
         const apiUrl = process.env.REACT_APP_API_URL;
+
+        if (!token) {
+            throw new Error('No se encontró el token de autenticación');
+        }
+
+        const params = {
+            page: paginationInfo.page,
+            limit: paginationInfo.registrosPorPagina,
+            search: searchTerm,
+            month: month + 1,
+            year: year
+        };
+
+        console.log('Fetching asignaciones con params:', params);
+
         const response = await axios.get(`${apiUrl}/asignaciones`, {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
+            params
         });
 
-        // Agrupar asignaciones
-        const asignacionesAgrupadas = agruparAsignacionesPorPeriodo(response.data.asignaciones);
-        const filteredAsignaciones = user.rol_id === 3
-            ? asignacionesAgrupadas.filter(asignacion => asignacion.estudiante_id === user.estudiante_id)
-            : asignacionesAgrupadas;
+        console.log('Respuesta de API:', response.data);
 
-        setAsignaciones(filteredAsignaciones);
+        if (response.data && Array.isArray(response.data.asignaciones)) {
+            const asignacionesGrupadas = agruparAsignacionesPorPeriodo(response.data.asignaciones);
+            console.log('Asignaciones grupadas:', asignacionesGrupadas);
+            setAsignaciones(asignacionesGrupadas);
+            setPaginationInfo(prev => ({
+                ...prev,
+                totalPages: response.data.totalPages || 1,
+                totalRegistros: response.data.total || 0
+            }));
+        } else {
+            console.error('Formato de respuesta inesperado:', response.data);
+            setError('Formato de respuesta inválido');
+        }
     } catch (error) {
         console.error("Error fetching asignaciones:", error);
+        setError(error.message || 'Error al cargar las asignaciones');
+    } finally {
+        setLoading(false);
     }
 };
 
+  // Effects
   useEffect(() => {
-    fetchAsignaciones();
-  }, []);
+    if (getToken()) {
+      fetchAsignaciones();
+    }
+  }, [month, year, paginationInfo.page, searchTerm]);
 
-  const agruparAsignacionesPorPeriodo = (asignaciones) => {
-    const grupos = asignaciones.reduce((acc, asignacion) => {
-      const periodo = `${formatDate(asignacion.fecha_inicio)} al ${formatDate(asignacion.fecha_fin)}`;
-      if (!acc[periodo]) {
-        acc[periodo] = { periodo, instituciones: {} };
-      }
 
-      const institucionId = asignacion.institucion_id;
-      if (!acc[periodo].instituciones[institucionId]) {
-        acc[periodo].instituciones[institucionId] = {
-          id: institucionId,
-          nombre: asignacion.Institucion.nombre,
-          receptora: (asignacion.Receptor?.cargo + ' ' + asignacion.Receptor?.nombre) || 'Sin receptor',
-          estudiantes: []
-        };
-      }
-
-      acc[periodo].instituciones[institucionId].estudiantes.push(
-        `${asignacion.Estudiante.nombres} ${asignacion.Estudiante.apellidos}`
+  const fetchFichasClinicas = async (institucionId) => {
+    try {
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const response = await axios.get(
+        `${apiUrl}/fichas-clinicas/institucion/${institucionId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            limit: paginationInfo.registrosPorPagina,
+            page: paginationInfo.page,
+            search: searchTerm
+          }
+        }
       );
-
-      return acc;
-    }, {});
-
-    return Object.values(grupos).map(grupo => ({
-      ...grupo,
-      instituciones: Object.values(grupo.instituciones)
-    }));
+      return response.data.data || [];
+    } catch (error) {
+      console.error("Error obteniendo fichas clínicas:", error);
+      return [];
+    }
   };
+
+  const handleCentroClick = async (periodoId, centroId) => {
+    const uniqueId = `${periodoId}-${centroId}`;
+    
+    if (selectedCentro === uniqueId) {
+      setSelectedCentro(null);
+    } else {
+      setSelectedCentro(uniqueId);
+      setLoading(true);
+      
+      try {
+        const fichas = await fetchFichasClinicas(centroId);
+        setAsignaciones(prevAsignaciones => 
+          prevAsignaciones.map(rotacion => ({
+            ...rotacion,
+            instituciones: rotacion.instituciones.map(inst => 
+              inst.id === centroId 
+                ? { ...inst, fichasClinicas: fichas }
+                : inst
+            )
+          }))
+        );
+      } catch (error) {
+        console.error('Error al obtener fichas:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleIngresarFicha = (institucionId) => {
+    navigate('/home', {
+      state: {
+        component: 'ingresar-ficha-clinica',
+        usuarioId: user.id,
+        estudianteId: user.estudiante_id,
+        institucionId: institucionId
+      }
+    });
+};
 
   // Manejo de fichas
   const handleFichaClick = (fichaId, tipo) => {
@@ -145,30 +270,53 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
   };
 
   const handleVerMasFichas = async (fichas, institucionId) => {
+    // Verificar que institucionId existe
+    if (!institucionId) {
+        console.error('ID de institución no definido');
+        return;
+    }
+
+    // Guardar el ID de la institución actual para usarlo en las peticiones del modal
+    const currentInstitucionId = institucionId;
+
+    // Resetear estados del modal
+    setModalSearchTerm('');
+    setModalFechasFiltro({ fechaInicio: '', fechaFin: '' });
+    setModalFiltroReevaluacion('');
+    setModalPaginationInfo(prev => ({
+        ...prev,
+        page: 1
+    }));
+
     setLoading(true);
     try {
         const token = getToken();
         const apiUrl = process.env.REACT_APP_API_URL;
 
         const response = await axios.get(
-            `${apiUrl}/fichas-clinicas/institucion/${institucionId}`,
+            `${apiUrl}/fichas-clinicas/institucion/${currentInstitucionId}`,
             {
                 headers: { Authorization: `Bearer ${token}` },
                 params: {
-                    page: 1,
-                    limit: paginationInfo.registrosPorPagina,
-                    search: searchTerm
+                    page: 1, 
+                    limit: modalPaginationInfo.registrosPorPagina,
+                    search: '', 
+                    fechaInicio: '', 
+                    fechaFin: '', 
+                    isReevaluacion: '' 
                 }
             }
         );
 
         setAllFichas(response.data.data);
-        setPaginationInfo({
+        setModalPaginationInfo(prev => ({
+            ...prev,
+            currentInstitucionId, // Guardar el ID de la institución en el estado
             page: response.data.pagination.paginaActual,
             totalPages: response.data.pagination.totalPaginas,
             totalRegistros: response.data.pagination.totalRegistros,
-            registrosPorPagina: paginationInfo.registrosPorPagina
-        });
+            registrosPorPagina: modalPaginationInfo.registrosPorPagina
+        }));
         setShowAllFichasModal(true);
     } catch (error) {
         console.error('Error al cargar fichas:', error);
@@ -190,44 +338,61 @@ const handleSearchChange = async (e) => {
     }
 };
 
-const fetchFichasClinicas = async (institucionId) => {
-    try {
-        const token = getToken();
-        const apiUrl = process.env.REACT_APP_API_URL;
-        const response = await axios.get(
-            `${apiUrl}/fichas-clinicas/institucion/${institucionId}`,
-            { 
-                headers: { Authorization: `Bearer ${token}` },
-                params: { 
-                    limit: paginationInfo.registrosPorPagina,
-                    page: paginationInfo.page,
-                    search: searchTerm
-                }
-            }
-        );
-        return response.data.data || [];
-    } catch (error) {
-        console.error("Error obteniendo fichas clínicas:", error);
-        return [];
-    }
-};
+const handlePaginationClick = (page) => {
+    setPaginationInfo(prev => ({ ...prev, page }));
+  };
 
-const handlePagination = async (direction) => {
+  const handlePagination = async (direction) => {
+    if (!selectedCentro) return;
+    
+    const newPage = direction === 'next' 
+      ? paginationInfo.page + 1 
+      : paginationInfo.page - 1;
+
+    if (newPage < 1 || newPage > paginationInfo.totalPages) return;
+
+    setLoading(true);
+    try {
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const institucionId = selectedCentro.split('-')[1];
+
+      const response = await axios.get(
+        `${apiUrl}/fichas-clinicas/institucion/${institucionId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            page: newPage,
+            limit: paginationInfo.registrosPorPagina,
+            search: searchTerm
+          }
+        }
+      );
+
+      setAllFichas(response.data.data);
+      setPaginationInfo(prev => ({
+        ...prev,
+        page: response.data.pagination.paginaActual
+      }));
+    } catch (error) {
+      console.error('Error cargando página:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  //Modal
+  const fetchFichasParaModal = async () => {
     setLoading(true);
     try {
         const token = getToken();
         const apiUrl = process.env.REACT_APP_API_URL;
-
-        if (!selectedCentro) {
-            console.error('No hay centro seleccionado para la paginación');
-            return;
-        }
-
-        const institucionId = selectedCentro.split('-')[1];
-        const newPage = direction === 'next' ? paginationInfo.page + 1 : paginationInfo.page - 1;
-
-        if (newPage < 1 || newPage > paginationInfo.totalPages) {
-            setLoading(false);
+        
+        // Usar el ID de la institución guardado en el estado
+        const institucionId = modalPaginationInfo.currentInstitucionId;
+        
+        if (!institucionId) {
+            console.error('ID de institución no disponible');
             return;
         }
 
@@ -236,346 +401,398 @@ const handlePagination = async (direction) => {
             {
                 headers: { Authorization: `Bearer ${token}` },
                 params: {
-                    page: newPage,
-                    limit: paginationInfo.registrosPorPagina,
-                    search: searchTerm
+                    page: modalPaginationInfo.page,
+                    limit: modalPaginationInfo.registrosPorPagina,
+                    search: modalSearchTerm,
+                    fechaInicio: modalFechasFiltro.fechaInicio,
+                    fechaFin: modalFechasFiltro.fechaFin,
+                    isReevaluacion: modalFiltroReevaluacion
                 }
             }
         );
 
         setAllFichas(response.data.data);
-        setPaginationInfo(prev => ({
+        setModalPaginationInfo(prev => ({
             ...prev,
-            page: response.data.pagination.paginaActual
+            page: response.data.pagination.paginaActual,
+            totalPages: response.data.pagination.totalPaginas,
+            totalRegistros: response.data.pagination.totalRegistros,
+            registrosPorPagina: modalPaginationInfo.registrosPorPagina
         }));
     } catch (error) {
-        console.error('Error cargando página:', error);
+        console.error('Error al cargar fichas:', error);
     } finally {
         setLoading(false);
     }
 };
 
-const handleCentroClick = async (periodoId, centroId) => {
-    const uniqueId = `${periodoId}-${centroId}`;
-    
-    if (selectedCentro === uniqueId) {
-        setSelectedCentro(null);
-    } else {
-        setSelectedCentro(uniqueId);
-        setLoading(true);
-        
-        try {
-            const fichas = await fetchFichasClinicas(centroId);
-            setAsignaciones(prevAsignaciones => 
-                prevAsignaciones.map(rotacion => ({
-                    ...rotacion,
-                    instituciones: rotacion.instituciones.map(inst => 
-                        inst.id === centroId 
-                            ? { ...inst, fichasClinicas: fichas }
-                            : inst
-                    )
-                }))
-            );
-        } catch (error) {
-            console.error('Error al obtener fichas:', error);
-        } finally {
-            setLoading(false);
-        }
-    }
-};
-
-const filtrarAsignacionesPorMes = (asignaciones) => {
-    const primerDiaMes = new Date(year, month, 1);
-    const ultimoDiaMes = new Date(year, month + 1, 0);
-
-    return asignaciones.filter(rotacion => {
-        const fechaInicio = new Date(rotacion.fecha_inicio);
-        const fechaFin = new Date(rotacion.fecha_fin);
-
-        // Filtrar por mes y por estudiante
-        return (
-            (fechaInicio <= ultimoDiaMes && fechaFin >= primerDiaMes) &&
-            (rotacion.estudiante_id === user.estudiante_id) // Asegúrate de que el estudiante coincida
-        );
-    });
-};
-
-const ordenarAsignacionesPorFecha = (asignaciones) => {
-    return asignaciones.sort((a, b) => {
-        const fechaA = new Date(a.periodo.split(' al ')[0].split('-').reverse().join('-'));
-        const fechaB = new Date(b.periodo.split(' al ')[0].split('-').reverse().join('-'));
-        return fechaA - fechaB;
-    });
-};
-
-const handleIngresarFicha = (institucionId) => {
-    navigate('/home?component=ingresar-ficha-clinica', { 
-        state: { 
-            component: 'ingresar-ficha-clinica',
-            usuarioId: user.id,
-            estudianteId: user.estudiante_id,
-            institucionId: institucionId
-        }
-    });
-};
-
-return (
+  // Renderizado
+  return (
     <div className="agenda-container">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2 className="text-primary font-weight-bold">Agenda</h2>
-            <div className="badge badge-info">
-                {getSemester()}
-            </div>
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="text-primary font-weight-bold">Agenda</h2>
+        <div className="badge badge-info">
+          {getSemester()}
         </div>
+      </div>
 
-        <div className="alert alert-warning mb-4">
-          <i className="fas fa-exclamation-triangle mr-2"></i>
-          <strong>Importante:</strong> No se asisten los fines de semana ni feriados irrenunciables.
-        </div>
+      {/* Advertencia */}
+      <div className="alert alert-warning mb-4">
+        <i className="fas fa-exclamation-triangle mr-2"></i>
+        <strong>Importante:</strong> No se asisten los fines de semana ni feriados irrenunciables.
+      </div>
 
-        <div className="d-flex justify-content-between align-items-center mb-4">
-            <button className="btn btn-outline-primary" onClick={handlePrevMonth}>
-                <i className="fas fa-chevron-left mr-2"></i> {getPrevMonth()}
+      {/* Navegación de meses */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <button className="btn btn-outline-primary" onClick={handlePrevMonth}>
+          <i className="fas fa-chevron-left mr-2"></i> {getPrevMonth()}
+        </button>
+        <h3 className="text-primary">{getMonthName(month)} {year}</h3>
+        <button className="btn btn-outline-primary" onClick={handleNextMonth}>
+          {getNextMonth()} <i className="fas fa-chevron-right ml-2"></i>
+        </button>
+      </div>
+
+      {/* Barra de búsqueda */}
+      <div className="card-tools mb-4">
+        <div className="input-group input-group-sm" style={{ width: '250px' }}>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Buscar por estudiante o RUT..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+          <div className="input-group-append">
+            <button className="btn btn-default">
+              <i className="fas fa-search"></i>
             </button>
-            <h3 className="text-primary">{getMonthName(month)} {year}</h3>
-            <button className="btn btn-outline-primary" onClick={handleNextMonth}>
-                {getNextMonth()} <i className="fas fa-chevron-right ml-2"></i>
-            </button>
+          </div>
         </div>
+      </div>
 
-        {filtrarAsignacionesPorMes(asignaciones).length > 0 ? (
-            <div className="timeline-view">
-                {ordenarAsignacionesPorFecha(filtrarAsignacionesPorMes(asignaciones)).map((rotacion, index) => (
-                    <div key={index} className="timeline-item">
-                        <div className="timeline-date">
-                            <div className="date-marker"></div>
-                            <h6 className="mb-0">{rotacion.periodo}</h6>
-                        </div>
-                        
-                        <div className="timeline-content">
-                        {rotacion.instituciones.map((institucion, institutionIndex) => {
-                              const uniqueId = `${index}-${institucion.id}-${institutionIndex}`;
-                              const isExpanded = selectedCentro === uniqueId;
-
-                              return (
-                                  <div 
-                                      key={institucion.id} 
-                                      className={`institucion-row shadow-sm ${isExpanded ? 'expanded' : ''}`} // Añadir clase para estilos
-                                      onClick={() => {
-                                          // Alternar la selección del centro
-                                          setSelectedCentro(isExpanded ? null : uniqueId);
-                                      }}
-                                  >
-                                      <div className="institucion-info">
-                                          <div className="institucion-nombre">
-                                              <i className="fas fa-hospital mr-2"></i>
-                                              {institucion.nombre}
-                                          </div>
-                                          <div className="institucion-receptor text-muted">
-                                              <i className="fas fa-user-md mr-2"></i>
-                                              Receptora: {institucion.receptora}
-                                          </div>
-                                      </div>
-                                      
-                                      <div className="estudiantes-chips">
-                                          {institucion.estudiantes.map((estudiante, idx) => (
-                                              <span key={`${institucion.id}-estudiante-${idx}`} className="estudiante-chip">
-                                                  <i className="fas fa-user-graduate mr-2"></i>
-                                                  {estudiante}
-                                              </span>
-                                          ))}
-                                      </div>
-
-                                      {isExpanded && (
-                                          <div className="acciones">
-                                              <h6 className="border-bottom pb-2 text-primary">
-                                                  <i className="fas fa-file-medical-alt mr-2"></i>
-                                                  Fichas Clínicas
-                                              </h6>
-                                              {loading ? (
-                                                  <div className="text-center py-3">
-                                                      <div className="spinner-border text-primary" role="status">
-                                                          <span className="sr-only">Cargando...</span>
-                                                      </div>
-                                                  </div>
-                                              ) : institucion.fichasClinicas && institucion.fichasClinicas.length > 0 ? (
-                                                  <div className="fichas-list">
-                                                      {institucion.fichasClinicas.map((ficha, fichaIndex) => (
-                                                          <div 
-                                                              key={`${institucion.id}-ficha-${ficha.id}-${fichaIndex}`}
-                                                              className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
-                                                              onClick={() => handleFichaClick(ficha.id, ficha.tipo)}
-                                                          >
-                                                              <div className="d-flex justify-content-between align-items-center">
-                                                                  <div>
-                                                                      <i className={`fas fa-${ficha.tipo === 'infantil' ? 'baby' : 'user'} mr-2`}></i>
-                                                                      <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong>
-                                                                  </div>
-                                                                  <small className="text-muted">
-                                                                      {new Date(ficha.fecha).toLocaleDateString('es-CL')}
-                                                                  </small>
-                                                              </div>
-                                                              <div className="mt-1">
-                                                                  <span className={`badge badge-${ficha.tipo === 'infantil' ? 'info' : 'primary'} mr-2`}>
-                                                                      {ficha.tipo === 'infantil' ? 'Infantil' : 'Adulto'}
-                                                                  </span>
-                                                                  <span className="text-muted">{ficha.diagnostico.nombre}</span>
-                                                              </div>
-                                                          </div>
-                                                      ))}
-                                                  </div>
-                                              ) : (
-                                                  <div className="alert alert-info text-center mt-2">
-                                                      <i className="fas fa-info-circle mr-2"></i>
-                                                      No hay fichas clínicas registradas para este centro
-                                                  </div>
-                                              )}
-                                          </div>
-                                      )}
-                                      
-                                      {!isExpanded && (
-                                          <div className="acciones mt-2">
-                                              <button 
-                                                  className="btn btn-info btn-sm mr-2"
-                                                  onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      handleCentroClick(index, institucion.id); // Selecciona el centro
-                                                      handleVerMasFichas(institucion.fichasClinicas || [], institucion.id);
-                                                  }}
-                                              >
-                                                  Ver fichas clínicas
-                                              </button>
-                                              <button 
-                                                  className="btn btn-primary btn-sm"
-                                                  onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      handleIngresarFicha(institucion.id);
-                                                  }}
-                                              >
-                                                  <i className="fas fa-plus mr-2"></i>
-                                                  Ingresar Nueva Ficha Clínica
-                                              </button>
-                                          </div>
-                                      )}
-                                  </div>
-                              );
-                          })}
-                        </div>
-                    </div>
-                ))}
-
+    {/* Timeline de asignaciones */}
+    {loading ? (
+        <div className="text-center py-4">
+            <div className="spinner-border text-primary" role="status">
+                <span className="sr-only">Cargando...</span>
             </div>
-        ) : (
-            <div className="alert alert-info text-center">
-                <i className="fas fa-calendar-times mr-2"></i>
-                No hay asignaciones programadas para {getMonthName(month)} {year}
-            </div>
-        )}
-
-        {/* Modal para mostrar todas las fichas clínicas */}
-        <Modal 
-            show={showAllFichasModal} 
-            onHide={() => {
-                setShowAllFichasModal(false);
-                setSearchTerm('');
-                setPaginationInfo({
-                    page: 1,
-                    totalPages: 0,
-                    totalRegistros: 0,
-                    registrosPorPagina: 3
-                });
-                setAllFichas([]); // Limpiar las fichas al cerrar el modal
-            }}
-            size="lg"
-        >
-            <Modal.Header closeButton>
-                <Modal.Title>
-                    Todas las Fichas Clínicas 
-                    <small className="text-muted ml-2">
-                        ({paginationInfo.totalRegistros} registros)
-                    </small>
-                </Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-                <Form.Group className="mb-3">
-                    <InputGroup>
-                        <InputGroup.Text>
-                            <i className="fas fa-search"></i>
-                        </InputGroup.Text>
-                        <Form.Control
-                            type="text"
-                            placeholder="Buscar por RUT, nombre o apellidos..."
-                            value={searchTerm}
-                            onChange={handleSearchChange}
-                        />
-                    </InputGroup>
-                </Form.Group>
-
-                {loading ? (
-                    <div className="text-center">
-                        <div className="spinner-border text-primary" role="status">
-                            <span className="sr-only">Cargando...</span>
-                        </div>
+        </div>
+    ) : error ? (
+        <div className="alert alert-danger">
+            <i className="fas fa-exclamation-circle mr-2"></i>
+            {error}
+        </div>
+    ) : asignaciones && asignaciones.length > 0 ? (
+        <div className="timeline-view">
+            {asignaciones.map((rotacion, index) => (
+                <div key={`rotacion-${index}`} className="timeline-item">
+                    <div className="timeline-date">
+                        <div className="date-marker"></div>
+                        <h6 className="mb-0">{rotacion.periodo}</h6>
                     </div>
-                ) : (
-                    <>
-                        <div className="fichas-list">
-                            {allFichas.map((ficha, index) => (
-                                <div 
-                                    key={`ficha-${ficha.id}-${index}`}
-                                    className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
-                                    onClick={() => {
-                                        handleFichaClick(ficha.id, ficha.tipo);
-                                        setShowAllFichasModal(false);
-                                        setSearchTerm('');
-                                    }}
-                                >
-                                    <div className="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <i className="fas fa-clipboard-list mr-2"></i>
-                                            <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong>
-                                        </div>
-                                        <small className="text-muted">
-                                            {new Date(ficha.fecha).toLocaleDateString('es-CL')}
-                                        </small>
+                    <div className="timeline-content">
+                        {rotacion.instituciones.map((institucion, instIndex) => (
+                            <div 
+                                key={`inst-${institucion.id}-${instIndex}`} 
+                                className={`institucion-row shadow-sm ${selectedCentro === `${rotacion.periodo}-${institucion.id}` ? 'selected' : ''}`}
+                                onClick={() => handleCentroClick(rotacion.periodo, institucion.id)}
+                            >
+                                <div className="institucion-info">
+                                    <div className="institucion-nombre">
+                                        <i className="fas fa-hospital mr-2"></i>
+                                        {institucion.nombre}
                                     </div>
-                                    <div className="mt-1 text-muted small">
-                                        {ficha.diagnostico ? ficha.diagnostico.nombre : ficha.diagnostico_otro || 'Sin diagnóstico'}
+                                    <div className="institucion-receptor text-muted">
+                                        <i className="fas fa-user-md mr-2"></i>
+                                        Receptora: {institucion.receptora}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
+                                <div className="estudiantes-chips">
+                                    {institucion.estudiantes.map((estudiante, estIndex) => (
+                                        <span 
+                                            key={`est-${institucion.id}-${estIndex}`} 
+                                            className="estudiante-chip"
+                                        >
+                                            <i className="fas fa-user-graduate mr-2"></i>
+                                            {estudiante}
+                                        </span>
+                                    ))}
+                                </div>
+                                
+                                {/* Botones adicionales cuando se expande una institución */}
+                                {selectedCentro === `${rotacion.periodo}-${institucion.id}` && (
+                                    <div className="institucion-actions mt-3">
+                                        {/* Botón para ingresar nueva ficha */}
+                                        <button 
+                                            className="btn btn-primary btn-sm mr-2"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleIngresarFicha(institucion.id);
+                                            }}
+                                        >
+                                            <i className="fas fa-plus-circle mr-1"></i>
+                                            Ingresar Ficha
+                                        </button>
 
-                        {paginationInfo.totalPages > 1 && (
-                            <div className="d-flex justify-content-center mt-3">
-                                <nav>
-                                    <ul className="pagination">
-                                        <li className={`page-item ${paginationInfo.page === 1 ? 'disabled' : ''}`}>
-                                            <button 
-                                                className="page-link" 
-                                                onClick={() => handlePagination('prev')}
-                                                disabled={paginationInfo.page === 1}
-                                            >
-                                                Anterior
-                                            </button>
-                                        </li>
-                                        <li className={`page-item ${paginationInfo.page === paginationInfo.totalPages ? 'disabled' : ''}`}>
-                                            <button 
-                                                className="page-link" 
-                                                onClick={() => handlePagination('next')}
-                                                disabled={paginationInfo.page === paginationInfo.totalPages}
-                                            >
-                                                Siguiente
-                                            </button>
-                                        </li>
-                                    </ul>
-                                </nav>
+                                        {/* Fichas existentes o botón para ver más */}
+                                        {institucion.fichasClinicas && institucion.fichasClinicas.length > 0 ? (
+                                            <div className="fichas-preview mt-2">
+                                                <h6>Fichas Clínicas:</h6>
+                                                {institucion.fichasClinicas.slice(0, 3).map((ficha, fichaIndex) => (
+                                                    <div 
+                                                        key={`ficha-preview-${ficha.id}`}
+                                                        className="ficha-preview-item"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleFichaClick(ficha.id, ficha.tipo);
+                                                        }}
+                                                    >
+                                                        {ficha.paciente?.nombres} {ficha.paciente?.apellidos}
+                                                    </div>
+                                                ))}
+                                                {institucion.fichasClinicas.length > 3 && (
+                                                    <button 
+                                                        className="btn btn-link btn-sm"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleVerMasFichas(institucion.fichasClinicas, institucion.id);
+                                                        }}
+                                                    >
+                                                        Ver más ({institucion.fichasClinicas.length - 3} más)
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="text-muted mt-2">
+                                                No hay fichas clínicas disponibles
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+    ) : (
+        <div className="alert alert-info text-center">
+            <i className="fas fa-calendar-times mr-2"></i>
+            No hay asignaciones programadas para {getMonthName(month)} {year}
+        </div>
+    )}
+
+      {/* Paginación */}
+      <Pagination>
+        <Pagination.Prev 
+          onClick={() => handlePagination('prev')} 
+          disabled={paginationInfo.page === 1} 
+        />
+        {[...Array(paginationInfo.totalPages)].map((_, index) => (
+          <Pagination.Item 
+            key={index} 
+            active={index + 1 === paginationInfo.page} 
+            onClick={() => handlePaginationClick(index + 1)}
+          >
+            {index + 1}
+          </Pagination.Item>
+        ))}
+        <Pagination.Next 
+          onClick={() => handlePagination('next')} 
+          disabled={paginationInfo.page === paginationInfo.totalPages} 
+        />
+      </Pagination>
+
+      {/* Modal para mostrar todas las fichas clínicas */}
+      <Modal 
+        show={showAllFichasModal} 
+        onHide={() => {
+            setShowAllFichasModal(false);
+            setModalSearchTerm('');
+            setModalFechasFiltro({ fechaInicio: '', fechaFin: '' });
+            setModalFiltroReevaluacion('');
+            setModalPaginationInfo({
+                page: 1,
+                totalPages: 0,
+                totalRegistros: 0,
+                registrosPorPagina: 5,
+                currentInstitucionId: null
+            });
+            setAllFichas([]);
+        }}
+        size="lg"
+    >
+    <Modal.Header closeButton>
+        <Modal.Title>
+            Todas las Fichas Clínicas 
+            <small className="text-muted ml-2">
+                ({modalPaginationInfo.totalRegistros} registros)
+            </small>
+        </Modal.Title>
+    </Modal.Header>
+    <Modal.Body>
+        {/* Filtros */}
+        <div className="mb-4">
+        <Form>
+                <Row>
+                    <Col md={12}>
+                        <InputGroup className="mb-3">
+                            <InputGroup.Text>
+                                <i className="fas fa-search"></i>
+                            </InputGroup.Text>
+                            <Form.Control
+                                type="text"
+                                placeholder="Buscar por RUT o nombres del paciente..."
+                                value={modalSearchTerm}
+                                onChange={(e) => {
+                                    setModalSearchTerm(e.target.value);
+                                    setModalPaginationInfo(prev => ({ ...prev, page: 1 }));
+                                    // Usar setTimeout para evitar demasiadas llamadas
+                                    setTimeout(() => {
+                                        fetchFichasParaModal();
+                                    }, 300);
+                                }}
+                            />
+                        </InputGroup>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col md={4}>
+                        <Form.Group>
+                            <Form.Label>Fecha Inicio</Form.Label>
+                            <Form.Control
+                                type="date"
+                                value={modalFechasFiltro.fechaInicio}
+                                onChange={(e) => {
+                                    setModalFechasFiltro(prev => ({ ...prev, fechaInicio: e.target.value }));
+                                    setModalPaginationInfo(prev => ({ ...prev, page: 1 }));
+                                    fetchFichasParaModal(); // Recargar con nuevo filtro
+                                }}
+                            />
+                        </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                        <Form.Group>
+                            <Form.Label>Fecha Fin</Form.Label>
+                            <Form.Control
+                                type="date"
+                                value={modalFechasFiltro.fechaFin}
+                                onChange={(e) => {
+                                    setModalFechasFiltro(prev => ({ ...prev, fechaFin: e.target.value }));
+                                    setModalPaginationInfo(prev => ({ ...prev, page: 1 }));
+                                    fetchFichasParaModal(); // Recargar con nuevo filtro
+                                }}
+                            />
+                        </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                        <Form.Group>
+                            <Form.Label>Tipo de Ficha</Form.Label>
+                            <Form.Select
+                                value={modalFiltroReevaluacion}
+                                onChange={(e) => {
+                                    setModalFiltroReevaluacion(e.target.value);
+                                    setModalPaginationInfo(prev => ({ ...prev, page: 1 }));
+                                    fetchFichasParaModal(); // Recargar con nuevo filtro
+                                }}
+                            >
+                                <option value="">Todos</option>
+                                <option value="false">Primera Evaluación</option>
+                                <option value="true">Reevaluación</option>
+                            </Form.Select>
+                        </Form.Group>
+                    </Col>
+                </Row>
+            </Form>
+        </div>
+
+        {loading ? (
+            <div className="text-center">
+                <div className="spinner-border text-primary" role="status">
+                    <span className="sr-only">Cargando...</span>
+                </div>
+            </div>
+        ) : (
+            <>
+                <div className="fichas-list">
+                    {allFichas.map((ficha, index) => (
+                        <div 
+                            key={`ficha-${ficha.id}-${index}`}
+                            className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
+                            onClick={() => {
+                                handleFichaClick(ficha.id, ficha.tipo);
+                                setShowAllFichasModal(false);
+                            }}
+                        >
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i className="fas fa-clipboard-list mr-2"></i>
+                                    <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong>
+                                    <span className="ml-2 text-muted">
+                                        {ficha.paciente?.rut}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className={`badge ${ficha.is_reevaluacion ? 'bg-warning' : 'bg-primary'} me-2`}>
+                                        {ficha.is_reevaluacion ? 'Reevaluación' : 'Primera Evaluación'}
+                                    </span>
+                                    <small className="text-muted">
+                                        {new Date(ficha.fecha).toLocaleDateString('es-CL')}
+                                    </small>
+                                </div>
+                            </div>
+                            <div className="mt-1 text-muted small">
+                                {ficha.diagnostico ? ficha.diagnostico.nombre : ficha.diagnostico_otro || 'Sin diagnóstico'}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {paginationInfo.totalPages > 1 && (
+                    <div className="d-flex justify-content-center mt-3">
+                        <nav>
+                            <ul className="pagination">
+                                <li className={`page-item ${paginationInfo.page === 1 ? 'disabled' : ''}`}>
+                                    <button 
+                                        className="page-link" 
+                                        onClick={() => handlePagination('prev')}
+                                        disabled={paginationInfo.page === 1}
+                                    >
+                                        Anterior
+                                    </button>
+                                </li>
+                                {[...Array(paginationInfo.totalPages)].map((_, index) => (
+                                    <li 
+                                        key={index} 
+                                        className={`page-item ${index + 1 === paginationInfo.page ? 'active' : ''}`}
+                                    >
+                                        <button 
+                                            className="page-link"
+                                            onClick={() => handlePaginationClick(index + 1)}
+                                        >
+                                            {index + 1}
+                                        </button>
+                                    </li>
+                                ))}
+                                <li className={`page-item ${paginationInfo.page === paginationInfo.totalPages ? 'disabled' : ''}`}>
+                                    <button 
+                                        className="page-link"
+                                        onClick={() => handlePagination('next')}
+                                        disabled={paginationInfo.page === paginationInfo.totalPages}
+                                    >
+                                        Siguiente
+                                    </button>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
                 )}
-            </Modal.Body>
-        </Modal>
+            </>
+        )}
+    </Modal.Body>
+</Modal>
     </div>
   );
 };

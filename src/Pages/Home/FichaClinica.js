@@ -572,7 +572,7 @@ const FichaClinica = () => {
                       fichaId: fichaClinica.id, 
                       tipo: tipo,
                       paciente: fichaClinica.paciente
-                    } 
+                    }
                   })}
                 >
                   Iniciar Nueva Reevaluación

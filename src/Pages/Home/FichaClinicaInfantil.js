@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
+const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosIniciales }) => {
     const [datosNino, setDatosNino] = useState({
         fechaNacimiento: '',
         nombres: '',
@@ -28,6 +28,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
     const [conQuienVive, setConQuienVive] = useState('');
     const [tipoFamilia, setTipoFamilia] = useState('');
     const [cicloVitalFamiliar, setCicloVitalFamiliar] = useState('');
+    const [factoresRiesgo, setFactoresRiesgo] = useState('');
     const [localidad, setLocalidad] = useState('');
     
     // Lista de factores de riesgo disponibles
@@ -47,6 +48,83 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
     const [tiposFamilia, setTiposFamilia] = useState([]);
     const [errores, setErrores] = useState({});
 
+    useEffect(() => {
+      console.log('Datos Iniciales Recibidos:', datosIniciales);
+    
+      // Cargar datos iniciales si están disponibles
+      if (datosIniciales) {
+        // Datos personales del niño
+        setDatosNino(prev => ({
+          ...prev,
+          nombres: datosIniciales.nombres || '',
+          apellidos: datosIniciales.apellidos || '',
+          rut: datosIniciales.rut || '',
+          telefonoPrincipal: datosIniciales.telefonoPrincipal || '',
+          telefonoSecundario: datosIniciales.telefonoSecundario || '',
+          fechaNacimiento: datosIniciales.fechaNacimiento || '', // Añadir fechaNacimiento
+          
+          // Manejo de edad si es necesario
+          edadAnios: datosIniciales.edadAnios || '',
+          edadMeses: datosIniciales.edadMeses || '',
+          edadDias: datosIniciales.edadDias || ''
+        }));
+    
+        // Evaluación psicomotora
+        setPuntajeDPM(datosIniciales.evaluacionPsicomotora?.puntajeDPM || '');
+        setDiagnosticoDSM(datosIniciales.evaluacionPsicomotora?.diagnosticoDSM || '');
+    
+        // Información familiar
+        setConQuienVive(datosIniciales.informacionFamiliar?.conQuienVive || '');
+        setLocalidad(datosIniciales.informacionFamiliar?.localidad || '');
+        
+        // Tipos de familia
+        setTipoFamilia(
+          datosIniciales.informacionFamiliar?.tiposFamilia?.[0]?.id || 
+          datosIniciales.tiposFamilia?.[0]?.id || 
+          ''
+        );
+        
+        // Ciclo vital familiar
+        setCicloVitalFamiliar(
+          datosIniciales.informacionFamiliar?.cicloVitalFamiliar?.id || 
+          datosIniciales.cicloVitalFamiliar?.id || 
+          ''
+        );
+    
+        // Padres/Tutores
+        if (datosIniciales.informacionFamiliar?.padres && datosIniciales.informacionFamiliar.padres.length > 0) {
+          setPadres(datosIniciales.informacionFamiliar.padres.map(padre => ({
+            nombre: padre.nombre || '',
+            escolaridad: padre.escolaridad?.id || '',
+            ocupacion: padre.ocupacion || ''
+          })));
+        }
+    
+        // Factores de riesgo del niño
+        if (datosIniciales.factoresRiesgo?.nino) {
+          const factoresNino = {};
+          datosIniciales.factoresRiesgo.nino.forEach(factor => {
+            factoresNino[factor.nombre] = true;
+          });
+          setFactoresRiesgoNino(factoresNino);
+        }
+    
+        // Factores de riesgo familiares
+        if (datosIniciales.factoresRiesgo?.familiares) {
+          const factoresFamiliares = { otras: '' };
+          datosIniciales.factoresRiesgo.familiares.forEach(factor => {
+            if (factor.nombre !== 'Otras') {
+              factoresFamiliares[factor.nombre] = true;
+            }
+            // Manejar el caso de 'otras' si existe
+            if (factor.otras) {
+              factoresFamiliares.otras = factor.otras;
+            }
+          });
+          setFactoresRiesgoFamiliares(factoresFamiliares);
+        }
+      }
+    }, [datosIniciales]);
 
     useEffect(() => {
       const cargarDatos = async () => {
@@ -204,7 +282,8 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
         otrosFactoresRiesgoFamiliares: factoresRiesgoFamiliares.otras || '',
       estudiante_id: user.estudiante_id,
       usuario_id: user.id,
-      institucion_id: institucionId
+      institucion_id: institucionId,
+      isReevaluacion: datosIniciales ? true : false
     };
   
     try {
@@ -234,38 +313,32 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId }) => {
           telefonoSecundario: ''
         });
         
-        // Limpiar evaluación psicomotora
         setPuntajeDPM('');
         setDiagnosticoDSM('');
         
-        // Limpiar información familiar
         setPadres([{ nombre: '', escolaridad: '', ocupacion: '' }]);
         
-        // Limpiar información adicional
         setConQuienVive('');
         setTipoFamilia('');
         setCicloVitalFamiliar('');
         setLocalidad('');
         setOtraTipoFamilia('');
-        setOtraCicloVital('');
         
-        // Limpiar factores de riesgo del niño
+        // Resetear factores de riesgo
         const resetFactoresNino = {};
         factoresRiesgoNinoDisponibles.forEach(factor => {
           resetFactoresNino[factor.nombre] = false;
         });
         setFactoresRiesgoNino(resetFactoresNino);
         
-        // Limpiar factores de riesgo familiares
         const resetFactoresFamiliares = { otras: '' };
         factoresRiesgoFamiliaresDisponibles.forEach(factor => {
-            if (factor.nombre !== 'Otras') {
-                resetFactoresFamiliares[factor.nombre] = false;
-            }
+          if (factor.nombre !== 'Otras') {
+            resetFactoresFamiliares[factor.nombre] = false;
+          }
         });
         setFactoresRiesgoFamiliares(resetFactoresFamiliares);
-                
-        // Limpiar errores y mensajes
+        
         setErrores({});
         
         // Mostrar mensaje de éxito

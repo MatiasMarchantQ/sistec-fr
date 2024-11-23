@@ -96,11 +96,42 @@ const Reevaluacion = () => {
               cicloVitalFamiliar: response.data.data.cicloVitalFamiliar?.id || '',
               tiposFamilia: response.data.data.tiposFamilia?.map(tipo => tipo.id) || [],
             };
+          } else if (tipo === 'infantil') {
+            return {
+              // Datos personales del niño
+              nombres: response.data.data.paciente?.nombres || '',
+              apellidos: response.data.data.paciente?.apellidos || '',
+              rut: response.data.data.paciente?.rut || '',
+              telefonoPrincipal: response.data.data.paciente?.telefonoPrincipal || '',
+              telefonoSecundario: response.data.data.paciente?.telefonoSecundario || '',
+              fechaNacimiento: response.data.data.fechaNacimiento || '',
+        
+              // Evaluación psicomotora
+              evaluacionPsicomotora: {
+                puntajeDPM: response.data.data.evaluacionPsicomotora?.puntajeDPM || '',
+                diagnosticoDSM: response.data.data.evaluacionPsicomotora?.diagnosticoDSM || ''
+              },
+        
+              // Información familiar
+              informacionFamiliar: {
+                conQuienVive: response.data.data.informacionFamiliar?.conQuienVive || '',
+                localidad: response.data.data.informacionFamiliar?.localidad || '',
+                tiposFamilia: response.data.data.informacionFamiliar?.tiposFamilia || [],
+                cicloVitalFamiliar: response.data.data.informacionFamiliar?.cicloVitalFamiliar || null,
+                padres: response.data.data.informacionFamiliar?.padres || []
+              },
+        
+              // Factores de riesgo
+              factoresRiesgo: {
+                nino: response.data.data.factoresRiesgo?.nino || [],
+                familiares: response.data.data.factoresRiesgo?.familiares || []
+              }
+            };
           }
-          // Añade lógica similar para fichas infantiles si es necesario
         };
-    
+        
         setDatosIniciales(prepararDatosIniciales());
+
         setLoading(false);
       } catch (err) {
         console.error('Error al obtener la ficha original:', err);
@@ -141,7 +172,7 @@ const Reevaluacion = () => {
           onVolver={() => navigate(-1)}
           onIngresar={handleReevaluacionExitosa}
           esReevaluacion={true}
-          fichaOriginalId={fichaOriginal.id}
+        
           institucionId={fichaOriginal.institucion_id}
         />
       ) : (
@@ -151,7 +182,7 @@ const Reevaluacion = () => {
           onVolver={() => navigate(-1)}
           onIngresar={handleReevaluacionExitosa}
           esReevaluacion={true}
-          fichaOriginalId={fichaOriginal.id}
+          
           institucionId={fichaOriginal.institucion_id}
         />
       )}
