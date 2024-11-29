@@ -79,6 +79,10 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
         datosIniciales.tiposFamilia || 
         ''
       );
+
+      console.log( 'TIPO FAMILIA ADULTO', datosIniciales.tiposFamilia?.id || 
+        datosIniciales.tiposFamilia || 
+        '')
       setCicloVitalSeleccionado(
         datosIniciales.cicloVitalFamiliar?.id || 
         datosIniciales.cicloVitalFamiliar || 

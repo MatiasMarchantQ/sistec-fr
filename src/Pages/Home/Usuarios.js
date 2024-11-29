@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
+import { Dropdown, Button } from 'react-bootstrap';
 import './Usuarios.css';
 
 const Usuarios = () => {
@@ -41,10 +42,6 @@ const Usuarios = () => {
 
   useEffect(() => {
     obtenerPersonal();
-  }, [currentPage, tipo, searchTerm]);
-
-  useEffect(() => {
-    obtenerPersonal();
   }, [currentPage, tipo, searchTerm, estadoFiltro]);
 
   const obtenerRoles = async () => {
@@ -79,7 +76,7 @@ const Usuarios = () => {
           limit,
           tipo,
           search: searchTerm,
-          estado: estadoFiltro // Asegúrate de que esto esté presente
+          estado: estadoFiltro 
         }
       });
       setUsuarios(response.data.usuarios);
@@ -196,6 +193,49 @@ const Usuarios = () => {
     );
   };
 
+  const enviarCredencialIndividual = async (usuario) => {
+    try {
+      const token = getToken();
+      await axios.post(
+        `${process.env.REACT_APP_API_URL}/personal/${usuario.id}/enviar-credencial`,
+        {},
+        {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json' 
+          }
+        }
+      );
+      alert(`Cred enciales enviadas a ${usuario.nombres} ${usuario.apellidos}`);
+    } catch (error) {
+      console.error('Error al enviar credenciales:', error);
+      alert('No se pudieron enviar las credenciales');
+    }
+  };
+
+  const handleCambioContrasena = async (usuario) => {
+    const nuevaContrasena = prompt(`Ingrese nueva contraseña para ${usuario.nombres} ${usuario.apellidos}`);
+    if (nuevaContrasena) {
+      try {
+        const token = getToken();
+        await axios.put(
+          `${process.env.REACT_APP_API_URL}/personal/${usuario.id}/cambiar-contrasena`,
+          { nuevaContrasena },
+          {
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json' 
+            }
+          }
+        );
+        alert('Contraseña cambiada exitosamente');
+      } catch (error) {
+        console.error('Error al cambiar contraseña:', error);
+        alert('No se pudo cambiar la contraseña');
+      }
+    }
+  };
+
   return (
     <div className="usuarios">
       <h2 className="usuarios__title text-center mb-4">Gestión de Usuarios</h2>
@@ -235,10 +275,6 @@ const Usuarios = () => {
           value={searchTerm}
           onChange={handleSearchChange}
         />
-
-        {/* <button className="usuarios__btn usuarios__btn--primary" onClick={handleSearchSubmit}>
-          <i className="fas fa-search"></i> Buscar
-        </button> */}
 
        {/* Mostrar el botón de limpiar solo si hay filtros aplicados */}
         {hayFiltrosAplicados() && (
@@ -458,29 +494,49 @@ const Usuarios = () => {
                 </td>
                 <td>
                   {editingId === usuario.id ? (
-                    <>
-                      <button 
-                        className="usuarios__btn usuarios__btn--success usuarios__btn--spacing btn btn-sm"
+                    <div className="d-flex">
+                      <Button 
+                        variant="success" 
+                        size="sm" 
+                        className="me-2"
                         onClick={() => handleSaveChanges(usuario.id)}
                       >
-                        <i className="fas fa-save"></i>
-                      </button>
-                      <button 
-                        className="usuarios__btn usuarios__btn--secondary btn btn-sm"
-                        onClick={handleCancelEdit}
+                        <i className="fas fa-save me-1"></i>Guardar
+                      </Button>
+                      <Button 
+                        variant="secondary" 
+                        size="sm"
+                        onClick={() => {
+                          setEditingId(null);
+                          setEditedFields({});
+                        }}
                       >
-                        <i className="fas fa-times"></i>
-                      </button>
-                    </>
+                        <i className="fas fa-times me-1"></i>Cancelar
+                      </Button>
+                    </div>
                   ) : (
-                    <>
-                      <button 
-                        className="usuarios__btn usuarios__btn--warning usuarios__btn--spacing btn btn-sm"
-                        onClick={() => handleEdit(usuario.id)}
-                      >
-                        <i className="fas fa-edit"></i>
-                      </button>
-                    </>
+                    <Dropdown>
+                      <Dropdown.Toggle variant="secondary" id={`dropdown-${usuario.id}`}>
+                        Acciones
+                      </Dropdown.Toggle>
+                      <Dropdown.Menu>
+                        <Dropdown.Item 
+                          onClick={() => handleEdit(usuario.id)}
+                        >
+                          <i className="fas fa-edit me-2"></i>Editar
+                        </Dropdown.Item>
+                        <Dropdown.Item 
+                          onClick={() => handleCambioContrasena(usuario)}
+                        >
+                          <i className="fas fa-key me-2"></i>Cambiar Contraseña
+                        </Dropdown.Item>
+                        <Dropdown.Item 
+                          onClick={() => enviarCredencialIndividual(usuario)}
+                        >
+                          <i className="fas fa-envelope me-2"></i>Enviar Credencial
+                        </Dropdown.Item>
+                      </Dropdown.Menu>
+                    </Dropdown>
                   )}
                 </td>
               </tr>

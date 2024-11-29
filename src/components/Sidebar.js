@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './Components.css';
 
-const Sidebar = ({ setActiveComponent }) => {
+const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -18,10 +18,36 @@ const Sidebar = ({ setActiveComponent }) => {
   };
   
   return (
-    <aside className="main-sidebar elevation-1">
-      <div className="d-flex justify-content-center align-items-center">
+    <aside 
+      className={`main-sidebar sidebar-dark-primary elevation-4 ${
+        isMobile 
+          ? (isOpen ? 'sidebar-mobile-open' : 'd-none') 
+          : ''
+      }`}
+    >
+      {/* Botón de cierre para móviles */}
+      {isMobile && isOpen && (
+        <div className="sidebar-mobile-close-container">
+          <button 
+            className="sidebar-mobile-close-btn" 
+            onClick={toggleSidebar}
+          >
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
+      <div className="d-flex justify-content-center align-items-center" style={{marginTop: '5px'}}>
         <Link to="?component=home" className="brand-link">
-          <img src="/logo_ucm_white.png" alt="Logo UCM" className="brand-image" style={{ height: '40px', width: 'auto' }} />
+        <img 
+          src="/facsa.png" 
+          alt="FACSA" 
+          className="brand-image"
+          style={{ 
+            width: '100px',
+            height: '100px',
+            objectFit: 'fill'
+          }}
+        />
         </Link>
       </div>
       <div className="sidebar">

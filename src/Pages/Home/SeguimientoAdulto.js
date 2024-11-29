@@ -677,48 +677,48 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
       </Card.Body>
     </Card>
 
-      <Modal 
-      show={!!selectedSeguimiento}
-      onHide={() => setSelectedSeguimiento(null)}
-      size="lg"
-    >
-      <Modal.Header closeButton>
-        <Modal.Title>Seguimiento - {selectedSeguimiento?.fecha}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {selectedSeguimiento && (
-          <div>
-            <h4>Número de Llamado: {selectedSeguimiento.numeroLlamado}</h4>
-            {console.log('Selected Seguimiento:', selectedSeguimiento)}
-            {/* Mostrar información del Usuario o del Estudiante */}
-            {selectedSeguimiento.usuario ? (
-              <Card className="mb-3">
-                <Card.Header>Información del Usuario</Card.Header>
-                <Card.Body>
-                  <p><strong>Nombres:</strong> {selectedSeguimiento.usuario.nombres}</p>
-                  <p><strong>Apellidos:</strong> {selectedSeguimiento.usuario.apellidos}</p>
-                  <p><strong>RUT:</strong> {selectedSeguimiento.usuario.rut}</p>
-                  <p><strong>Correo:</strong> {selectedSeguimiento.usuario.correo}</p>
-                </Card.Body>
-              </Card>
-            ) : selectedSeguimiento.estudiante ? (
-              <Card className="mb-3">
-                <Card.Header>Información del Estudiante</Card.Header>
-                <Card.Body>
-                  <p><strong>Nombres:</strong> {selectedSeguimiento.estudiante.nombres}</p>
-                  <p><strong>Apellidos:</strong> {selectedSeguimiento.estudiante.apellidos}</p>
-                  <p><strong>RUT:</strong> {selectedSeguimiento.estudiante.rut}</p>
-                  <p><strong>Correo:</strong> {selectedSeguimiento.estudiante.correo}</p>
-                </Card.Body>
-              </Card>
-            ) : (
-              <p>No se encontró información del usuario ni del estudiante.</p>
-            )}
-
-          </div>
+    <Modal 
+  show={!!selectedSeguimiento}
+  onHide={() => setSelectedSeguimiento(null)}
+  size="lg"
+>
+  <Modal.Header closeButton>
+    <Modal.Title>Seguimiento - {selectedSeguimiento?.fecha}</Modal.Title>
+  </Modal.Header>
+  <Modal.Body>
+    {selectedSeguimiento && (
+      <div>
+        <h4>Número de Llamado: {selectedSeguimiento.numeroLlamado}</h4>
+        {console.log('Selected Seguimiento:', selectedSeguimiento)}
+        
+        {/* Mostrar información del Usuario o del Estudiante */}
+        {selectedSeguimiento.usuario && selectedSeguimiento.usuario.id ? (
+          <Card className="mb-3">
+            <Card.Header>Información del Usuario</Card.Header>
+            <Card.Body>
+              <p><strong>Nombres:</strong> {selectedSeguimiento.usuario.nombres}</p>
+              <p><strong>Apellidos:</strong> {selectedSeguimiento.usuario.apellidos}</p>
+              <p><strong>RUT:</strong> {selectedSeguimiento.usuario.rut}</p>
+              <p><strong>Correo:</strong> {selectedSeguimiento.usuario.correo}</p>
+            </Card.Body>
+          </Card>
+        ) : selectedSeguimiento.estudiante && selectedSeguimiento.estudiante.id ? (
+          <Card className="mb-3">
+            <Card.Header>Información del Estudiante</Card.Header>
+            <Card.Body>
+              <p><strong>Nombres:</strong> {selectedSeguimiento.estudiante.nombres}</p>
+              <p><strong>Apellidos:</strong> {selectedSeguimiento.estudiante.apellidos}</p>
+              <p><strong>RUT:</strong> {selectedSeguimiento.estudiante.rut}</p>
+              <p><strong>Correo:</strong> {selectedSeguimiento.estudiante.correo}</p>
+            </Card.Body>
+          </Card>
+        ) : (
+          <p>No se encontró información del usuario ni del estudiante.</p>
         )}
-      </Modal.Body>
-    </Modal>
+      </div>
+    )}
+  </Modal.Body>
+</Modal>
     </Container>
   );
 };

@@ -68,8 +68,12 @@ const Login = () => {
     try {
       const response = await loginDirector(modalRut, modalPassword, rememberMe);
       
-      setShowDirectorModal(false);
-      navigate('/home');
+      // Verificar si el director debe cambiar la contraseña
+      if (response.debe_cambiar_contrasena) {
+        navigate('/cambiar-contrasena');
+      } else {
+        navigate('/home');
+      }
     } catch (error) {
       console.error('Error durante el login de director:', error);
       
@@ -85,7 +89,6 @@ const Login = () => {
       setLoading(false);
     }
   };
-
   
   const handleForgotPassword = async (e) => {
     e.preventDefault();

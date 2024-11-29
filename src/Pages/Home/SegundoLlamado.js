@@ -1,8 +1,26 @@
 import React from 'react';
-import { Card, Form, Button } from 'react-bootstrap';
+import { Card, Form, Button, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+
+const sectionStyles = {
+  backgroundColor: '#f8f9fa',
+  borderRadius: '8px',
+  padding: '20px',
+  marginBottom: '20px',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+};
+
+const headingStyles = {
+  backgroundColor: '#007bff',
+  color: 'white',
+  padding: '10px 15px',
+  borderRadius: '6px',
+  marginBottom: '20px',
+  display: 'flex',
+  alignItems: 'center'
+};
 
 const SegundoLlamado = ({ 
   seguimiento, 
@@ -49,10 +67,57 @@ const SegundoLlamado = ({
     onComplete();
   };
 
+  const exportarPDF = () => {
+    const input = document.getElementById('exportable-content2');
+    html2canvas(input).then((canvas) => {
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Crear un PDF de tamaño oficio (216 mm x 330 mm)
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'legal',
+            putOnlyUsedFonts: true,
+            floatPrecision: 16
+        });
+
+        // Añadir información del paciente al PDF en la primera página
+        pdf.text('Información del Paciente', 10, 10);
+        pdf.text(`Nombre: ${paciente.nombres} ${paciente.apellidos}`, 10, 20);
+        pdf.text(`RUT: ${paciente.rut}`, 10, 30);
+        pdf.text(`Fecha de nacimiento: ${paciente.fecha_nacimiento}`, 10, 40);
+        pdf.text(`Edad: ${paciente.edad}`, 10, 50);
+        pdf.text(`Teléfono Principal: ${paciente.telefono_principal}`, 10, 60);
+        pdf.text(`Teléfono Secundario: ${paciente.telefono_secundario}`, 10, 70);
+        
+        // Agregar un salto de página
+        pdf.addPage();
+
+        // Definir el ancho y la altura de la imagen
+        const imgWidth = 105;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        // Agregar la imagen al PDF en la segunda página
+        pdf.addImage(imgData, 'PNG', 5, 0, imgWidth, imgHeight);
+
+        // Guardar el PDF
+        pdf.save(`${paciente.rut}_2.pdf`);
+    });
+  };
+
   const renderContent = () => {
     return (
       <div id="exportable-content2">
-            <h5>III. Necesidad de Nutrición, Agua y Electrolíticos</h5>
+        {/* Sección de Nutrición */}
+        <div style={sectionStyles}>
+          <h5 style={{
+            ...headingStyles,
+            backgroundColor: '#28a745' // Verde para nutrición
+          }}>
+            <i className="fas fa-utensils mr-3"></i>
+            III. Necesidad de Nutrición, Agua y Electrolíticos
+          </h5>
+
           <Form.Group className="mb-3">
             <Form.Label>1. ¿Cuántas comidas consume al día?</Form.Label>
             <Form.Control 
@@ -68,83 +133,43 @@ const SegundoLlamado = ({
               }))}
             />
           </Form.Group>
-  
-          <h6>2. Habitualmente, ¿Qué consume en cada comida?</h6>
-          <Form.Group className="mb-3">
-            <Form.Label>Desayuno</Form.Label>
-            <Form.Control 
-              as="textarea"
-              placeholder="Describa su desayuno habitual"
-              value={seguimiento.nutricion.comidas.desayuno}
-              onChange={(e) => setSeguimiento(prev => ({
-                ...prev,
-                nutricion: {
-                  ...prev.nutricion,
-                  comidas: {
-                    ...prev.nutricion.comidas,
-                    desayuno: e.target.value
-                  }
-                }
-              }))}
-            />
-          </Form.Group>
-  
-          <Form.Group className="mb-3">
-            <Form.Label>Almuerzo</Form.Label>
-            <Form.Control 
-              as="textarea"
-              placeholder="Describa su almuerzo habitual"
-              value={seguimiento.nutricion.comidas.almuerzo}
-              onChange={(e) => setSeguimiento(prev => ({
-                ...prev,
-                nutricion: {
-                  ...prev.nutricion,
-                  comidas: {
-                    ...prev.nutricion.comidas,
-                    almuerzo: e.target.value
-                  }
-                }
-              }))}
-            />
-          </Form.Group>
-  
-          <Form.Group className="mb-3">
-            <Form.Label>Once</Form.Label>
-            <Form.Control 
-              as="textarea"
-              placeholder="Describa su once habitual"
-              value={seguimiento.nutricion.comidas.once}
-              onChange={(e) => setSeguimiento(prev => ({
-                ...prev,
-                nutricion: {
-                  ...prev.nutricion,
-                  comidas: {
-                    ...prev.nutricion.comidas,
-                    once: e.target.value
-                  }
-                }
-              }))}
-            />
-          </Form.Group>
-  
-          <Form.Group className="mb-3">
-            <Form.Label>Cena</Form.Label>
-            <Form.Control 
-              as="textarea"
-              placeholder="Describa su cena habitual"
-              value={seguimiento.nutricion.comidas.cena}
-              onChange={(e) => setSeguimiento(prev => ({
-                ...prev,
-                nutricion: {
-                  ...prev.nutricion,
-                  comidas: {
-                    ...prev.nutricion.comidas,
-                    cena: e.target.value
-                  }
-                }
-              }))}
-            />
-          </Form.Group>
+
+          <div style={{
+            backgroundColor: 'white',
+            padding: '15px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            marginBottom: '20px'
+          }}>
+            <h6 style={{
+              borderBottom: '2px solid #28a745',
+              paddingBottom: '10px',
+              marginBottom: '20px'
+            }}>
+              2. Habitualmente, ¿Qué consume en cada comida?
+            </h6>
+
+            {['Desayuno', 'Almuerzo', 'Once', 'Cena'].map((comida) => (
+              <Form.Group key={comida} className="mb-3">
+                <Form.Label>{comida}</Form.Label>
+                <Form.Control 
+                  as="textarea"
+                  placeholder={`Describa su ${comida.toLowerCase()} habitual`}
+                  value={seguimiento.nutricion.comidas[comida.toLowerCase()]}
+                  onChange={(e) => setSeguimiento(prev => ({
+                    ...prev,
+                    nutricion: {
+                      ...prev.nutricion,
+                      comidas: {
+                        ...prev.nutricion.comidas,
+                        [comida.toLowerCase()]: e.target.value
+                      }
+                    }
+                  }))}
+                />
+              </Form.Group>
+            ))}
+          </div>
   
           <Form.Group className="mb-3">
             <Form.Label>3. Frecuencia de consumo de alimentos no recomendados</Form.Label>
@@ -162,51 +187,75 @@ const SegundoLlamado = ({
             />
           </Form.Group>
   
-          <h6>Recomendaciones:</h6>
-          <ul>
-            <li>Limitar alimentos con altos contenidos de azúcar y sal.</li>
-            <li>Comer porciones pequeñas a lo largo del día.</li>
-            <li>Limitar el consumo de hidratos de carbono.</li>
-            <li>Consumir una gran variedad de alimentos integrales, frutas y vegetales.</li>
-            <li>Limite el consumo de alimentos ricos en grasa y frituras.</li>
-            <li>Intente no consumir alcohol.</li>
-            <li>Consuma un plato equilibrado de nutrientes, donde en el centro se encuentra el agua, 50% debe ser verduras como ensaladas, verduras cocidas y frutas. La otra mitad del plato estaría compuesto por una porción de hidratos de carbono, cereales, pasta, pan, otra porción de carnes y/o legumbres, lácteos y restringido el aceite, el cual debiera usarse idealmente crudo.</li>
-            <li>Debe evitar consumir comida "chatarra" alto en azúcar y grasas saturadas, como helados, papas fritas.</li>
-          </ul>
+          <Alert variant="info" style={{ borderRadius: '8px' }}>
+            <h6>Recomendaciones Nutricionales:</h6>
+            <ul>
+              {[
+                "Limitar alimentos con altos contenidos de azúcar y sal.",
+                "Comer porciones pequeñas a lo largo del día.",
+                "Limitar el consumo de hidratos de carbono.",
+                "Consumir una gran variedad de alimentos integrales, frutas y vegetales.",
+                "Limite el consumo de alimentos ricos en grasa y frituras.",
+                "Intente no consumir alcohol.",
+                "Consuma un plato equilibrado de nutrientes.",
+                "Debe evitar consumir comida 'chatarra' alto en azúcar y grasas saturadas."
+              ].map((recomendacion, index) => (
+                <li key={index}>{recomendacion}</li>
+              ))}
+            </ul>
+          </Alert>
+        </div>
   
-          <h5>IV. Necesidad de Actividad y Reposo</h5>
+          {/* Sección de Actividad Física */}
+        <div style={sectionStyles}>
+          <h5 style={{
+            ...headingStyles,
+            backgroundColor: '#17a2b8' // Cyan para actividad física
+          }}>
+            <i className="fas fa-running mr-3"></i>
+            IV. Necesidad de Actividad y Reposo
+          </h5>
+
           <Form.Group className="mb-3">
             <Form.Label>¿Realiza actividad física?</Form.Label>
-            <Form.Check 
-              type="radio"
-              label="Sí"
-              name="actividadFisica"
-              checked={seguimiento.actividadFisica.realiza === true}
-              onChange={() => setSeguimiento(prev => ({
-                ...prev,
-                actividadFisica: {
-                  ...prev.actividadFisica,
-                  realiza: true
-                }
-              }))}
-            />
-            <Form.Check 
-              type="radio"
-              label="No"
-              name="actividadFisica"
-              checked={seguimiento.actividadFisica.realiza === false}
-              onChange={() => setSeguimiento(prev => ({
-                ...prev,
-                actividadFisica: {
-                  ...prev.actividadFisica,
-                  realiza: false
-                }
-              }))}
-            />
+            <div className="d-flex">
+              <Form.Check 
+                type="radio"
+                label="Sí"
+                name="actividadFisica"
+                className="mr-3"
+                checked={seguimiento.actividadFisica.realiza === true}
+                onChange={() => setSeguimiento(prev => ({
+                  ...prev,
+                  actividadFisica: {
+                    ...prev.actividadFisica,
+                    realiza: true
+                  }
+                }))}
+              />
+              <Form.Check 
+                type="radio"
+                label="No"
+                name="actividadFisica"
+                checked={seguimiento.actividadFisica.realiza === false}
+                onChange={() => setSeguimiento(prev => ({
+                  ...prev,
+                  actividadFisica: {
+                    ...prev.actividadFisica,
+                    realiza: false
+                  }
+                }))}
+              />
+            </div>
           </Form.Group>
-  
+
           {seguimiento.actividadFisica.realiza && (
-            <>
+            <div style={{
+              backgroundColor: 'white',
+              padding: '15px',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+            }}>
               <Form.Group className="mb-3">
                 <Form.Label>¿Qué actividad realiza?</Form.Label>
                 <Form.Control 
@@ -222,7 +271,7 @@ const SegundoLlamado = ({
                   }))}
                 />
               </Form.Group>
-  
+
               <Form.Group className="mb-3">
                 <Form.Label>Frecuencia</Form.Label>
                 <Form.Select
@@ -230,7 +279,7 @@ const SegundoLlamado = ({
                   onChange={(e) => setSeguimiento(prev => ({
                     ...prev,
                     actividadFisica: {
-                      ...prev.actividadFisica,
+                      ...prev.actividaFisica,
                       frecuencia: e.target.value
                     }
                   }))}
@@ -239,103 +288,62 @@ const SegundoLlamado = ({
                   <option value="1 vez por semana">1 vez por semana</option>
                   <option value="1 vez al mes">1 vez al mes</option>
                   <option value="2-3 veces a la semana">2-3 veces a la semana</option>
-                  <option value="1 vez por día">1 vez por día</ option>
+                  <option value="1 vez por día">1 vez por día</option>
                 </Form.Select>
               </Form.Group>
-            </>
+            </div>
           )}
-  
-          <h5>II. Necesidad de Eliminación</h5>
-          <Form.Group className="mb-3">
-            <Form.Label>1. ¿Ha presentado aumento en el volumen y frecuencia de la micción (Poliuria)?</Form.Label>
-            <Form.Check 
-              type="radio"
-              label="Sí"
-              name="poliuria"
-              checked={seguimiento.eliminacion.poliuria === true}
-              onChange={() => setSeguimiento(prev => ({
-                ...prev,
-                eliminacion: {
-                  ...prev.eliminacion,
-                  poliuria: true
-                }
-              }))}
-            />
-            <Form.Check 
-              type="radio"
-              label="No"
-              name="poliuria"
-              checked={seguimiento.eliminacion.poliuria === false}
-              onChange={() => setSeguimiento(prev => ({
-                ...prev,
-                eliminacion: {
-                  ...prev.eliminacion,
-                  poliuria: false
-                }
-              }))}
-            />
-          </Form.Group>
-  
-          <Form.Group className="mb-3">
-            <Form.Label>2. ¿Ha presentado sensación de no poder contener la orina (Urgencia miccional)?</Form.Label>
-            <Form.Check 
-              type="radio"
-              label="Sí"
-              name="urgenciaMiccional"
-              checked={seguimiento.eliminacion.urgenciaMiccional === true}
-              onChange={() => setSeguimiento(prev => ({
-                ...prev,
-                eliminacion: {
-                  ...prev.eliminacion,
-                  urgenciaMiccional: true
-                }
-              }))}
-            />
-            <Form.Check 
-              type="radio"
-              label="No"
-              name="urgenciaMiccional"
-              checked={seguimiento.eliminacion.urgenciaMiccional === false}
-              onChange={() => setSeguimiento(prev => ({
-                ...prev,
-                eliminacion: {
-                  ...prev.eliminacion,
-                  urgenciaMiccional: false
-                }
-              }))}
-            />
-          </Form.Group>
-  
-          <Form.Group className="mb-3">
-            <Form.Label>3. ¿Ha presentado deseo imperioso de orinar sin lograr conseguirlo (Tenesmo vesical)?</Form.Label>
-            <Form.Check 
-              type="radio"
-              label="Sí"
-              name="tenesmoVesical"
-              checked={seguimiento.eliminacion.tenesmoVesical === true}
-              onChange={() => setSeguimiento(prev => ({
-                ...prev,
-                eliminacion: {
-                  ...prev.eliminacion,
-                  tenesmoVesical: true
-                }
-              }))}
-            />
-            <Form.Check 
-              type="radio"
-              label="No"
-              name="tenesmoVesical"
-              checked={seguimiento.eliminacion.tenesmoVesical === false}
-              onChange={() => setSeguimiento(prev => ({
-                ...prev,
-                eliminacion: {
-                  ...prev.eliminacion,
-                  tenesmoVesical: false
-                }
-              }))}
-            />
-          </Form.Group>
-  
+        </div>
+
+        {/* Sección de Eliminación */}
+        <div style={sectionStyles}>
+          <h5 style={{
+            ...headingStyles,
+            backgroundColor: '#dc3545' // Rojo para eliminación
+          }}>
+            <i className="fas fa-toilet-paper mr-3"></i>
+            II. Necesidad de Eliminación
+          </h5>
+
+          {[
+            { label: "¿Ha presentado aumento en el volumen y frecuencia de la micción (Poliuria)?", key: "poliuria" },
+            { label: "¿Ha presentado sensación de no poder contener la orina (Urgencia miccional)?", key: "urgenciaMiccional" },
+            { label: "¿Ha presentado deseo imperioso de orinar sin lograr conseguirlo (Tenesmo vesical)?", key: "tenesmoVesical" }
+          ].map(({ label, key }) => (
+            <Form.Group key={key} className="mb-3">
+              <Form.Label>{label}</Form.Label>
+              <div className="d-flex">
+                <Form.Check 
+                  type="radio"
+                  label="Sí"
+                  name={key}
+                  className="mr-3"
+                  checked={seguimiento.eliminacion[key] === true}
+                  onChange={() => setSeguimiento(prev => ({
+                    ...prev,
+                    eliminacion: {
+                      ...prev.eliminacion,
+                      [key]: true
+                    }
+                  }))}
+                />
+                <Form.Check 
+                  type="radio"
+                  label="No"
+                  name={key}
+                  checked={seguimiento.eliminacion[key] === false}
+                  onChange={() => setSeguimiento(prev => ({
+                    ...prev,
+                    eliminacion: {
+                      ...prev.eliminacion,
+                      [key]: false
+                    }
+                  }))}
+                />
+              </div>
+            </Form.Group>
+          ))}
+
           <Form.Group className="mb-3">
             <Form.Label>¿Ha realizado alguna intervención para su mejoría? Si, No ¿Cuál?</Form.Label>
             <Form.Control 
@@ -350,62 +358,30 @@ const SegundoLlamado = ({
               }))}
             />
           </Form.Group>
-  
-          <h6>Recomendaciones:</h6>
-          <ul>
-            <li>Aumente ingesta de agua de 1 a 2 litros por día (considerar patologías concomitantes).</li>
-            <li>Conozca las características propias de su orina como color, olor, frecuencia, cantidad. Si presenta alteración de las características, debe consultar a un profesional de la salud.</li>
-            <li>Favorezca la eliminación vesical, no retenga la orina.</li>
-            <li>Favorecer la higiene genital con agua corriente, no utilice jabón, evite usar toallas húmedas.</li>
-            <li>Consumir alimentos saludables, tome los medicamentos según corresponda.</li>
-            <li>Consultar a centro asistencial si persiste las molestias.</li>
-          </ul>
-  
-          <p>Para finalizar este llamado, recuerde registrar todos los síntomas, dudas y/o comentarios que presente. Además, respetar las indicaciones de su médico y del equipo de salud. Muchas gracias por su colaboración, ¡Hasta pronto!</p>
-    </div>
+
+          <Alert variant="info" style={{ borderRadius: '8px' }}>
+            <h6>Recomendaciones de Eliminación:</h6>
+            <ul>
+              {[
+                "Aumente ingesta de agua de 1 a 2 litros por día (considerar patologías concomitantes).",
+                "Conozca las características propias de su orina como color, olor, frecuencia, cantidad.",
+                "Favorezca la eliminación vesical, no retenga la orina.",
+                "Favorecer la higiene genital con agua corriente, no utilice jabón.",
+                "Consumir alimentos saludables, tome los medicamentos según corresponda.",
+                "Consultar a centro asistencial si persiste las molestias."
+              ].map((recomendacion, index) => (
+                <li key={index}>{recomendacion}</li>
+              ))}
+            </ul>
+          </Alert>
+        </div>
+
+        <p style={{ marginTop: '20px' }}>
+          Para finalizar este llamado, recuerde registrar todos los síntomas, dudas y/o comentarios que presente. Además, respetar las indicaciones de su médico y del equipo de salud. Muchas gracias por su colaboración, ¡Hasta pronto!
+        </p>
+      </div>
     );
   };
-
-  const exportarPDF = () => {
-    const input = document.getElementById('exportable-content2');
-    html2canvas(input).then((canvas) => {
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Crear un PDF de tamaño oficio (216 mm x 330 mm)
-        const pdf = new jsPDF({
-            orientation: 'portrait', // o 'landscape' si prefieres horizontal
-            unit: 'mm',
-            format: 'legal', // 'legal' es el formato oficio
-            putOnlyUsedFonts: true,
-            floatPrecision: 16 // Precision de flotantes
-        });
-
-        // Añadir información del paciente al PDF en la primera página
-        pdf.text('Información del Paciente', 10, 10);
-        pdf.text(`Nombre: ${paciente.nombres} ${paciente.apellidos}`, 10, 20);
-        pdf.text(`RUT: ${paciente.rut}`, 10, 30);
-        pdf.text(`Fecha de nacimiento: ${paciente.fecha_nacimiento}`, 10, 40);
-        pdf.text(`Edad: ${paciente.edad}`, 10, 50);
-        pdf.text(`Teléfono Principal: ${paciente.telefono_principal}`, 10, 60);
-        pdf.text(`Teléfono Secundario: ${paciente.telefono_secundario}`, 10, 70);
-        
-        // Agregar un salto de página
-        pdf.addPage();
-
-        // Definir el ancho y la altura de la imagen
-        const imgWidth = 105; // Ajusta según el tamaño del PDF (debe ser menor a 210 mm)
-        const imgHeight = (canvas.height * imgWidth) / canvas.width; // Mantiene la proporción de la imagen
-
-        // Calcular la posición Y para la imagen
-        let yPositionForImage = 0; // Comenzar desde la parte superior de la segunda página
-
-        // Agregar la imagen al PDF en la segunda página
-        pdf.addImage(imgData, 'PNG', 5, yPositionForImage, imgWidth, imgHeight);
-
-        // Guardar el PDF
-        pdf.save(`${paciente.rut}_2.pdf`);
-    });
-};
 
 return (
   <Card>

@@ -8,9 +8,8 @@ import { useAuth } from '../../contexts/AuthContext';
 const IngresarFichaClinica = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { getToken } = useAuth();
+  const { user, getToken } = useAuth();
   
-  // Verificar si viene de Agenda y tiene institucionId
   const isFromAgenda = location.state?.component === 'ingresar-ficha-clinica' && location.state?.institucionId;
   const institucionId = isFromAgenda ? location.state.institucionId : '';
 
@@ -20,7 +19,27 @@ const IngresarFichaClinica = () => {
   const [instituciones, setInstituciones] = useState([]);
   const [institucionSeleccionada, setInstitucionSeleccionada] = useState(institucionId);
 
-  // Si no viene de Agenda, cargar los tipos de instituciones
+  // Mapeo de tipos de ficha para mostrar
+  const tipoFichaTexto = {
+    'infantil': 'Infantil',
+    'adulto': 'Adulto'
+  };
+
+  useEffect(() => {
+    // Si el rol es de estudiante (rol_id === 3), determinar semestre
+    if (user?.rol_id === 3) {
+      const determinarSemestre = () => {
+        const mesActual = new Date().getMonth() + 1;
+        if (mesActual >= 3 && mesActual <= 7) {
+          setTipoFicha('infantil');
+        } else if (mesActual >= 8 && mesActual <= 12) {
+          setTipoFicha('adulto');
+        }
+      };
+      determinarSemestre();
+    }
+  }, [user]);
+
   useEffect(() => {
     if (!isFromAgenda) {
       const obtenerTiposInstituciones = async () => {
@@ -40,7 +59,6 @@ const IngresarFichaClinica = () => {
     }
   }, [getToken, isFromAgenda]);
 
-  // Solo cargar instituciones si no viene de Agenda y se seleccionó un tipo
   useEffect(() => {
     if (!isFromAgenda && tipoInstitucionSeleccionado) {
       const obtenerInstituciones = async () => {
@@ -61,6 +79,19 @@ const IngresarFichaClinica = () => {
     }
   }, [tipoInstitucionSeleccionado, getToken, isFromAgenda]);
 
+  // Efecto para determinar tipo de ficha basado en tipo de institución
+  useEffect(() => {
+    if (user?.rol_id !== 3 && institucionSeleccionada) {
+      const institucioSelec = instituciones.find(inst => inst.id === institucionSeleccionada);
+      if (institucioSelec) {
+        // Si el tipo de institución es JARDIN, ficha infantil, sino adulto
+        setTipoFicha(
+          institucioSelec.tipo.toUpperCase() === 'JARDIN' ? 'infantil' : 'adulto'
+        );
+      }
+    }
+  }, [institucionSeleccionada, instituciones, user]);
+
   const handleVolver = () => {
     navigate(-1);
   };
@@ -69,7 +100,8 @@ const IngresarFichaClinica = () => {
     console.log('Ficha ingresada:', data);
   };
 
-  const isTipoFichaDisabled = !isFromAgenda && !institucionSeleccionada;
+  // Determinar si se puede seleccionar manualmente el tipo de ficha
+  const puedeSeleccionarTipoFicha = user?.rol_id !== 3;
 
   return (
     <div className="container mt-4">
@@ -85,8 +117,10 @@ const IngresarFichaClinica = () => {
               onChange={(e) => {
                 setTipoInstitucionSeleccionado(e.target.value);
                 setInstitucionSeleccionada('');
-                // Resetear el tipo de ficha cuando cambie la institución
-                setTipoFicha('');
+                // Resetear el tipo de ficha cuando cambie el tipo de institución
+                if (user?.rol_id === 3) {
+                  setTipoFicha('');
+                }
               }}
             >
               <option value="">Seleccione un tipo de institución...</option>
@@ -104,7 +138,9 @@ const IngresarFichaClinica = () => {
               onChange={(e) => {
                 setInstitucionSeleccionada(e.target.value);
                 // Resetear el tipo de ficha cuando cambie la institución
-                setTipoFicha('');
+                if (user?.rol_id === 3) {
+                  setTipoFicha('');
+                }
               }}
               disabled={!tipoInstitucionSeleccionado}
             >
@@ -117,24 +153,31 @@ const IngresarFichaClinica = () => {
         </>
       )}
       
-      <div className="form-group">
-        <label>Tipo de Ficha</label>
-        <select 
-          className="form-control" 
-          value={tipoFicha} 
-          onChange={(e) => setTipoFicha(e.target.value)}
-          disabled={isTipoFichaDisabled}
-        >
-          <option value="">Seleccione...</option>
-          <option value="adulto">Adulto</option>
-          <option value="infantil">Infantil</option>
-        </select>
-        {isTipoFichaDisabled && !isFromAgenda && (
-          <small className="text-muted">
-            Debe seleccionar una institución antes de elegir el tipo de ficha
-          </small>
-        )}
-      </div>
+      {puedeSeleccionarTipoFicha ? (
+        <div className="form-group mb-3">
+          <label>Tipo de Ficha</label>
+          <select 
+            className="form-control" 
+            value={tipoFicha} 
+            onChange={(e) => setTipoFicha(e.target.value)}
+            disabled={!institucionSeleccionada}
+          >
+            <option value="">Seleccione...</option>
+            <option value="adulto">Adulto</option>
+            <option value="infantil">Infantil</option>
+          </select>
+        </div>
+      ) : (
+        <div className="form-group mb-3">
+          <label>Tipo de Ficha</label>
+          <input 
+            type="text" 
+            className="form-control" 
+            value={tipoFichaTexto[tipoFicha] || ''} 
+            readOnly 
+          />
+        </div>
+      )}
 
       {tipoFicha === 'infantil' && (
         <FichaClinicaInfantil 
@@ -144,7 +187,7 @@ const IngresarFichaClinica = () => {
         />
       )}
       {tipoFicha === 'adulto' && (
-        <FichaClinicaAdulto 
+         <FichaClinicaAdulto 
           onVolver={handleVolver} 
           onIngresar={handleIngresar}
           institucionId={institucionSeleccionada}

@@ -281,74 +281,42 @@ const ListadoFichasClinicas = () => {
 
       {/* Tabla de Fichas Clínicas */}
       <Table striped bordered hover responsive>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Tipo</th>
-            <th>Paciente</th>
-            <th>Institución</th>
-            <th>Diagnóstico</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {isLoading ? (
-            <tr>
-              <td colSpan="6" className="text-center">
-                Cargando fichas...
-              </td>
-            </tr>
-          ) : fichas.length > 0 ? (
-            fichas.map(ficha => {
-              const esInfantil = ficha.PacienteInfantil !== undefined;
-              const paciente = esInfantil
-                ? ficha.PacienteInfantil
-                : ficha.PacienteAdulto;
+          <thead>
+              <tr>
+                  <th>Fecha</th>
+                  <th>Tipo</th>
+                  <th>Paciente</th>
+                  <th>Institución</th>
+                  <th>Diagnóstico</th>
+                  <th>Reevaluaciones</th>
+                  <th>Acciones</th>
+              </tr>
+          </thead>
+          <tbody>
+              {fichas.map(ficha => {
+                  const esInfantil = ficha.PacienteInfantil !== undefined;
+                  const paciente = esInfantil ? ficha.PacienteInfantil : ficha.PacienteAdulto;
+                  const fecha = new Date(ficha.createdAt).toLocaleDateString('es-CL');
+                  const diagnostico = esInfantil ? ficha.diagnostico_dsm : (ficha.diagnostico?.nombre || 'Sin diagnóstico');
+                  const cantidadReevaluaciones = ficha.reevaluaciones || 'No aplicado';
 
-              const fechaOriginal = esInfantil
-                ? ficha.createdAt
-                : (ficha.fecha_evaluacion || ficha.createdAt);
-
-              const fecha = new Date(fechaOriginal)
-                .toLocaleDateString('es-CL', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric'
-                });
-
-              const diagnostico = esInfantil
-                ? ficha.diagnostico_dsm
-                : (ficha.diagnostico?.nombre || ficha.diagnostico_otro || 'Sin diagnóstico');
-
-              return (
-                <tr key={ficha.id}>
-                  <td>{fecha}</td>
-                  <td>{esInfantil ? 'Infantil' : 'Adulto'}</td>
-                  <td>{`${paciente.nombres} ${paciente.apellidos}`}</td>
-                  <td>{ficha.Institucion.nombre}</td>
-                  <td>{diagnostico}</td>
-                  <td>
-                    <Button
-                      variant="info"
-                      size="sm"
-                      onClick={() => verDetallesFicha(
-                        ficha.id,
-                        esInfantil ? 'infantil' : 'adulto')}
-                    >
-                      Ver Detalles
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })
-          ) : (
-            <tr>
-              <td colSpan="6" className="text-center">
-                No hay fichas clínicas para mostrar
-              </td>
-            </tr>
-          )}
-        </tbody>
+                  return (
+                      <tr key={ficha.id}>
+                          <td>{fecha}</td>
+                          <td>{esInfantil ? 'Infantil' : 'Adulto'}</td>
+                          <td>{`${paciente.nombres} ${paciente.apellidos}`}</td>
+                          <td>{ficha.Institucion.nombre}</td>
+                          <td>{diagnostico}</td>
+                          <td>{cantidadReevaluaciones}</td>
+                          <td>
+                              <Button variant="info" size="sm" onClick={() => verDetallesFicha(ficha.id, esInfantil ? 'infantil' : 'adulto')}>
+                                  Ver Detalles
+                              </Button>
+                          </td>
+                      </tr>
+                  );
+              })}
+          </tbody>
       </Table>
 
       {/* Paginación */}

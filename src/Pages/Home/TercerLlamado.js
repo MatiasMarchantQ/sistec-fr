@@ -4,6 +4,24 @@ import { toast } from 'react-toastify';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
+const sectionStyles = {
+  backgroundColor: '#f8f9fa', // Color de fondo suave
+  borderRadius: '8px',
+  padding: '20px',
+  marginBottom: '20px',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+};
+
+const headingStyles = {
+  backgroundColor: '#007bff', // Color de fondo para los encabezados
+  color: 'white',
+  padding: '10px 15px',
+  borderRadius: '6px',
+  marginBottom: '20px',
+  display: 'flex',
+  alignItems: 'center'
+};
+
 const TercerLlamado = ({ 
   seguimiento, 
   setSeguimiento, 
@@ -172,10 +190,33 @@ const TercerLlamado = ({
     const renderContent = () => {
       return (
         <div id="exportable-content3">
-          <h5>V. Necesidad de Estima, Autoestima y Realización</h5>
-          <h6>Detección de Síntomas Depresivos (PHQ-9)</h6>
-          <p>Durante las dos últimas semanas, ¿con qué frecuencia le han molestado los siguientes problemas?</p>
-          
+          <div style={sectionStyles}>
+            <h5 style={{
+              ...headingStyles,
+              backgroundColor: '#007bff' // Azul para primera sección
+            }}>
+              <i className="fas fa-brain mr-3"></i> 
+              V. Necesidad de Estima, Autoestima y Realización
+            </h5>
+            
+            <div style={{
+              backgroundColor: 'white',
+              padding: '15px',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+            }}>
+              <h6 style={{
+                borderBottom: '2px solid #007bff',
+                paddingBottom: '10px',
+                marginBottom: '20px'
+              }}>
+                Detección de Síntomas Depresivos (PHQ-9)
+              </h6>
+              
+              <p className="text-muted mb-4">
+                Durante las dos últimas semanas, ¿con qué frecuencia le han molestado los siguientes problemas?
+              </p>
+
           {preguntasDepresion.map((pregunta, index) => (
             <Form.Group key={index} className="mb-3">
               <Form.Label>{index + 1}. {pregunta}</Form.Label>
@@ -219,16 +260,38 @@ const TercerLlamado = ({
               </div>
             </Form.Group>
     
-            <Alert variant={
-              puntajeTotal >= 10 ? "danger" : 
-              puntajeTotal >= 5 ? "warning" : "success"
-            }>
+            {/* Alerta de puntuación con estilo mejorado */}
+        <Alert 
+          variant={
+            puntajeTotal >= 10 ? "danger" : 
+            puntajeTotal >= 5 ? "warning" : "success"
+          }
+          style={{
+            marginTop: '20px',
+            borderRadius: '8px',
+            padding: '15px'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
               <strong>Puntuación Total: {puntajeTotal}</strong>
-              <p>Categoría: {obtenerCategoriaDepresion(puntajeTotal)}</p>
-              {puntajeTotal >= 10 && (
-                <p>Derivar a médico del CESFAM</p>
-              )}
-            </Alert>
+              <p className="mb-0">Categoría: {obtenerCategoriaDepresion(puntajeTotal)}</p>
+            </div>
+            {puntajeTotal >= 10 && (
+              <div 
+                style={{
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  padding: '8px 12px',
+                  borderRadius: '6px'
+                }}
+              >
+                Derivar a médico del CESFAM
+              </div>
+            )}
+          </div>
+        </Alert>
+
     
             <h6>Recomendaciones:</h6>
             <ul>
@@ -241,45 +304,60 @@ const TercerLlamado = ({
               <li>No aislarse de amistades y familias.</li>
             </ul>
     
-            <Form.Group className="mb-3">
-              <Form.Label>¿Qué otro síntoma o molestia ha presentado?</Form.Label>
-              <Form.Control 
-                as="textarea"
-                value={seguimiento.otrosSintomas}
-                onChange={(e) => setSeguimiento(prev => ({
-                  ...prev,
-                  otrosSintomas: e.target.value
-                }))}
-              />
-            </Form.Group>
-    
-            <Form.Group className="mb-3">
-              <Form.Label>¿Cómo lo ha manejado o superado?</Form.Label>
-              <Form.Control 
-                as="textarea"
-                value={seguimiento.manejoSintomas}
-                onChange={(e) => setSeguimiento(prev => ({
-                  ...prev,
-                  manejoSintomas: e.target.value
-                }))}
-              />
-            </Form.Group>
-    
-            <Form.Group className="mb-3">
-              <Form.Label>Algún comentario que quisiera mencionar:</Form.Label>
-              <Form.Control 
-                as="textarea"
-                value={seguimiento.comentarios}
-                onChange={(e) => setSeguimiento(prev => ({
-                  ...prev,
-                  comentarios: e.target.value
-                }))}
-              />
-            </Form.Group>
-    
-            <h5>Evaluación de Autoeficacia en Diabetes Tipo 2</h5>
-            <p>En las siguientes preguntas nos gustaría saber qué piensa Ud. de sus habilidades para controlar su enfermedad. Por favor marque el número que mejor corresponda a su nivel de seguridad de que puede realizar en este momento las siguientes tareas.</p>
-    
+            
+             {/* Sección de Otros Síntomas */}
+              <div style={{
+                ...sectionStyles,
+                backgroundColor: '#e9ecef',
+                marginTop: '20px'
+              }}>
+                <h6 style={{
+                  ...headingStyles,
+                  backgroundColor: '#28a745' // Verde para esta sección
+                }}>
+                  <i className="fas fa-notes-medical mr-3"></i>
+                  Información Adicional de Síntomas
+                </h6>
+
+                <Form.Group className="mb-3">
+            <Form.Label>¿Qué otro síntoma o molestia ha presentado?</Form.Label>
+            <Form.Control 
+              as="textarea"
+              value={seguimiento.otrosSintomas}
+              onChange={(e) => setSeguimiento(prev => ({
+                ...prev,
+                otrosSintomas: e.target.value
+              }))}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>¿Cómo lo ha manejado o superado?</Form.Label>
+            <Form.Control 
+              as="textarea"
+              value={seguimiento.manejoSintomas}
+              onChange={(e) => setSeguimiento(prev => ({
+                ...prev,
+                manejoSintomas: e.target.value
+              }))}
+            />
+          </Form.Group>
+        </div>
+
+        {/* Sección de Autoeficacia */}
+        <div style={sectionStyles}>
+          <h5 style={{
+            ...headingStyles,
+            backgroundColor: '#17a2b8' // Cyan para esta sección
+          }}>
+            <i className="fas fa-chart-line mr-3"></i>
+            Evaluación de Autoeficacia en Diabetes Tipo 2
+          </h5>
+
+          <p className="text-muted mb-4">
+            En las siguientes preguntas nos gustaría saber qué piensa Ud. de sus habilidades para controlar su enfermedad.
+          </p>
+          
             {preguntasAutoeficacia.map((pregunta, index) => (
               <Form.Group key={index} className="mb-3">
                 <Form.Label>{pregunta.label}</Form.Label>
@@ -303,9 +381,11 @@ const TercerLlamado = ({
                 <div className="text-center">{seguimiento.autoeficacia[pregunta.key]}</div>
               </Form.Group>
             ))}
-      </div>
-    );
-  };
+            </div>
+          </div>
+        </div>
+        </div>
+      )};
 
   const exportarPDF = () => {
     const input = document.getElementById('exportable-content3');

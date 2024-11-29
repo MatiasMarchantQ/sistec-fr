@@ -134,7 +134,6 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
         instituciones: Object.values(grupo.instituciones)
     }));
 
-    console.log('Grupos resultantes:', resultado);
     return resultado;
 };
 
@@ -311,7 +310,7 @@ const fetchAsignaciones = async () => {
         setAllFichas(response.data.data);
         setModalPaginationInfo(prev => ({
             ...prev,
-            currentInstitucionId, // Guardar el ID de la institución en el estado
+            currentInstitucionId,
             page: response.data.pagination.paginaActual,
             totalPages: response.data.pagination.totalPaginas,
             totalRegistros: response.data.pagination.totalRegistros,
@@ -330,7 +329,7 @@ const handleSearchChange = async (e) => {
     setSearchTerm(value);
     setPaginationInfo(prev => ({
         ...prev,
-        page: 1 // Reiniciar a la primera página al cambiar el término de búsqueda
+        page: 1
     }));
 
     if (selectedCentro) {
@@ -540,7 +539,7 @@ const handlePaginationClick = (page) => {
                                         {institucion.fichasClinicas && institucion.fichasClinicas.length > 0 ? (
                                             <div className="fichas-preview mt-2">
                                                 <h6>Fichas Clínicas:</h6>
-                                                {institucion.fichasClinicas.slice(0, 3).map((ficha, fichaIndex) => (
+                                                {institucion.fichasClinicas.slice(0, 1).map((ficha, fichaIndex) => (
                                                     <div 
                                                         key={`ficha-preview-${ficha.id}`}
                                                         className="ficha-preview-item"
@@ -552,7 +551,7 @@ const handlePaginationClick = (page) => {
                                                         {ficha.paciente?.nombres} {ficha.paciente?.apellidos}
                                                     </div>
                                                 ))}
-                                                {institucion.fichasClinicas.length > 3 && (
+                                                {institucion.fichasClinicas.length > 2 && (
                                                     <button 
                                                         className="btn btn-link btn-sm"
                                                         onClick={(e) => {
@@ -560,7 +559,7 @@ const handlePaginationClick = (page) => {
                                                             handleVerMasFichas(institucion.fichasClinicas, institucion.id);
                                                         }}
                                                     >
-                                                        Ver más ({institucion.fichasClinicas.length - 3} más)
+                                                        Ver más
                                                     </button>
                                                 )}
                                             </div>
@@ -687,23 +686,6 @@ const handlePaginationClick = (page) => {
                             />
                         </Form.Group>
                     </Col>
-                    <Col md={4}>
-                        <Form.Group>
-                            <Form.Label>Tipo de Ficha</Form.Label>
-                            <Form.Select
-                                value={modalFiltroReevaluacion}
-                                onChange={(e) => {
-                                    setModalFiltroReevaluacion(e.target.value);
-                                    setModalPaginationInfo(prev => ({ ...prev, page: 1 }));
-                                    fetchFichasParaModal(); // Recargar con nuevo filtro
-                                }}
-                            >
-                                <option value="">Todos</option>
-                                <option value="false">Primera Evaluación</option>
-                                <option value="true">Reevaluación</option>
-                            </Form.Select>
-                        </Form.Group>
-                    </Col>
                 </Row>
             </Form>
         </div>
@@ -735,9 +717,7 @@ const handlePaginationClick = (page) => {
                                     </span>
                                 </div>
                                 <div>
-                                    <span className={`badge ${ficha.is_reevaluacion ? 'bg-warning' : 'bg-primary'} me-2`}>
-                                        {ficha.is_reevaluacion ? 'Reevaluación' : 'Primera Evaluación'}
-                                    </span>
+                                    <span className={`badge ${ficha.is_reevaluacion ? 'bg-warning' : 'bg-primary'} me-2`}></span>
                                     <small className="text-muted">
                                         {new Date(ficha.fecha).toLocaleDateString('es-CL')}
                                     </small>

@@ -49,6 +49,26 @@ const AsignarEstudiantes = () => {
     fetchData(currentPage);
   }, [currentPage, searchTerm, anoSeleccionado, asignaciones.length]);
   
+  useEffect(() => {
+    const fetchTiposInstituciones = async () => {
+      try {
+        const token = getToken();
+        const apiUrl = process.env.REACT_APP_API_URL;
+        const response = await axios.get(`${apiUrl}/obtener/tipos-instituciones`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setTiposInstituciones(response.data || []);
+        console.log("Tipos de instituciones:", response.data);
+      } catch (error) {
+        console.error("Error al obtener tipos de instituciones:", error);
+        setErrorMessage("Error al obtener tipos de instituciones.");
+        toast.error("Error al obtener tipos de instituciones.");
+      }
+    };
+  
+    fetchTiposInstituciones();
+  }, []); // Solo se ejecuta una vez al montar el componente
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const day = String(date.getUTCDate()).padStart(2, '0');
@@ -104,16 +124,12 @@ const AsignarEstudiantes = () => {
     try {
       const token = getToken();
       const apiUrl = process.env.REACT_APP_API_URL;
-      const response = await axios.get(`${apiUrl}/instituciones?tipoId=${tipoId}`, {
+      const response = await axios.get(`${apiUrl}/obtener/instituciones?tipoId=${tipoId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // Filtrar las instituciones por el tipo seleccionado
-      const institucionesFiltradas = response.data.instituciones.filter(
-        institucion => institucion.tipo_id === parseInt(tipoId)
-      );
-      
-      setInstituciones(institucionesFiltradas);
+      // Cambio principal: usa directamente response.data
+      setInstituciones(response.data);
     } catch (error) {
       console.error("Error al obtener instituciones:", error);
       setErrorMessage("Error al obtener instituciones.");

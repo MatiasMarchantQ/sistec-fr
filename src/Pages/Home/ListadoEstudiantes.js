@@ -467,55 +467,55 @@ const Estudiantes = () => {
                   />
                 </td>
                 <td>
-  <Dropdown>
-    <Dropdown.Toggle variant="secondary" id={`dropdown-${estudiante.id}`}>
-      Acciones
-    </Dropdown.Toggle>
+                  <Dropdown>
+                    <Dropdown.Toggle variant="secondary" id={`dropdown-${estudiante.id}`}>
+                      Acciones
+                    </Dropdown.Toggle>
 
-    <Dropdown.Menu>
-      {editingId === estudiante.id ? (
-        <>
-          <Dropdown.Item 
-            onClick={() => handleSaveChanges(estudiante.id)}
-          >
-            <i className="fas fa-save me-2"></i>Guardar Cambios
-          </Dropdown.Item>
-          <Dropdown.Item 
-            onClick={() => setEditingId(null)}
-          >
-            <i className="fas fa-times me-2"></i>Cancelar
-          </Dropdown.Item>
-        </>
-      ) : (
-        <>
-          <Dropdown.Item 
-            onClick={() => handleEdit(estudiante.id)}
-          >
-            <i className="fas fa-edit me-2"></i>Editar
-          </Dropdown.Item>
-          <Dropdown.Item 
-            onClick={() => {
-              setSelectedEstudiante(estudiante);
-              setCambioContrasenaModal(true);
-            }}
-          >
-            <i className="fas fa-key me-2"></i>Cambiar Contraseña
-          </Dropdown.Item>
-          <Dropdown.Item 
-            onClick={() => {
-              const confirmar = window.confirm(`¿Está seguro de enviar credenciales a ${estudiante.nombres} ${estudiante.apellidos}?`);
-              if (confirmar) {
-                enviarCredencialIndividual(estudiante);
-              }
-            }}
-          >
-            <i className="fas fa-envelope me-2"></i>Enviar Credencial
-          </Dropdown.Item>
-        </>
-      )}
-    </Dropdown.Menu>
-  </Dropdown>
-</td>
+                    <Dropdown.Menu>
+                      {editingId === estudiante.id ? (
+                        <>
+                          <Dropdown.Item 
+                            onClick={() => handleSaveChanges(estudiante.id)}
+                          >
+                            <i className="fas fa-save me-2"></i>Guardar Cambios
+                          </Dropdown.Item>
+                          <Dropdown.Item 
+                            onClick={() => setEditingId(null)}
+                          >
+                            <i className="fas fa-times me-2"></i>Cancelar
+                          </Dropdown.Item>
+                        </>
+                      ) : (
+                        <>
+                          <Dropdown.Item 
+                            onClick={() => handleEdit(estudiante.id)}
+                          >
+                            <i className="fas fa-edit me-2"></i>Editar
+                          </Dropdown.Item>
+                          <Dropdown.Item 
+                            onClick={() => {
+                              setSelectedEstudiante(estudiante);
+                              setCambioContrasenaModal(true);
+                            }}
+                          >
+                            <i className="fas fa-key me-2"></i>Cambiar Contraseña
+                          </Dropdown.Item>
+                          <Dropdown.Item 
+                            onClick={() => {
+                              const confirmar = window.confirm(`¿Está seguro de enviar credenciales a ${estudiante.nombres} ${estudiante.apellidos}?`);
+                              if (confirmar) {
+                                enviarCredencialIndividual(estudiante);
+                              }
+                            }}
+                          >
+                            <i className="fas fa-envelope me-2"></i>Enviar Credencial
+                          </Dropdown.Item>
+                        </>
+                      )}
+                    </Dropdown.Menu>
+                  </Dropdown>
+                </td>
                 {/* <td>
                   <Button 
                     variant="info" 

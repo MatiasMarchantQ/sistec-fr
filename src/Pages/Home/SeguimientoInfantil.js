@@ -231,7 +231,8 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
   const [selectedSeguimiento, setSelectedSeguimiento] = useState(null);
   const [showResponsableModal, setShowResponsableModal] = useState(false);
   const [responsableData, setResponsableData] = useState(null);
-
+  console.log('Selected Seguimiento:', selectedSeguimiento);
+  
   const handleShowResponsable = (seguimiento) => {
     if (seguimiento.usuario) {
       setResponsableData(seguimiento.usuario);
@@ -285,56 +286,56 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
 
   const cargarSeguimientosAnteriores = async () => {
     try {
-      const token = getToken();
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/seguimientos/infantil/${pacienteIdValor}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+        const token = getToken();
+        const response = await axios.get(
+            `${process.env.REACT_APP_API_URL}/seguimientos/infantil/${pacienteIdValor}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
   
-      // Normalizar la estructura de los seguimientos
-      const seguimientosNormalizados = response.data.seguimientos.map(seg => {
-        // Generar recomendaciones en el cliente basadas en el grupo de edad
-        const mapeoRangos = {
-          '4-5 meses': '4-5 meses',
-          '6-7 meses': '6-7 meses',
-          '8-9 meses': '8-11 meses',
-          '10-11 meses': '8-11 meses',
-          '12-14 meses': '12-18 meses',
-          '15-17 meses': '12-18 meses',
-          '18-23 meses': '12-18 meses',
-          '2 años': '2-4 años',
-          '3 años': '2-4 años',
-          '4 años': '2-4 años'
-        };
+        // Normalizar la estructura de los seguimientos
+        const seguimientosNormalizados = response.data.seguimientos.map(seg => {
+            // Generar recomendaciones en el cliente basadas en el grupo de edad
+            const mapeoRangos = {
+                '4-5 meses': '4-5 meses',
+                '6-7 meses': '6-7 meses',
+                '8-9 meses': '8-11 meses',
+                '10-11 meses': '8-11 meses',
+                '12-14 meses': '12-18 meses',
+                '15-17 meses': '12-18 meses',
+                '18-23 meses': '12-18 meses',
+                '2 años': '2-4 años',
+                '3 años': '2-4 años',
+                '4 años': '2-4 años'
+            };
   
-        const rangoRecomendaciones = mapeoRangos[seg.grupo_edad] || seg.grupo_edad;
-        const recomendacionesEdad = RECOMENDACIONES[rangoRecomendaciones] || {};
+            const rangoRecomendaciones = mapeoRangos[seg.grupo_edad] || seg.grupo_edad;
+            const recomendacionesEdad = RECOMENDACIONES[rangoRecomendaciones] || {};
   
-        return {
-          ...seg,
-          numero_llamado: seg.numero_llamado || null,
-          areaDPM: {
-            motorGrueso: seg.area_motor_grueso === 1,
-            motorFino: seg.area_motor_fino === 1,
-            cognoscitivo: seg.area_cognoscitivo === 1,
-            comunicacion: seg.area_comunicacion === 1,
-            socioemocional: seg.area_socioemocional === 1
-          },
-          grupoEdad: seg.grupo_edad,
-          paciente_infantil: seg.paciente_infantil,
-          recomendaciones: {
-            areaMotora: recomendacionesEdad.areaMotora || '',
-            areaLenguaje: recomendacionesEdad.areaLenguaje || '',
-            areaSocioemocional: recomendacionesEdad.areaSocioemocional || '',
-            areaCognitiva: recomendacionesEdad.areaCognitiva || ''
-          }
-        };
-      });
+            return {
+                ...seg,
+                numero_llamado: seg.numero_llamado || null,
+                areaDPM: {
+                    motorGrueso: seg.area_motor_grueso === 1,
+                    motorFino: seg.area_motor_fino === 1,
+                    cognoscitivo: seg.area_cognoscitivo === 1,
+                    comunicacion: seg.area_comunicacion === 1,
+                    socioemocional: seg.area_socioemocional === 1
+                },
+                grupoEdad: seg.grupo_edad,
+                paciente_infantil: seg.paciente_infantil,
+                recomendaciones: {
+                    areaMotora: recomendacionesEdad.areaMotora || '',
+                    areaLenguaje: recomendacionesEdad.areaLenguaje || '',
+                    areaSocioemocional: recomendacionesEdad.areaSocioemocional || '',
+                    areaCognitiva: recomendacionesEdad.areaCognitiva || ''
+                }
+            };
+        });
   
-      setSeguimientosAnteriores(seguimientosNormalizados);
+        setSeguimientosAnteriores(seguimientosNormalizados);
     } catch (error) {
-      console.error('Error al cargar seguimientos anteriores', error);
-      setSeguimientosAnteriores([]);
+        console.error('Error al cargar seguimientos anteriores', error);
+        setSeguimientosAnteriores([]);
     }
   };
 
@@ -422,7 +423,7 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
     const mapeoRangos = {
       '4-5 meses': '4-5 meses',
       '6-7 meses': '6-7 meses',
-      '8-9 meses': '8-9 meses',
+      '8-9 meses': '8-11 meses',
       '10-11 meses': '8-11 meses',
       '12-14 meses': '12-18 meses',
       '15-17 meses': '12-18 meses',
@@ -768,60 +769,75 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body id="detallesSeguimiento">
-          {selectedSeguimiento && (
-            <div>
-              <p><strong>Edad:</strong> {selectedSeguimiento.grupo_edad}</p>
-              <h5>Hitos de Desarrollo</h5>
-              {Object.entries(selectedSeguimiento.areaDPM || {}).map(([area, cumplido]) => {
+    {selectedSeguimiento && (
+        <div>
+            <p><strong>Edad:</strong> {selectedSeguimiento.grupo_edad}</p>
+            <h5>Hitos de Desarrollo</h5>
+            {Object.entries(selectedSeguimiento.areaDPM || {}).map(([area, cumplido]) => {
                 // Solo mostrar áreas con valor booleano
-                if (cumplido === null) return null;
+                if (cumplido === null || cumplido === undefined) return null;
 
                 const areaFormateada = area === 'motorGrueso' ? 'Motor Grueso' : 
                 area === 'motorFino' ? 'Motor Fino' : 
                 area.charAt(0).toUpperCase() + area.slice(1);
                 
-                return (
-                  <Card key={area} className="mb-3">
-                    <Card.Header>
-                      <strong>{areaFormateada}</strong>
-                    </Card.Header>
-                    <Card.Body>
-                      {HITOS_DESARROLLO[selectedSeguimiento.grupoEdad][area].map((hito, index) => (
-                        <div key={index} className="mb-3">
-                          <p>{hito.descripcion}</p>
-                          <Alert 
-                            variant={cumplido ? "success" : "danger"}
-                            className="p-2"
-                          >
-                            Respuesta: {cumplido ? "Sí" : "No"}
-                          </Alert>
-                        </div>
-                      ))}
-                    </Card.Body>
-                  </Card>
-                );
-              })}
+                // Verificar si existen hitos para el área
+                const hitosArea = HITOS_DESARROLLO[selectedSeguimiento.grupoEdad]?.[area];
+                if (!hitosArea) {
+                    return (
+                        <Card key={area} className="mb-3">
+                            <Card.Header>
+                                <strong>{areaFormateada}</strong>
+                            </Card.Header>
+                            <Card.Body>
+                                <p>No hay hitos disponibles para esta área.</p>
+                            </Card.Body>
+                        </Card>
+                    );
+                }
 
-              <h5>Recomendaciones</h5>
-              {[
+                return (
+                    <Card key={area} className="mb-3">
+                        <Card.Header>
+                            <strong>{areaFormateada}</strong>
+                        </Card.Header>
+                        <Card.Body>
+                            {hitosArea.map((hito, index) => (
+                                <div key={index} className="mb-3">
+                                    <p>{hito.descripcion}</p>
+                                    <Alert 
+                                        variant={cumplido ? "success" : "danger"}
+                                        className="p-2"
+                                    >
+                                        Respuesta: {cumplido ? "Sí" : "No"}
+                                    </Alert>
+                                </div>
+                            ))}
+                        </Card.Body>
+                    </Card>
+                );
+            })}
+
+            <h5>Recomendaciones</h5>
+            {[
                 { label: 'Área Motora', key: 'areaMotora' },
                 { label: 'Área de Lenguaje', key: 'areaLenguaje' },
                 { label: 'Área Socioemocional', key: 'areaSocioemocional' },
                 { label: 'Área Cognitiva', key: 'areaCognitiva' }
-              ].map(({ label, key }) => (
+            ].map(({ label, key }) => (
                 <div key={key} className="mb-3">
-                  <strong>{label}:</strong>
-                  <Card>
-                    <Card.Body>
-                      {selectedSeguimiento.recomendaciones?.[key] || 
-                      <span className="text-muted">No hay recomendaciones específicas</span>}
-                    </Card.Body>
-                  </Card>
+                    <strong>{label}:</strong>
+                    <Card>
+                        <Card.Body>
+                            {selectedSeguimiento.recomendaciones?.[key] || 
+                            <span className="text-muted">No hay recomendaciones específicas</span>}
+                        </Card.Body>
+                    </Card>
                 </div>
-              ))}
-            </div>
-          )}
-        </Modal.Body>
+            ))}
+        </div>
+    )}
+</Modal.Body>
         <div className="text-center m-3 mt-0">
           <Button 
             variant="primary" 

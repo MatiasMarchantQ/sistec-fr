@@ -61,7 +61,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
           rut: datosIniciales.rut || '',
           telefonoPrincipal: datosIniciales.telefonoPrincipal || '',
           telefonoSecundario: datosIniciales.telefonoSecundario || '',
-          fechaNacimiento: datosIniciales.fechaNacimiento || '', // Añadir fechaNacimiento
+          fechaNacimiento: datosIniciales.fechaNacimiento || '',
           
           // Manejo de edad si es necesario
           edadAnios: datosIniciales.edadAnios || '',
@@ -77,13 +77,17 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         setConQuienVive(datosIniciales.informacionFamiliar?.conQuienVive || '');
         setLocalidad(datosIniciales.informacionFamiliar?.localidad || '');
         
+        console.log('Estructura de tipos de familia:', {
+          tiposFamiliaInformacionFamiliar: datosIniciales.informacionFamiliar?.tiposFamilia,
+          primerTipoFamilia: datosIniciales.informacionFamiliar?.tiposFamilia?.[0],
+          idTipoFamilia: datosIniciales.informacionFamiliar?.tiposFamilia?.[0]?.id
+        });
+        
         // Tipos de familia
         setTipoFamilia(
-          datosIniciales.informacionFamiliar?.tiposFamilia?.[0]?.id || 
-          datosIniciales.tiposFamilia?.[0]?.id || 
-          ''
+          datosIniciales.informacionFamiliar?.tiposFamilia?.[0]?.id?.toString() || ''
         );
-        
+
         // Ciclo vital familiar
         setCicloVitalFamiliar(
           datosIniciales.informacionFamiliar?.cicloVitalFamiliar?.id || 
@@ -100,31 +104,46 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
           })));
         }
     
-        // Factores de riesgo del niño
-        if (datosIniciales.factoresRiesgo?.nino) {
-          const factoresNino = {};
-          datosIniciales.factoresRiesgo.nino.forEach(factor => {
-            factoresNino[factor.nombre] = true;
-          });
-          setFactoresRiesgoNino(factoresNino);
-        }
-    
-        // Factores de riesgo familiares
-        if (datosIniciales.factoresRiesgo?.familiares) {
-          const factoresFamiliares = { otras: '' };
-          datosIniciales.factoresRiesgo.familiares.forEach(factor => {
-            if (factor.nombre !== 'Otras') {
-              factoresFamiliares[factor.nombre] = true;
+       // Factores de riesgo del niño
+        const factoresRiesgoNino = datosIniciales.factoresRiesgo?.nino || [];
+        const nuevosFactoresNino = {};
+        factoresRiesgoNinoDisponibles.forEach(factorDisponible => {
+          const factorEncontrado = factoresRiesgoNino.find(
+            factor => factor.id === factorDisponible.id || factor.nombre === factorDisponible.nombre
+          );
+          
+          if (factorEncontrado) {
+            console.log("Cargando factor de riesgo del niño:", factorDisponible.nombre);
+            nuevosFactoresNino[factorDisponible.nombre] = true;
+          }
+        });
+        setFactoresRiesgoNino(nuevosFactoresNino);
+
+        // Similar cambio para factores de riesgo familiares
+        const factoresRiesgoFamilia = datosIniciales.factoresRiesgo?.familiares || [];
+        const nuevosFactoresFamiliares = { otras: '' };
+        factoresRiesgoFamiliaresDisponibles.forEach(factorDisponible => {
+          if (factorDisponible.nombre !== 'Otras') {
+            const factorEncontrado = factoresRiesgoFamilia.find(
+              factor => factor.id === factorDisponible.id || factor.nombre === factorDisponible.nombre
+            );
+            
+            if (factorEncontrado) {
+              console.log("Cargando factor de riesgo familiar:", factorDisponible.nombre);
+              nuevosFactoresFamiliares[factorDisponible.nombre] = true;
             }
-            // Manejar el caso de 'otras' si existe
-            if (factor.otras) {
-              factoresFamiliares.otras = factor.otras;
-            }
-          });
-          setFactoresRiesgoFamiliares(factoresFamiliares);
+          }
+        });
+
+        // Manejo de 'otras'
+        const otrasFactores = factoresRiesgoFamilia.find(factor => factor.nombre === 'Otras');
+        if (otrasFactores && otrasFactores.otras) {
+          nuevosFactoresFamiliares.otras = otrasFactores.otras;
         }
+        
+        setFactoresRiesgoFamiliares(nuevosFactoresFamiliares);
       }
-    }, [datosIniciales]);
+    }, [datosIniciales, factoresRiesgoNinoDisponibles, factoresRiesgoFamiliaresDisponibles]);
 
     useEffect(() => {
       const cargarDatos = async () => {

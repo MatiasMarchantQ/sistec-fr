@@ -25,9 +25,10 @@ const Home = () => {
   const location = useLocation();
   const [activeComponent, setActiveComponent] = useState('agenda');
   const [selectedFichaId, setSelectedFichaId] = useState(null);
-
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
+  
   useEffect(() => {
-    // Obtener el componente de los parámetros de la URL
     const searchParams = new URLSearchParams(location.search);
     const componentFromURL = searchParams.get('component');
 
@@ -41,6 +42,44 @@ const Home = () => {
       setSelectedFichaId(location.state.fichaId);
     }
   }, [location]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 992;
+      setIsMobile(mobile);
+      
+      if (mobile) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  // Efecto para manejar overlay en móviles
+  useEffect(() => {
+    if (isMobile && isSidebarOpen) {
+      const overlay = document.createElement('div');
+      overlay.classList.add('sidebar-overlay');
+      overlay.addEventListener('click', toggleSidebar);
+      document.body.appendChild(overlay);
+
+      return () => {
+        document.body.removeChild(overlay);
+      };
+    }
+  }, [isMobile, isSidebarOpen]);
 
   const renderContent = () => {
     switch (activeComponent) {
@@ -76,15 +115,27 @@ const Home = () => {
   };
 
   return (
-    <div className="wrapper">
-      <Header />
-      <Sidebar setActiveComponent={setActiveComponent} />
-      <div className="content-wrapper">
+    <div className={`wrapper ${isSidebarOpen ? 'sidebar-open' : 'sidebar-mini'}`}>
+      <Header 
+        toggleSidebar={toggleSidebar} 
+        isSidebarOpen={isSidebarOpen}
+        isMobile={isMobile}
+      />
+      <Sidebar 
+        isOpen={isSidebarOpen}
+        isMobile={isMobile}
+        toggleSidebar={toggleSidebar}
+        setActiveComponent={setActiveComponent} 
+      />
+      <div className={`content-wrapper ${isMobile && !isSidebarOpen ? 'ml-0' : ''}`}>
         <Content>
           {renderContent()}
         </Content>
       </div>
-      <Footer />
+      <Footer 
+        isSidebarOpen={isSidebarOpen}
+        isMobile={isMobile}
+      />
     </div>
   );
 };

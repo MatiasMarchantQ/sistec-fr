@@ -1,4 +1,3 @@
-// src/components/Header.js
 import React, { useState } from 'react';
 import { Dropdown, Modal, Form, Button } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -6,13 +5,13 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../contexts/AuthContext';
 import './Components.css';
 
-const Header = () => {
+const Header = ({ toggleSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const isLoginPage = location.pathname === '/';
   const { token, user, logout } = useAuth();  
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [updatedUser, setUpdatedUser] = useState({});
+  const [updatedUser , setUpdatedUser ] = useState({});
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -50,10 +49,10 @@ const Header = () => {
 
   const handleUpdateInputChange = (e) => {
     const { name, value } = e.target;
-    setUpdatedUser({ ...updatedUser, [name]: value });
+    setUpdatedUser ({ ...updatedUser , [name]: value });
   };
 
-  const handleUpdateUser = async () => {
+  const handleUpdateUser  = async () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/usuarios/${user.id}`, {
         method: 'PUT',
@@ -61,7 +60,7 @@ const Header = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(updatedUser),
+        body: JSON.stringify(updatedUser ),
       });
   
       if (!response.ok) {
@@ -109,7 +108,7 @@ const Header = () => {
       }
 
       const userData = await response.json();
-      setUpdatedUser({
+      setUpdatedUser ({
         nombres: userData.nombres,
         apellidos: userData.apellidos,
         correo: userData.correo,
@@ -194,6 +193,13 @@ const Header = () => {
 
   return (
     <nav className="main-header navbar navbar-expand navbar-light custom-header">
+        <button 
+          className="navbar-toggler d-block" 
+          type="button" 
+          onClick={toggleSidebar}
+        >
+          <span className="navbar-toggler-icon"></span>
+        </button>
       <h1 className="navbar-brand mb-0">FACSA - Programa de Telecuidado</h1>
 
       <ul className="navbar-nav ml-auto">
@@ -212,7 +218,6 @@ const Header = () => {
         )}
       </ul>
 
-      {/* Modal para actualizar datos (resto del código se mantiene igual) */}
       {/* Modal para actualizar datos */}
       <Modal show={showUpdateModal} onHide={() => setShowUpdateModal(false)}>
         <Modal.Header closeButton>
@@ -225,7 +230,7 @@ const Header = () => {
               <Form.Control
                 type="text"
                 name="nombres"
-                value={updatedUser.nombres}
+                value={updatedUser .nombres}
                 onChange={handleUpdateInputChange}
                 required
               />
@@ -235,7 +240,7 @@ const Header = () => {
               <Form.Control
                 type="text"
                 name="apellidos"
-                value={updatedUser.apellidos}
+                value={updatedUser .apellidos}
                 onChange={handleUpdateInputChange}
                 required
               />
@@ -245,7 +250,7 @@ const Header = () => {
               <Form.Control
                 type="email"
                 name="correo"
-                value={updatedUser.correo}
+                value={updatedUser .correo}
                 onChange={handleUpdateInputChange}
                 required
               />
@@ -255,7 +260,7 @@ const Header = () => {
               <Form.Control
                 type="text"
                 name="rut"
-                value={updatedUser.rut}
+                value={updatedUser .rut}
                 onChange={handleUpdateInputChange}
                 required
               />
@@ -272,7 +277,8 @@ const Header = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Modal para cambiar contraseña (resto del código se mantiene igual) */} <Modal show={showChangePasswordModal} onHide={() => setShowChangePasswordModal(false)}>
+      {/* Modal para cambiar contraseña */}
+      <Modal show={showChangePasswordModal} onHide={() => setShowChangePasswordModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Cambiar Contraseña</Modal.Title>
         </Modal.Header>

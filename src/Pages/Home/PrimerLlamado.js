@@ -1,9 +1,28 @@
 import React from 'react';
-import { Card, Form, Button } from 'react-bootstrap';
+import { Card, Form, Button, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+
+// Estilos consistentes
+const sectionStyles = {
+  backgroundColor: '#f8f9fa',
+  borderRadius: '8px',
+  padding: '20px',
+  marginBottom: '20px',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+};
+
+const headingStyles = {
+  backgroundColor: '#007bff',
+  color: 'white',
+  padding: '10px 15px',
+  borderRadius: '6px',
+  marginBottom: '20px',
+  display: 'flex',
+  alignItems: 'center'
+};
 
 const PrimerLlamado = ({ 
   seguimiento, 
@@ -107,366 +126,423 @@ const PrimerLlamado = ({
   const renderContent = () => {
     return (
       <div id="exportable-content">
-        <h5>I. Necesidad de Seguridad y Protección</h5>
-        
-        <h6>1. Riesgo de Infección - Examen del Pie Diabético</h6>
-        <Form.Group className="mb-3">
-          <Form.Label>¿Ha presentado alguna herida en los pies?</Form.Label>
-          <Form.Check 
-            type="radio"
-            label="Sí"
-            name="herida"
-            checked={seguimiento.riesgoInfeccion.herida === true}
-            onChange={() => setSeguimiento(prev => ({
-              ...prev,
-              riesgoInfeccion: {
-                ...prev.riesgoInfeccion,
-                herida: true
-              }
-            }))}
-          />
-          <Form.Check 
-            type="radio"
-            label="No"
-            name="herida"
-            checked={seguimiento.riesgoInfeccion.herida === false}
-            onChange={() => setSeguimiento(prev => ({
-              ...prev,
-              riesgoInfeccion: {
-                ...prev.riesgoInfeccion,
-                herida: false
-              }
-            }))}
-          />
-        </Form.Group>
+        <div data-pdf-section>
+          <h5 style={{
+            ...headingStyles,
+            backgroundColor: '#28a745'
+          }}>
+            <i className="fas fa-shield-alt mr-3"></i>
+            I. Necesidad de Seguridad y Protección
+          </h5>
 
-        {seguimiento.riesgoInfeccion.herida && (
-          <>
+          {/* Sección de Riesgo de Infección */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '15px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            marginBottom: '20px',
+          }}>
+            <h6 style={{
+              borderBottom: '2px solid #28a745',
+              paddingBottom: '10px',
+              marginBottom: '20px'
+            }}>
+              1. Riesgo de Infección - Examen del Pie Diabético
+            </h6>
+
             <Form.Group className="mb-3">
-              <Form.Label>Fecha de la herida o úlcera</Form.Label>
-              <Form.Control 
-                type="date"
-                value={seguimiento.riesgoInfeccion.fechaHerida || ''}
-                onChange={(e) => setSeguimiento(prev => ({
-                  ...prev,
-                  riesgoInfeccion: {
-                    ...prev.riesgoInfeccion,
-                    fechaHerida: e.target.value
-                  }
-                }))}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>¿Se encuentra con tratamiento en la actualidad?</Form.Label>
+              <Form.Label>¿Ha presentado alguna herida en los pies?</Form.Label>
               <Form.Check 
                 type="radio"
                 label="Sí"
-                name="tratamientoHerida"
-                checked={seguimiento.riesgoInfeccion.tratamientoHerida === true}
+                name="herida"
+                checked={seguimiento.riesgoInfeccion.herida === true}
                 onChange={() => setSeguimiento(prev => ({
                   ...prev,
                   riesgoInfeccion: {
                     ...prev.riesgoInfeccion,
-                    tratamientoHerida: true
+                    herida: true
                   }
                 }))}
               />
               <Form.Check 
                 type="radio"
                 label="No"
-                name="tratamientoHerida"
-                checked={seguimiento.riesgoInfeccion.tratamientoHerida === false}
+                name="herida"
+                checked={seguimiento.riesgoInfeccion.herida === false}
                 onChange={() => setSeguimiento(prev => ({
                   ...prev,
                   riesgoInfeccion: {
                     ...prev.riesgoInfeccion,
-                    tratamientoHerida: false
+                    herida: false
                   }
                 }))}
               />
             </Form.Group>
+
+            {seguimiento.riesgoInfeccion.herida && (
+              <>
+                <Form.Group className="mb-3">
+                  <Form.Label>Fecha de la herida o úlcera</Form.Label>
+                  <Form.Control 
+                    type="date"
+                    value={seguimiento.riesgoInfeccion.fechaHerida || ''}
+                    onChange={(e) => setSeguimiento(prev => ({
+                      ...prev,
+                      riesgoInfeccion: {
+                        ...prev.riesgoInfeccion,
+                        fechaHerida: e.target.value
+                      }
+                    }))}
+                  />
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>¿Se encuentra con tratamiento en la actualidad?</Form.Label>
+                  <Form.Check 
+                    type="radio"
+                    label="Sí"
+                    name="tratamientoHerida"
+                    checked={seguimiento.riesgoInfeccion.tratamientoHerida === true}
+                    onChange={() => setSeguimiento(prev => ({
+                      ...prev,
+                      riesgoInfeccion: {
+                        ...prev.riesgoInfeccion,
+                        tratamientoHerida: true
+                      }
+                    }))}
+                  />
+                  <Form.Check 
+                    type="radio"
+                    label="No"
+                    name="tratamientoHerida"
+                    checked={seguimiento.riesgoInfeccion.tratamientoHerida === false}
+                    onChange={() => setSeguimiento(prev => ({
+                      ...prev,
+                      riesgoInfeccion: {
+                        ...prev.riesgoInfeccion,
+                        tratamientoHerida: false
+                      }
+                    }))}
+                  />
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>Necesita derivación a Centro de Salud</Form.Label>
+                  <Form.Check 
+                    type="radio"
+                    label="Sí"
+                    name="derivacion"
+                    checked={seguimiento.riesgoInfeccion.necesitaDerivacion === true}
+                    onChange={() => setSeguimiento(prev => ({
+                      ...prev,
+                      riesgoInfeccion: {
+                        ...prev.riesgoInfeccion,
+                        necesitaDerivacion: true
+                      }
+                    }))}
+                  />
+                  <Form.Check 
+                    type="radio"
+                    label="No"
+                    name="derivacion"
+                    checked={seguimiento.riesgoInfeccion.necesitaDerivacion === false}
+                    onChange={() => setSeguimiento(prev => ({
+                      ...prev,
+                      riesgoInfeccion: {
+                        ...prev.riesgoInfeccion,
+                        necesitaDerivacion: false
+                      }
+                    }))}
+                  />
+                </Form.Group>
+              </>
+            )}
+
+            <h6>Dolor Neuropático</h6>
             <Form.Group className="mb-3">
-              <Form.Label>Necesita derivación a Centro de Salud</Form.Label>
+              <Form.Label>¿Ha presentado dolor? (parestesias, pérdida de sensibilidad, calambres, hormigueo)</Form.Label>
               <Form.Check 
                 type="radio"
                 label="Sí"
-                name="derivacion"
-                checked={seguimiento.riesgoInfeccion.necesitaDerivacion === true}
+                name="dolorNeuropatico"
+                checked={seguimiento.riesgoInfeccion.dolorNeuropatico === true}
                 onChange={() => setSeguimiento(prev => ({
                   ...prev,
                   riesgoInfeccion: {
                     ...prev.riesgoInfeccion,
-                    necesitaDerivacion: true
+                    dolorNeuropatico: true
                   }
                 }))}
               />
               <Form.Check 
                 type="radio"
                 label="No"
-                name="derivacion"
-                checked={seguimiento.riesgoInfeccion.necesitaDerivacion === false}
+                name="dolorNeuropatico"
+                checked={seguimiento.riesgoInfeccion.dolorNeuropatico === false}
                 onChange={() => setSeguimiento(prev => ({
                   ...prev,
                   riesgoInfeccion: {
                     ...prev.riesgoInfeccion,
-                    necesitaDerivacion: false
+                    dolorNeuropatico: false
                   }
                 }))}
               />
             </Form.Group>
-          </>
-        )}
 
-        <h6>Dolor Neuropático</h6>
-        <Form.Group className="mb-3">
-          <Form.Label>¿Ha presentado dolor? (parestesias, pérdida de sensibilidad, calambres, hormigueo)</Form.Label>
-          <Form.Check 
-            type="radio"
-            label="Sí"
-            name="dolorNeuropatico"
-            checked={seguimiento.riesgoInfeccion.dolorNeuropatico === true}
-            onChange={() => setSeguimiento(prev => ({
-              ...prev,
-              riesgoInfeccion: {
-                ...prev.riesgoInfeccion,
-                dolorNeuropatico: true
-              }
-            }))}
-          />
-          <Form.Check 
-            type="radio"
-            label="No"
-            name="dolorNeuropatico"
-            checked={seguimiento.riesgoInfeccion.dolorNeuropatico === false}
-            onChange={() => setSeguimiento(prev => ({
-              ...prev,
-              riesgoInfeccion: {
-                ...prev.riesgoInfeccion,
-                dolorNeuropatico: false
-              }
-            }))}
-          />
-        </Form.Group>
+            {seguimiento.riesgoInfeccion.dolorNeuropatico && (
+              <>
+                <Form.Group className="mb-3">
+                  <Form.Label>Grado de intensidad del dolor (1-10)</Form.Label>
+                  <Form.Control 
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={seguimiento.riesgoInfeccion.intensidadDolor}
+                    onChange={(e) => setSeguimiento(prev => ({
+                      ...prev,
+                      riesgoInfeccion: {
+                        ...prev.riesgoInfeccion,
+                        intensidadDolor: parseInt(e.target.value)
+                      }
+                    }))}
+                  />
+                  <div className="text-center">{seguimiento.riesgoInfeccion.intensidadDolor}</div>
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>¿Ha realizado alguna intervención para su mejoría?</Form.Label>
+                  <Form.Check 
+                    type="radio"
+                    label="Sí"
+                    name="intervencionDolor"
+                    checked={seguimiento.riesgoInfeccion.realizoIntervencion === true}
+                    onChange={() => setSeguimiento(prev => ({
+                      ...prev,
+                      riesgoInfeccion: {
+                        ...prev.riesgoInfeccion,
+                        realizoIntervencion: true
+                      }
+                    }))}
+                  />
+                  <Form.Check 
+                    type="radio"
+                    label="No"
+                    name="intervencionDolor"
+                    checked={seguimiento.riesgoInfeccion.realizoIntervencion === false}
+                    onChange={() => setSeguimiento(prev => ({
+                      ...prev,
+                      riesgoInfeccion: {
+                        ...prev.riesgoInfeccion,
+                        realizoIntervencion: false
+                      }
+                    }))}
+                  />
+                  {seguimiento.riesgoInfeccion.realizoIntervencion && (
+                    <Form.Control 
+                      as="textarea"
+                      placeholder="Describa la intervención"
+                      value={seguimiento.riesgoInfeccion.intervencionDolor}
+                      onChange={(e) => setSeguimiento(prev => ({
+                        ...prev,
+                        riesgoInfeccion: {
+                          ...prev.riesgoInfeccion,
+                          intervencionDolor: e.target.value
+                        }
+                      }))}
+                      />
+                  )}
+                </Form.Group>
+              </>
+            )}
 
-        {seguimiento.riesgoInfeccion.dolorNeuropatico && (
-          <>
-            <Form.Group className="mb-3">
-              <Form.Label>Grado de intensidad del dolor (1-10)</Form.Label>
-              <Form.Control 
-                type="range"
-                min="1"
-                max="10"
-                value={seguimiento.riesgoInfeccion.intensidadDolor}
-                onChange={(e) => setSeguimiento(prev => ({
-                  ...prev,
-                  riesgoInfeccion: {
-                    ...prev.riesgoInfeccion,
-                    intensidadDolor: parseInt(e.target.value)
-                  }
-                }))}
-              />
-              <div className="text-center">{seguimiento.riesgoInfeccion.intensidadDolor}</div>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>¿Ha realizado alguna intervención para su mejoría?</Form.Label>
-              <Form.Check 
-                type="radio"
-                label="Sí"
-                name="intervencionDolor"
-                checked={seguimiento.riesgoInfeccion.realizoIntervencion === true}
-                onChange={() => setSeguimiento(prev => ({
-                  ...prev,
-                  riesgoInfeccion: {
-                    ...prev.riesgoInfeccion,
-                    realizoIntervencion: true
-                  }
-                }))}
-              />
-              <Form.Check 
-                type="radio"
-                label="No"
-                name="intervencionDolor"
-                checked={seguimiento.riesgoInfeccion.realizoIntervencion === false}
-                onChange={() => setSeguimiento(prev => ({
-                  ...prev,
-                  riesgoInfeccion: {
-                    ...prev.riesgoInfeccion,
-                    realizoIntervencion: false
-                  }
-                }))}
-              />
-              {seguimiento.riesgoInfeccion.realizoIntervencion && (
-                <Form.Control 
-                  as="textarea"
-                  placeholder="Describa la intervención"
-                  value={seguimiento.riesgoInfeccion.intervencionDolor}
-                  onChange={(e) => setSeguimiento(prev => ({
+            {/* Sección de Riesgo de Glicemia */}
+            <div style={{
+                backgroundColor: 'white',
+                padding: '15px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                marginBottom: '20px'
+              }}>
+                <h6 style={{
+                  borderBottom: '2px solid #28a745',
+                  paddingBottom: '10px',
+                  marginBottom: '20px'
+                }}>
+                  2. Riesgo de Glicemia
+                </h6>
+
+              <Form.Group className="mb-3">
+                <Form.Label>¿Ha presentado signos de hipoglicemia (sudoración, temblor, mareos, taquicardia)?</Form.Label>
+                <Form.Check 
+                  type="radio"
+                  label="Sí"
+                  name="hipoglicemia"
+                  checked={seguimiento.riesgoGlicemia.hipoglicemia === true}
+                  onChange={() => setSeguimiento(prev => ({
                     ...prev,
-                    riesgoInfeccion: {
-                      ...prev.riesgoInfeccion,
-                      intervencionDolor: e.target.value
+                    riesgoGlicemia: {
+                      ...prev.riesgoGlicemia,
+                      hipoglicemia: true
                     }
                   }))}
+                />
+                <Form.Check 
+                  type="radio"
+                  label="No"
+                  name="hipoglicemia"
+                  checked={seguimiento.riesgoGlicemia.hipoglicemia === false}
+                  onChange={() => setSeguimiento(prev => ({
+                    ...prev,
+                    riesgoGlicemia: {
+                      ...prev.riesgoGlicemia,
+                      hipoglicemia: false
+                    }
+                  }))}
+                />
+              </Form.Group>
+
+              {seguimiento.riesgoGlicemia.hipoglicemia && (
+                <Form.Group className="mb-3">
+                  <Form.Label>¿Realiza alguna intervención al respecto?</Form.Label>
+                  <Form.Check 
+                    type="radio"
+                    label="Sí"
+                    name="intervencionHipoglicemia"
+                    checked={seguimiento.riesgoGlicemia.realizoIntervencionHipoglicemia === true}
+                    onChange={() => setSeguimiento(prev => ({
+                      ...prev,
+                      riesgoGlicemia: {
+                        ...prev.riesgoGlicemia,
+                        realizoIntervencionHipoglicemia: true
+                      }
+                    }))}
                   />
+                  <Form.Check 
+                    type="radio"
+                    label="No"
+                    name="intervencionHipoglicemia"
+                    checked={seguimiento.riesgoGlicemia.realizoIntervencionHipoglicemia === false}
+                    onChange={() => setSeguimiento(prev => ({
+                      ...prev,
+                      riesgoGlicemia: {
+                        ...prev.riesgoGlicemia,
+                        realizoIntervencionHipoglicemia: false
+                      }
+                    }))}
+                  />
+                  {seguimiento.riesgoGlicemia.realizoIntervencionHipoglicemia && (
+                    <Form.Control 
+                      as="textarea"
+                      placeholder="Describa la intervención"
+                      value={seguimiento.riesgoGlicemia.intervencionHipoglicemia}
+                      onChange={(e) => setSeguimiento(prev => ({
+                        ...prev,
+                        riesgoGlicemia: {
+                          ...prev.riesgoGlicemia,
+                          intervencionHipoglicemia: e.target.value
+                        }
+                      }))}
+                    />
+                  )}
+                </Form.Group>
               )}
-            </Form.Group>
-          </>
-        )}
 
-        <h6>2. Riesgo de Glicemia</h6>
-        <Form.Group className="mb-3">
-          <Form.Label>¿Ha presentado signos de hipoglicemia (sudoración, temblor, mareos, taquicardia)?</Form.Label>
-          <Form.Check 
-            type="radio"
-            label="Sí"
-            name="hipoglicemia"
-            checked={seguimiento.riesgoGlicemia.hipoglicemia === true}
-            onChange={() => setSeguimiento(prev => ({
-              ...prev,
-              riesgoGlicemia: {
-                ...prev.riesgoGlicemia,
-                hipoglicemia: true
-              }
-            }))}
-          />
-          <Form.Check 
-            type="radio"
-            label="No"
-            name="hipoglicemia"
-            checked={seguimiento.riesgoGlicemia.hipoglicemia === false}
-            onChange={() => setSeguimiento(prev => ({
-              ...prev,
-              riesgoGlicemia: {
-                ...prev.riesgoGlicemia,
-                hipoglicemia: false
-              }
-            }))}
-          />
-        </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>¿Ha presentado signos de hiperglicemia (sed extrema, visión borrosa, náuseas, vómitos, aliento afrutado, dolor abdominal, boca seca)?</Form.Label>
+                <Form.Check 
+                  type="radio"
+                  label="Sí"
+                  name="hiperglicemia"
+                  checked={seguimiento.riesgoGlicemia.hiperglicemia === true}
+                  onChange={() => setSeguimiento(prev => ({
+                    ...prev,
+                    riesgoGlicemia: {
+                      ...prev.riesgoGlicemia,
+                      hiperglicemia: true
+                    }
+                  }))}
+                />
+                <Form.Check 
+                  type="radio"
+                  label="No"
+                  name="hiperglicemia"
+                  checked={seguimiento.riesgoGlicemia.hiperglicemia === false}
+                  onChange={() => setSeguimiento(prev => ({
+                    ...prev,
+                    riesgoGlicemia: {
+                      ...prev.riesgoGlicemia,
+                      hiperglicemia: false
+                    }
+                  }))}
+                />
+              </Form.Group>
 
-        {seguimiento.riesgoGlicemia.hipoglicemia && (
-          <Form.Group className="mb-3">
-            <Form.Label>¿Realiza alguna intervención al respecto?</Form.Label>
-            <Form.Check 
-              type="radio"
-              label="Sí"
-              name="intervencionHipoglicemia"
-              checked={seguimiento.riesgoGlicemia.realizoIntervencionHipoglicemia === true}
-              onChange={() => setSeguimiento(prev => ({
-                ...prev,
-                riesgoGlicemia: {
-                  ...prev.riesgoGlicemia,
-                  realizoIntervencionHipoglicemia: true
-                }
-              }))}
-            />
-            <Form.Check 
-              type="radio"
-              label="No"
-              name="intervencionHipoglicemia"
-              checked={seguimiento.riesgoGlicemia.realizoIntervencionHipoglicemia === false}
-              onChange={() => setSeguimiento(prev => ({
-                ...prev,
-                riesgoGlicemia: {
-                  ...prev.riesgoGlicemia,
-                  realizoIntervencionHipoglicemia: false
-                }
-              }))}
-            />
-            {seguimiento.riesgoGlicemia.realizoIntervencionHipoglicemia && (
-              <Form.Control 
-                as="textarea"
-                placeholder="Describa la intervención"
-                value={seguimiento.riesgoGlicemia.intervencionHipoglicemia}
-                onChange={(e) => setSeguimiento(prev => ({
-                  ...prev,
-                  riesgoGlicemia: {
-                    ...prev.riesgoGlicemia,
-                    intervencionHipoglicemia: e.target.value
-                  }
-                }))}
-              />
-            )}
-          </Form.Group>
-        )}
+              {seguimiento.riesgoGlicemia.hiperglicemia && (
+                <Form.Group className="mb-3">
+                  <Form.Label>¿Realiza alguna intervención al respecto?</Form.Label>
+                  <Form.Check 
+                    type="radio"
+                    label="Sí"
+                    name="intervencionHiperglicemia"
+                    checked={seguimiento.riesgoGlicemia.realizoIntervencionHiperglicemia === true}
+                    onChange={() => setSeguimiento(prev => ({
+                      ...prev,
+                      riesgoGlicemia: {
+                        ...prev.riesgoGlicemia,
+                        realizoIntervencionHiperglicemia: true
+                      }
+                    }))}
+                  />
+                  <Form.Check 
+                    type="radio"
+                    label="No"
+                    name="intervencionHiperglicemia"
+                    checked={seguimiento.riesgoGlicemia.realizoIntervencionHiperglicemia === false}
+                    onChange={() => setSeguimiento(prev => ({
+                      ...prev,
+                      riesgoGlicemia: {
+                        ...prev.riesgoGlicemia,
+                        realizoIntervencionHiperglicemia: false
+                      }
+                    }))}
+                  />
+                  {seguimiento.riesgoGlicemia.realizoIntervencionHiperglicemia && (
+                    <Form.Control 
+                      as="textarea"
+                      placeholder="Describa la intervención"
+                      value={seguimiento.riesgoGlicemia.intervencionHiperglicemia}
+                      onChange={(e) => setSeguimiento(prev => ({
+                        ...prev,
+                        riesgoGlicemia: {
+                          ...prev.riesgoGlicemia,
+                          intervencionHiperglicemia: e.target.value
+                        }
+                      }))}
+                    />
+                  )}
+                </Form.Group>
+              )}
+            </div>
+            </div>
+            </div>
+           
+            
 
-        <Form.Group className="mb-3">
-          <Form.Label>¿Ha presentado signos de hiperglicemia (sed extrema, visión borrosa, náuseas, vómitos, aliento afrutado, dolor abdominal, boca seca)?</Form.Label>
-          <Form.Check 
-            type="radio"
-            label="Sí"
-            name="hiperglicemia"
-            checked={seguimiento.riesgoGlicemia.hiperglicemia === true}
-            onChange={() => setSeguimiento(prev => ({
-              ...prev,
-              riesgoGlicemia: {
-                ...prev.riesgoGlicemia,
-                hiperglicemia: true
-              }
-            }))}
-          />
-          <Form.Check 
-            type="radio"
-            label="No"
-            name="hiperglicemia"
-            checked={seguimiento.riesgoGlicemia.hiperglicemia === false}
-            onChange={() => setSeguimiento(prev => ({
-              ...prev,
-              riesgoGlicemia: {
-                ...prev.riesgoGlicemia,
-                hiperglicemia: false
-              }
-            }))}
-          />
-        </Form.Group>
-
-        {seguimiento.riesgoGlicemia.hiperglicemia && (
-          <Form.Group className="mb-3">
-            <Form.Label>¿Realiza alguna intervención al respecto?</Form.Label>
-            <Form.Check 
-              type="radio"
-              label="Sí"
-              name="intervencionHiperglicemia"
-              checked={seguimiento.riesgoGlicemia.realizoIntervencionHiperglicemia === true}
-              onChange={() => setSeguimiento(prev => ({
-                ...prev,
-                riesgoGlicemia: {
-                  ...prev.riesgoGlicemia,
-                  realizoIntervencionHiperglicemia: true
-                }
-              }))}
-            />
-            <Form.Check 
-              type="radio"
-              label="No"
-              name="intervencionHiperglicemia"
-              checked={seguimiento.riesgoGlicemia.realizoIntervencionHiperglicemia === false}
-              onChange={() => setSeguimiento(prev => ({
-                ...prev,
-                riesgoGlicemia: {
-                  ...prev.riesgoGlicemia,
-                  realizoIntervencionHiperglicemia: false
-                }
-              }))}
-            />
-            {seguimiento.riesgoGlicemia.realizoIntervencionHiperglicemia && (
-              <Form.Control 
-                as="textarea"
-                placeholder="Describa la intervención"
-                value={seguimiento.riesgoGlicemia.intervencionHiperglicemia}
-                onChange={(e) => setSeguimiento(prev => ({
-                  ...prev,
-                  riesgoGlicemia: {
-                    ...prev.riesgoGlicemia,
-                    intervencionHiperglicemia: e.target.value
-                  }
-                }))}
-              />
-            )}
-          </Form.Group>
-        )}
-
-        <h6>3. Riesgo de Crisis Hipertensiva</h6>
+          {/* Sección de Riesgo de Glicemia */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '15px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            marginBottom: '20px'
+          }}>
+            <div data-pdf-section>
+            <h6 style={{
+              borderBottom: '2px solid #28a745',
+              paddingBottom: '10px',
+              marginBottom: '20px'
+            }}>
+              3. Riesgo de Crisis Hipertensiva
+            </h6>
         <Form.Group className="mb-3">
           <Form.Label>¿Ha presentado los siguientes síntomas?</Form.Label>
           <Form.Check 
@@ -528,7 +604,20 @@ const PrimerLlamado = ({
           <li>Asista a sus controles regularmente según citación.</li>
         </ul>
 
-        <h6>4. Adherencia al Tratamiento Farmacológico - Test Morisky-Green</h6>
+        <div style={{
+            backgroundColor: 'white',
+            padding: '15px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            marginBottom: '20px'
+          }}>
+            <h6 style={{
+              borderBottom: '2px solid #28a745',
+              paddingBottom: '10px',
+              marginBottom: '20px'
+            }}>
+              4. Adherencia al Tratamiento Farmacológico - Test Morisky-Green
+            </h6>
         <Form.Group className="mb-3">
           <Form.Label>1. ¿Se olvida alguna vez de tomar el medicamento?</Form.Label>
           <Form.Check 
@@ -645,9 +734,40 @@ const PrimerLlamado = ({
             }))}
           />
         </Form.Group>
-        <h6>Adhiere al tratamiento: {seguimiento.adherencia.olvido + seguimiento.adherencia.horaIndicada + (seguimiento.adherencia.dejaRemedio ? 0 : 1) + (seguimiento.adherencia.dejaRemedioMal ? 0 : 1) >= 3 ? 'Sí' : 'No'}</h6>
 
-        <h6>5. Efectos Secundarios a los Medicamentos</h6>
+        <Alert 
+          variant={
+            seguimiento.adherencia.olvido + 
+            seguimiento.adherencia.horaIndicada + 
+            (seguimiento.adherencia.dejaRemedio ? 0 : 1) + 
+            (seguimiento.adherencia.dejaRemedioMal ? 0 : 1) >= 3 
+              ? 'success' 
+              : 'warning'
+          }
+        >
+          <strong>Adherencia al Tratamiento:</strong> {
+            seguimiento.adherencia.olvido + 
+            seguimiento.adherencia.horaIndicada + 
+            (seguimiento.adherencia.dejaRemedio ? 0 : 1) + 
+            (seguimiento.adherencia.dejaRemedioMal ? 0 : 1) >= 3 
+              ? 'Sí' 
+              : 'No'
+          }
+        </Alert>
+        <div style={{
+            backgroundColor: 'white',
+            padding: '15px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            marginBottom: '20px'
+          }}>
+            <h6 style={{
+              borderBottom: '2px solid #28a745',
+              paddingBottom: '10px',
+              marginBottom: '20px'
+            }}>
+              5. Efectos Secundarios a los Medicamentos
+              </h6>
         <Form.Group className="mb-3">
           <Form.Label>¿Alguno de los medicamentos que usted toma le produce algún malestar físico? (mareos, tos, náuseas, diarrea, etc.)</Form.Label>
           <Form.Control 
@@ -705,10 +825,25 @@ const PrimerLlamado = ({
             />
           )}
         </Form.Group>
+        </div>
+        </div>
+        </div>
+        </div>
 
-            <h5>Evaluación de Autoeficacia en Diabetes Tipo 2</h5>
-            <p>En las siguientes preguntas nos gustaría saber qué piensa Ud. de sus habilidades para controlar su enfermedad. Por favor marque el número que mejor corresponda a su nivel de seguridad de que puede realizar en este momento las siguientes tareas.</p>
-    
+        <div data-pdf-section>
+            {/* Sección de Autoeficacia */}
+            <div style={sectionStyles}>
+              <h5 style={{
+                ...headingStyles,
+                backgroundColor: '#17a2b8' // Cyan para autoeficacia
+              }}>
+                <i className="fas fa-chart-line mr-3"></i>
+                Evaluación de Autoeficacia en Diabetes Tipo 2
+              </h5>
+
+              <p className="text-muted mb-4">
+                En las siguientes preguntas nos gustaría saber qué piensa Ud. de sus habilidades para controlar su enfermedad.
+              </p>
             {preguntasAutoeficacia.map((pregunta, index) => (
               <Form.Group key={index} className="mb-3">
                 <Form.Label>{pregunta.label}</Form.Label>
@@ -732,9 +867,17 @@ const PrimerLlamado = ({
                 <div className="text-center">{seguimiento.autoeficacia[pregunta.key]}</div>
               </Form.Group>
             ))}
+            </div>
 
-        <h6>Para finalizar este llamado, recuerde registrar todos los síntomas, dudas y/o comentarios que presente. Además, respete las indicaciones de su médico y del equipo de salud. Muchas gracias por su colaboración, ¡Hasta pronto!</h6>
-      </div>
+            <Alert variant="info" style={{ borderRadius: '8px', marginTop: '20px' }}>
+              <p>
+                Para finalizar este llamado, recuerde registrar todos los síntomas, dudas y/o comentarios que presente. 
+                Además, respete las indicaciones de su médico y del equipo de salud. 
+                Muchas gracias por su colaboración, ¡Hasta pronto!
+              </p>
+            </Alert>
+          </div>
+        </div>
     );
   };
 
@@ -746,62 +889,94 @@ const PrimerLlamado = ({
     return `${year}-${month}-${day}`;
   };
 
-  const exportarPDF = () => {
-    const input = document.getElementById('exportable-content');
-    html2canvas(input).then((canvas) => {
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Crear un PDF de tamaño oficio (216 mm x 330 mm)
-        const pdf = new jsPDF({
-            orientation: 'portrait', // o 'landscape' si prefieres horizontal
-            unit: 'mm',
-            format: 'legal', // 'legal' es el formato oficio
-            putOnlyUsedFonts: true,
-            floatPrecision: 16 // Precision de flotantes
-        });
-
-        // Añadir información del paciente al PDF en la primera página
-        pdf.text('Información del Paciente', 10, 10);
-        pdf.text(`Nombre: ${paciente.nombres} ${paciente.apellidos}`, 10, 20);
-        pdf.text(`RUT: ${paciente.rut}`, 10, 30);
-        pdf.text(`Fecha de nacimiento: ${paciente.fecha_nacimiento}`, 10, 40);
-        pdf.text(`Edad: ${paciente.edad}`, 10, 50);
-        pdf.text(`Teléfono Principal: ${paciente.telefono_principal}`, 10, 60);
-        pdf.text(`Teléfono Secundario: ${paciente.telefono_secundario}`, 10, 70);
-        
-        // Agregar un salto de página
-        pdf.addPage();
-
-        // Definir el ancho y la altura de la imagen
-        const imgWidth = 95; // Ajusta según el tamaño del PDF (debe ser menor a 210 mm)
-        const imgHeight = (canvas.height * imgWidth) / canvas.width; // Mantiene la proporción de la imagen
-
-        // Calcular la posición Y para la imagen
-        let yPositionForImage = 0; // Comenzar desde la parte superior de la segunda página
-
-        // Agregar la imagen al PDF en la segunda página
-        pdf.addImage(imgData, 'PNG', 5, yPositionForImage, imgWidth, imgHeight);
-
-        // Guardar el PDF
-        pdf.save(`${paciente.rut}_${getFormattedDate()}_1.pdf`);
+  const exportarPDF = async () => {
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'legal',
+      putOnlyUsedFonts: true,
+      floatPrecision: 16
     });
-};
+  
+    // Añadir información del paciente al PDF en la primera página
+    pdf.text('Información del Paciente', 10, 10);
+    pdf.text(`Nombre: ${paciente.nombres} ${paciente.apellidos}`, 10, 20);
+    pdf.text(`RUT: ${paciente.rut}`, 10, 30);
+    pdf.text(`Fecha de nacimiento: ${paciente.fecha_nacimiento}`, 10, 40);
+    pdf.text(`Edad: ${paciente.edad}`, 10, 50);
+    pdf.text(`Teléfono Principal: ${paciente.telefono_principal}`, 10, 60);
+    pdf.text(`Teléfono Secundario: ${paciente.telefono_secundario}`, 10, 70);
+    pdf.addPage();
+    const input = document.getElementById('exportable-content');
+    const sections = input.querySelectorAll('[data-pdf-section]');
+    
+    try {
+      for (let pageIndex = 0; pageIndex < sections.length; pageIndex++) {
+        // Añadir nueva página para cada sección
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
+  
+        const section = sections[pageIndex];
+  
+        const sectionCanvas = await html2canvas(section, { 
+          scale: 1, 
+          useCORS: true,
+          logging: false,
+          width: section.scrollWidth,
+          height: section.scrollHeight,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        });
+        
+        const sectionImgData = sectionCanvas.toDataURL('image/jpeg', 0.8); // Menor calidad
+        
+        // Obtener dimensiones de página legal
+        const pageWidth = pdf.internal.pageSize.width;
+        const pageHeight = pdf.internal.pageSize.height;
+        
+        // Calcular ancho máximo (restando márgenes)
+        const imgWidth = pageWidth - 100; // Márgenes de 20 en cada lado
+        const imgHeight = (sectionCanvas.height * imgWidth) / sectionCanvas.width;
+  
+        // Centrar la imagen
+        const xPosition = (pageWidth - imgWidth) / 2;
+        const yPosition = 15;  // Margen superior
+  
+        pdf.addImage(
+          sectionImgData, 
+          'JPEG', 
+          xPosition,  // Centrado horizontalmente
+          yPosition,  // Margen superior
+          imgWidth, 
+          imgHeight,
+          undefined,
+          'FAST'
+        );
+      }
+      
+      pdf.save(`${paciente.rut}_${getFormattedDate()}_1.pdf`);
+    } catch (error) {
+      console.error('Error al exportar PDF:', error);
+      alert('Hubo un problema al exportar el PDF. Por favor, inténtelo de nuevo.');
+    }
+  };
 
-  return (
-    <Card>
-      <Card.Body>
-        <Form onSubmit={handleSubmit}>
-          {renderContent()}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-            <Button type="submit" disabled={disabled}>Guardar</Button>
-            {seguimiento.riesgoInfeccion.herida || seguimiento.efectosSecundarios.malestar  ? (
-                <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
-            ) : null}
-          </div>
-        </Form>
-      </Card.Body>
-    </Card>
-  );
+return (
+  <Card>
+    <Card.Body>
+      <Form onSubmit={handleSubmit}>
+        {renderContent()}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+          <Button type="submit" disabled={disabled}>Guardar</Button>
+          {seguimiento.riesgoInfeccion.herida || seguimiento.efectosSecundarios.malestar  ? (
+              <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
+          ) : null}
+        </div>
+      </Form>
+    </Card.Body>
+  </Card>
+);
 };
 
 export default PrimerLlamado;

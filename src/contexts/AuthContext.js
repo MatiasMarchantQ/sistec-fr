@@ -11,22 +11,24 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
 
   useEffect(() => {
     // Configurar el interceptor de Axios
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 && !isUnauthorized) {
           // Si no estamos en la página de cambiar contraseña
           if (!window.location.pathname.includes('/cambiar-contrasena') && window.location.pathname !== '/') {
+            setIsUnauthorized(true);
+
             localStorage.clear();
             sessionStorage.clear();
             
             setToken(null);
             setUser(null);
             
-            // Usar toast en lugar de setError
             toast.error('Su sesión ha expirado. Por favor, inicie sesión nuevamente.', {
               position: "top-right",
               autoClose: 3000,
@@ -34,6 +36,9 @@ export const AuthProvider = ({ children }) => {
               closeOnClick: true,
               pauseOnHover: true,
               draggable: true,
+              onClose: () => {
+                setIsUnauthorized(false);
+              }
             });
             
             // Redirigir automáticamente a la página de inicio de sesión
@@ -56,19 +61,27 @@ export const AuthProvider = ({ children }) => {
           const currentTime = Date.now() / 1000;
           if (decoded.exp < currentTime) {
             // Token expirado
-            localStorage.clear();
-            sessionStorage.clear();
-            
-            toast.error('Su sesión ha expirado. Por favor, inicie sesión nuevamente.', {
-              position: "top-right",
-              autoClose: 3000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-            });
-            
-            window.location.href = '/';
+            if (!isUnauthorized) {
+              setIsUnauthorized(true);
+              
+              logout();
+              localStorage.clear();
+              sessionStorage.clear();
+              
+              toast.error('Su sesión ha expirado. Por favor, inicie sesión nuevamente.', {
+                position: "top-right",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                onClose: () => {
+                  setIsUnauthorized(false);
+                }
+              });
+              
+              window.location.href = '/';
+            }
             return;
           }
     
@@ -87,18 +100,25 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
           console.error('Error al decodificar el token:', error);
           
-          toast.error('Error de autenticación', {
-            position: "top-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          });
-          
-          // Limpiar datos en caso de error
-          localStorage.clear();
-          sessionStorage.clear();
+          if (!isUnauthorized) {
+            setIsUnauthorized(true);
+            
+            toast.error('Error de autenticación', {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              onClose: () => {
+                setIsUnauthorized(false);
+              }
+            });
+            
+            // Limpiar datos en caso de error
+            localStorage.clear();
+            sessionStorage.clear();
+          }
         }
       }
       setLoading(false);
@@ -113,11 +133,14 @@ export const AuthProvider = ({ children }) => {
           }
         });
     
+        const decoded = jwtDecode(token);
+        
         const userData = {
-          id: response.data.id,
+          id: decoded.rol_id === 3 ? null : response.data.id,  // Si es rol de estudiante, id será null
           rol_id: response.data.rol_id,
           nombres: response.data.nombres,
-          estudiante_id: response.data.estudiante_id
+          estudiante_id: response.data.estudiante_id,
+          es_estudiante: decoded.rol_id === 3  // Agregar una bandera para identificar estudiantes
         };
     
         // Guardar en storage
@@ -159,10 +182,11 @@ export const AuthProvider = ({ children }) => {
   
       const decoded = jwtDecode(accessToken);
       const userData = {
-        id: decoded.id,
+        id: rol_id === 3 ? null : (decoded.id || null),  // Si es rol de estudiante, id será null
         rol_id: rol_id || decoded.rol_id,
         nombres: nombres || decoded.nombres,
-        estudiante_id: estudiante_id || decoded.estudiante_id
+        estudiante_id: estudiante_id || decoded.estudiante_id,
+        es_estudiante: rol_id === 3  // Agregar una bandera para identificar estudiantes
       };
   
       // Guardar userData en storage
@@ -233,14 +257,21 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Error durante el logout:', error);
       
-      toast.error('Error al cerrar sesión', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      if (!isUnauthorized) {
+        setIsUnauthorized(true);
+        
+        toast.error('Error al cerrar sesión', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          onClose: () => {
+            setIsUnauthorized(false);
+          }
+        });
+      }
     } finally {
       // Limpiar completamente
       localStorage.clear();
