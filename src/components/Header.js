@@ -205,7 +205,7 @@ const Header = ({ toggleSidebar }) => {
       <ul className="navbar-nav ml-auto">
         {!isLoginPage && user && (
           <Dropdown>
-            <Dropdown.Toggle variant="link" id="dropdown-basic" className="text-white d-flex align-items-center">
+            <Dropdown.Toggle variant="link" id="dropdown-basic" className="text-white d-flex align-items-center" style={{ textDecoration: 'none' }}>
               <i className="fas fa-user mr-2"></i>
               <span>Hola, {getFirstName(updatedUser.nombres || user.nombres)}</span>
             </Dropdown.Toggle>

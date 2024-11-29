@@ -647,7 +647,7 @@ const FichaClinica = () => {
                         style={{ cursor: 'pointer' }}
                       >
                         <div className="me-auto">
-                          <strong>Reevaluación {index + 1}</strong>
+                        <strong>Reevaluación {reevaluaciones.length - index}</strong>
                         </div>
                         <div className="d-flex align-items-center">
                           <span>{new Date(reevaluacion.fecha).toLocaleDateString()}</span>

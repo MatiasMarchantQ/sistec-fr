@@ -494,9 +494,9 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
           case 3:
             // Síntomas Depresivos
             datosParaEnviar.sintomasDepresivos = {
-              puntajes: datosParaEnviar.sintomasDepresivos?.puntajes || [],
-              puntajeTotal: datosParaEnviar.sintomasDepresivos?.puntajeTotal || 0,
-              nivelDificultad: datosParaEnviar.sintomasDepresivos?.nivelDificultad || 0
+              puntajes: seguimiento.sintomasDepresivos?.puntajes || [],
+              puntajeTotal: seguimiento.sintomasDepresivos?.puntajeTotal || 0,
+              nivelDificultad: seguimiento.sintomasDepresivos?.nivelDificultad || 0
             };
             
             // Autoeficacia
