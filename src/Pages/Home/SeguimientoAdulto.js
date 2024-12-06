@@ -16,18 +16,58 @@ import TercerLlamado from './TercerLlamado';
 const procesarSeguimiento = (seguimientoData = {}) => {
   // Función auxiliar para parsear campos JSON
   const parsearCampoJSON = (campo) => {
+    // Manejar casos de cadenas vacías o nulas
+    if (!campo || campo === '' || campo === '""' || campo === "''") {
+      return {};
+    }
+  
     if (typeof campo === 'string') {
       try {
-        // Eliminar comillas extras y parsear
-        const campoLimpio = campo.replace(/^"|"$/g, '');
-        return campoLimpio && campoLimpio !== '{}' 
-          ? JSON.parse(campoLimpio) 
-          : {};
+        // Limpiar la cadena de comillas extras y espacios
+        const campoLimpio = campo.trim()
+          .replace(/^"+|"+$/g, '')  // Eliminar comillas al inicio y final
+          .replace(/^'+|'+$/g, '')  // Eliminar comillas simples
+          .trim();
+  
+        // Si después de limpiar queda vacío, devolver objeto vacío
+        if (!campoLimpio || campoLimpio === '{}') {
+          return {};
+        }
+  
+        // Intentar parsear
+        const jsonLimpio = campoLimpio
+          .replace(/\\"/g, '"')    // Reemplazar comillas escapadas
+          .replace(/\\\\/g, '\\')  // Reemplazar backslashes dobles
+          .replace(/\\/g, '');     // Eliminar backslashes restantes
+  
+        return JSON.parse(jsonLimpio);
       } catch (error) {
-        console.error('Error parseando JSON:', campo, error);
-        return {};
+        console.error('Error parseando JSON:', {
+          campo,
+          error: error.message
+        });
+  
+        // Estrategias de recuperación
+        try {
+          // Intentar parsear sin backslashes
+          const jsonSinBackslashes = campo
+            .replace(/\\/g, '')
+            .replace(/^"+|"+$/g, '');
+          
+          return JSON.parse(jsonSinBackslashes);
+        } catch (recoveryError) {
+          console.error('Error de recuperación:', {
+            campo,
+            error: recoveryError.message
+          });
+  
+          // Si todas las estrategias fallan, devolver un objeto vacío
+          return {};
+        }
       }
     }
+  
+    // Si no es un string, devolver el campo original o un objeto vacío
     return campo || {};
   };
 
@@ -78,16 +118,17 @@ const procesarSeguimiento = (seguimientoData = {}) => {
     riesgoGlicemia: {
       hipoglicemia: riesgoGlicemia.hipoglicemia ?? null,
       intervencionHipoglicemia: riesgoGlicemia.intervencionHipoglicemia || null,
+      realizoIntervencionHipoglicemia: riesgoGlicemia.realizoIntervencionHipoglicemia ?? null,
       hiperglicemia: riesgoGlicemia.hiperglicemia ?? null,
-      realizoIntervencionHipoglicemia: riesgoGlicemia.realizoIntervencionHipoglicemia ?? null
+      intervencionHiperglicemia: riesgoGlicemia.intervencionHiperglicemia || null,
+      realizoIntervencionHiperglicemia: riesgoGlicemia.realizoIntervencionHiperglicemia ?? null
     },
     
     riesgoHipertension: {
       dolorPecho: riesgoHipertension.dolorPecho ?? null,
       dolorCabeza: riesgoHipertension.dolorCabeza ?? null,
       zumbidoOidos: riesgoHipertension.zumbidoOidos ?? null,
-      nauseaVomitos: riesgoHipertension.nauseaVomitos ?? null,
-      nauseas: riesgoHipertension.nauseas || null
+      nauseaVomitos: riesgoHipertension.nauseaVomitos ?? null
     },
     
     adherencia: {
@@ -157,7 +198,9 @@ const procesarSeguimiento = (seguimientoData = {}) => {
     
     otrosSintomas: seguimientoData.otros_sintomas || null,
     manejoSintomas: seguimientoData.manejo_sintomas || null,
-    comentarios: seguimientoData.comentarios || null
+    comentario_primer_llamado: seguimientoData.comentario_primer_llamado || '',
+    comentario_segundo_llamado: seguimientoData.comentario_segundo_llamado || '',
+    comentario_tercer_llamado: seguimientoData.comentario_tercer_llamado || '',
   };
 };
 
@@ -190,7 +233,9 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
       },
       otrosSintomas: '',
       manejoSintomas: '',
-      comentarios: ''
+      comentario_primer_llamado: '',
+      comentario_segundo_llamado: '',
+      comentario_tercer_llamado: '',
     })
   );
 
@@ -228,12 +273,15 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
 
       // Determinar el índice del acordeón basado en el seguimiento procesado
       const indiceAcordeon = determinarIndiceAcordeon(seguimientoProcesado);
-      console.log('Seguimiento procesado:', seguimientoProcesado);
-            
       // Actualizar el estado del seguimiento con los datos recuperados
       setSeguimiento(prevSeguimiento => ({
         ...prevSeguimiento,
-        ...seguimientoProcesado
+        ...seguimientoProcesado,
+        // Cargar comentarios específicos según el número de llamado
+        comentario_primer_llamado: response.data.comentario_primer_llamado || '',
+        comentario_segundo_llamado: response.data.comentario_segundo_llamado || '',
+        comentario_tercer_llamado: response.data.comentario_tercer_llamado || '',
+        id: seguimientoProcesado.id // Asegúrate de almacenar el ID
       }));
 
       setPaciente(pacienteData);
@@ -339,7 +387,6 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
                 autoeficacia: procesado.autoeficacia,
                 otrosSintomas: procesado.otrosSintomas,
                 manejoSintomas: procesado.manejoSintomas,
-                comentarios: procesado.comentarios,
                 usuario: procesado.usuario,
                 estudiante: procesado.estudiante
             };
@@ -386,19 +433,18 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
 };
 
   // Función para guardar seguimiento
-  const guardarSeguimiento = async (etapa) => {
+  const guardarSeguimiento = async (etapa, esActualizacion = false) => {
     try {
       const token = getToken();        
       // Preparar datos para enviar
-      const datosParaEnviar = {
+      let datosParaEnviar = {
         pacienteId,  
         fichaId,     
         fecha: new Date().toISOString().split('T')[0],
         usuario_id: user.id || null,
-        estudiante_id: user.estudiante_id || null
+        estudiante_id: user.estudiante_id || null,
       };
 
-  
       // Agregar datos específicos según la etapa
       switch(etapa) {
         case 1:
@@ -416,9 +462,11 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
   
           datosParaEnviar.riesgoGlicemia = {
             hipoglicemia: seguimiento.riesgoGlicemia.hipoglicemia,
-            intervencionHipoglicemia: seguimiento.riesgoGlicemia.intervencionHipoglicemia,
+            intervencionHipoglicemia: seguimiento.riesgoGlicemia.intervencionHipoglicemia || null,
+            realizoIntervencionHipoglicemia: seguimiento.riesgoGlicemia.realizoIntervencionHipoglicemia,
             hiperglicemia: seguimiento.riesgoGlicemia.hiperglicemia,
-            realizoIntervencionHipoglicemia: seguimiento.riesgoGlicemia.realizoIntervencionHipoglicemia
+            intervencionHiperglicemia: seguimiento.riesgoGlicemia.intervencionHiperglicemia || null,
+            realizoIntervencionHiperglicemia: seguimiento.riesgoGlicemia.realizoIntervencionHiperglicemia
           };
   
           datosParaEnviar.riesgoHipertension = {
@@ -463,6 +511,8 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
             evaluarCambios: seguimiento.autoeficacia.evaluarCambios || 0,
             controlarDiabetes: seguimiento.autoeficacia.controlarDiabetes || 0
           };
+
+          datosParaEnviar.comentario_primer_llamado = seguimiento.comentario_primer_llamado || '';
           break;
         
         case 2:
@@ -489,6 +539,8 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
             tenesmoVesical: seguimiento.eliminacion.tenesmoVesical,
             intervencion: seguimiento.eliminacion.intervencion
           };
+
+          datosParaEnviar.comentario_segundo_llamado = seguimiento.comentario_segundo_llamado || '';
           break;
         
           case 3:
@@ -516,23 +568,35 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
             
             // Manejo de síntomas
             datosParaEnviar.manejoSintomas = seguimiento.manejoSintomas || '';
-            
-            // Comentarios
-            datosParaEnviar.comentarios = seguimiento.comentarios || '';
+                      datosParaEnviar.comentario_tercer_llamado = seguimiento.comentario_tercer_llamado || '';
+
+            datosParaEnviar.comentario_tercer_llamado = seguimiento.comentario_tercer_llamado || '';
             break;
       }
-    
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/seguimientos/adulto`,
-        datosParaEnviar,
-        { 
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          } 
-        }
-      );
 
+      const limpiarDatos = (objeto) => {
+        return JSON.parse(JSON.stringify(objeto, (key, value) => 
+          typeof value === 'string' ? value.replace(/\\/g, '') : value
+        ));
+      };
+      
+      // Usar antes de enviar
+      datosParaEnviar = limpiarDatos(datosParaEnviar);
+
+      const url = esActualizacion 
+      ? `${process.env.REACT_APP_API_URL}/seguimientos/adulto/${seguimiento.id}` 
+      : `${process.env.REACT_APP_API_URL}/seguimientos/adulto`;
+
+      const method = esActualizacion ? 'put' : 'post';
+
+      const response = await axios[method](url, datosParaEnviar, { 
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        } 
+      });
+
+      console.log('Datos recibidos:', response.data);
       await cargarSeguimientosAnteriores();
   
     } catch (error) {
@@ -555,7 +619,16 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
           <Accordion 
             ref={accordionRef}
             activeKey={activeStep !== null ? activeStep.toString() : undefined}
-            onSelect={(eventKey) => setActiveStep(eventKey ? parseInt(eventKey) : null)}
+            onSelect={(eventKey) => {
+              if (activeStep !== null) {
+                setSeguimiento(prev => ({
+                  ...prev,
+                }));
+              }
+            
+              // Establecer el nuevo paso activo
+              setActiveStep(eventKey ? parseInt(eventKey) : null);
+            }}
           >
           <Accordion.Item eventKey="0">
             <Accordion.Header>
@@ -568,6 +641,7 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
                 setSeguimiento={setSeguimiento}
                 onComplete={() => guardarSeguimiento(1)}
                 paciente={paciente}
+                guardarSeguimiento={guardarSeguimiento}
               />
             </Accordion.Body>
           </Accordion.Item>
@@ -583,6 +657,7 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
                 setSeguimiento={setSeguimiento}
                 onComplete={() => guardarSeguimiento(2)}
                 paciente={paciente}
+                guardarSeguimiento={guardarSeguimiento}
               />
             </Accordion.Body>
           </Accordion.Item>
@@ -598,6 +673,7 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
                 setSeguimiento={setSeguimiento}
                 onComplete={() => guardarSeguimiento(3)}
                 paciente={paciente}
+                guardarSeguimiento={guardarSeguimiento}
               />
             </Accordion.Body>
           </Accordion.Item>
@@ -689,8 +765,6 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
     {selectedSeguimiento && (
       <div>
         <h4>Número de Llamado: {selectedSeguimiento.numeroLlamado}</h4>
-        {console.log('Selected Seguimiento:', selectedSeguimiento)}
-        
         {/* Mostrar información del Usuario o del Estudiante */}
         {selectedSeguimiento.usuario && selectedSeguimiento.usuario.id ? (
           <Card className="mb-3">

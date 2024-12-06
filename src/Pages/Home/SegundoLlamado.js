@@ -25,8 +25,9 @@ const headingStyles = {
 const SegundoLlamado = ({ 
   seguimiento, 
   setSeguimiento, 
-  onComplete, 
+  onComplete,
   disabled,
+  guardarSeguimiento,
   paciente
 }) => {
   const handleSubmit = (e) => {
@@ -376,9 +377,34 @@ const SegundoLlamado = ({
           </Alert>
         </div>
 
-        <p style={{ marginTop: '20px' }}>
-          Para finalizar este llamado, recuerde registrar todos los síntomas, dudas y/o comentarios que presente. Además, respetar las indicaciones de su médico y del equipo de salud. Muchas gracias por su colaboración, ¡Hasta pronto!
-        </p>
+        <Alert variant="info" style={{ borderRadius: '8px', marginTop: '20px' }}>
+              <p>
+                Para finalizar este llamado, recuerde registrar todos los síntomas, dudas y/o comentarios que presente. 
+                Además, respete las indicaciones de su médico y del equipo de salud. 
+                Muchas gracias por su colaboración, ¡Hasta pronto!
+              </p>
+            </Alert>
+
+            {/* Sección de Comentarios */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '15px',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              marginBottom: '20px',
+            }}>
+              <Form.Group className="mb-3">
+                <Form.Label>Comentarios</Form.Label>
+                <Form.Control 
+                  as="textarea" 
+                  value={seguimiento.comentario_segundo_llamado}
+                  onChange={(e) => setSeguimiento(prev => ({
+                    ...prev, 
+                    comentario_segundo_llamado: e.target.value
+                  }))}
+                />
+              </Form.Group>
+            </div>
       </div>
     );
   };
@@ -390,6 +416,15 @@ return (
         {renderContent()}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
           <Button type="submit" disabled={disabled}>Guardar</Button>
+          <Button 
+            variant="success" 
+            onClick={() => {
+              console.log('Actualizando seguimiento con datos:', seguimiento); // Verifica los datos antes de actualizar
+              guardarSeguimiento(2, true); // true indica que es una actualización
+            }}
+          >
+            Actualizar
+          </Button>
           {seguimiento.nutricion.comidasDia && (
             <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
           )}

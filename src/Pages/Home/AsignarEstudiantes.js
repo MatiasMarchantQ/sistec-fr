@@ -58,7 +58,6 @@ const AsignarEstudiantes = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         setTiposInstituciones(response.data || []);
-        console.log("Tipos de instituciones:", response.data);
       } catch (error) {
         console.error("Error al obtener tipos de instituciones:", error);
         setErrorMessage("Error al obtener tipos de instituciones.");

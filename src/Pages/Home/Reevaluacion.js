@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Button } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import FichaClinicaAdulto from './FichaClinicaAdulto';
 import FichaClinicaInfantil from './FichaClinicaInfantil';
+import _ from 'lodash';
 
 const Reevaluacion = () => {
   const { user, getToken } = useAuth();
@@ -13,16 +15,98 @@ const Reevaluacion = () => {
 
   const [fichaOriginal, setFichaOriginal] = useState(null);
   const [datosIniciales, setDatosIniciales] = useState(null);
+  const [ultimaReevaluacion, setUltimaReevaluacion] = useState(null);
   const [tipoFicha, setTipoFicha] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [cambiosDetectados, setCambiosDetectados] = useState({});
+
+  const handleVolver = () => {
+    navigate(-1);
+  };
+
+  // Función para parsear edad (memoizada)
+  const parseEdad = useMemo(() => (edadString) => {
+    if (!edadString || edadString === 'N/A') {
+      return {
+        edadAnios: '',
+        edadMeses: '',
+        edadDias: ''
+      };
+    }
+  
+    const edadRegex = /(\d+)\s*años?,\s*(\d+)\s*meses?,\s*(\d+)\s*días?/;
+    const match = edadString.match(edadRegex);
+  
+    if (match) {
+      return {
+        edadAnios: match[1] || '',
+        edadMeses: match[2] || '',
+        edadDias: match[3] || ''
+      };
+    }
+  
+    // Intentar parsear directamente si ya son números
+    if (/^\d+$/.test(edadString)) {
+      return {
+        edadAnios: edadString,
+        edadMeses: '',
+        edadDias: ''
+      };
+    }
+  
+    console.warn('Formato de edad no reconocido:', edadString);
+    return {
+      edadAnios: '',
+      edadMeses: '',
+      edadDias: ''
+    };
+  }, []);
+
+  // Función de comparación de datos
+  const compararDatos = useMemo(() => (original, reevaluacion) => {
+    const cambios = {};
+    
+    const camposAdulto = [
+      'diagnostico', 
+      'escolaridad', 
+      'ocupacion', 
+      'direccion',
+      'valorHbac1',
+      'alcoholDrogas',
+      'tabaquismo',
+      'otrosFactoresRiesgo',
+      'conQuienVive',
+      'horarioLlamada',
+      'conectividad',
+      'cicloVitalFamiliar',
+      'tiposFamilia'
+    ];
+
+    const camposInfantil = [
+      'evaluacionPsicomotora',
+      'informacionFamiliar',
+      'factoresRiesgo'
+    ];
+
+    const camposComparar = tipoFicha === 'adulto' ? camposAdulto : camposInfantil;
+
+    camposComparar.forEach(campo => {
+      const valorOriginal = original[campo];
+      const valorReevaluacion = reevaluacion[campo];
+
+      if (!_.isEqual(valorOriginal, valorReevaluacion)) {
+        cambios[campo] = {
+          original: valorOriginal,
+          reevaluacion: valorReevaluacion
+        };
+      }
+    });
+
+    return cambios;
+  }, [tipoFicha]);
 
   useEffect(() => {
-    const { fichaId, tipo, paciente } = location.state || {};
-    console.log('Datos recibidos en Reevaluación:', {
-      fichaId, 
-      tipo, 
-      paciente
-    });
+    const { fichaId, tipo } = location.state || {};
     
     if (!fichaId || !tipo) {
       toast.error('No se proporcionó un ID de ficha válido');
@@ -30,156 +114,249 @@ const Reevaluacion = () => {
       return;
     }
   
-    const fetchFichaOriginal = async () => {
+    const fetchDatosReevaluacion = async () => {
       try {
         const token = getToken();
-        const response = await axios.get(
+        
+        // Obtener ficha original
+        const responseOriginal = await axios.get(
           `${process.env.REACT_APP_API_URL}/fichas-clinicas/${fichaId}?tipo=${tipo}`,
           {
             headers: { Authorization: `Bearer ${token}` }
           }
         );
-    
-        // Añade un log para ver la estructura completa de los datos
-        console.log('Datos de la ficha original:', response.data);
-    
-        // Verificación más detallada
-        if (!response.data.data) {
-          throw new Error("No se encontraron datos de la ficha");
+  
+        // Obtener reevaluaciones previas
+        const responseReevaluaciones = await axios.get(
+          `${process.env.REACT_APP_API_URL}/fichas-clinicas/reevaluaciones/${fichaId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            params: { tipo }
+          }
+        );
+  
+        if (!responseOriginal.data.data) {
+          throw new Error("No se encontraron datos de la ficha original");
         }
-    
-        // Intenta obtener institucion_id de diferentes formas
+  
+        // Establecer la última reevaluación si existe
+        const ultimaReevaluacion = responseReevaluaciones.data.data && 
+                                    responseReevaluaciones.data.data.length > 0 
+          ? responseReevaluaciones.data.data[0] 
+          : null;
+  
+        // Establecer el estado de la última reevaluación
+        setUltimaReevaluacion(ultimaReevaluacion);
+
+        // Obtener institucion_id
         const institucionId = 
-          response.data.data.institucion?.id || // Accede al ID de la institución
-          response.data.data.institucionId || 
-          (response.data.data.paciente && response.data.data.paciente.institucion_id) ||
-          user.institucion_id; // Fallback al ID de institución del usuario actual
-    
+          responseOriginal.data.data.institucion?.id || 
+          responseOriginal.data.data.institucionId || 
+          (responseOriginal.data.data.paciente && responseOriginal.data.data.paciente.institucion_id) ||
+          user.institucion_id;
+
         if (!institucionId) {
           throw new Error("No se pudo encontrar un institucion_id válido");
         }
-    
+
+        // Preparar datos iniciales
+        const prepararDatosIniciales = () => {
+          const responseData = responseOriginal.data.data;
+          
+          // Verificar si hay reevaluaciones previas
+          if (responseReevaluaciones.data.data && responseReevaluaciones.data.data.length > 0) {
+            // Usar los datos de la última reevaluación
+            const ultimaReevaluacion = responseReevaluaciones.data.data[0];
+            
+            // Establecer los datos de la última reevaluación como base
+            const datosBase = tipo === 'adulto' 
+              ? {
+                  nombres: ultimaReevaluacion.paciente?.nombres || responseData.paciente?.nombres || '',
+                  apellidos: ultimaReevaluacion.paciente?.apellidos || responseData.paciente?.apellidos || '',
+                  rut: ultimaReevaluacion.paciente?.rut || responseData.paciente?.rut || '',
+                  edad: ultimaReevaluacion.paciente?.edad || responseData.paciente?.edad || '',
+                  telefonoPrincipal: ultimaReevaluacion.paciente?.telefonoPrincipal || responseData.paciente?.telefonoPrincipal || '',
+                  telefonoSecundario: ultimaReevaluacion.paciente?.telefonoSecundario || responseData.paciente?.telefonoSecundario || '',
+                  
+                  diagnostico: ultimaReevaluacion.diagnostico?.id || responseData.diagnostico?.id || '',
+                  diagnostico_otro: ultimaReevaluacion.diagnostico_otro || 
+                                    ultimaReevaluacion.diagnostico?.diagnosticoOtro || 
+                                    responseData.diagnostico_otro || 
+                                    responseData.diagnostico?.diagnosticoOtro || 
+                                    '',
+                  
+                  escolaridad: ultimaReevaluacion.escolaridad?.id || responseData.escolaridad?.id || '',
+                  ocupacion: ultimaReevaluacion.ocupacion || responseData.ocupacion || '',
+                  direccion: ultimaReevaluacion.direccion || responseData.direccion || '',
+                  valorHbac1: ultimaReevaluacion.factoresRiesgo?.valorHbac1 || responseData.factoresRiesgo?.valorHbac1 || '',
+                  alcoholDrogas: ultimaReevaluacion.factoresRiesgo?.alcoholDrogas || responseData.factoresRiesgo?.alcoholDrogas || false,
+                  tabaquismo: ultimaReevaluacion.factoresRiesgo?.tabaquismo || responseData.factoresRiesgo?.tabaquismo || false,
+                  otrosFactoresRiesgo: ultimaReevaluacion.factoresRiesgo?.otros || responseData.factoresRiesgo?.otros || '',
+                  conQuienVive: ultimaReevaluacion.conQuienVive || responseData.conQuienVive || '',
+                  horarioLlamada: ultimaReevaluacion.horarioLlamada || responseData.horarioLlamada || '',
+                  conectividad: ultimaReevaluacion.conectividad || responseData.conectividad || '',
+                  cicloVitalFamiliar: ultimaReevaluacion.cicloVitalFamiliar?.id || responseData.cicloVitalFamiliar?.id || '',
+                  
+                  tiposFamilia: ultimaReevaluacion.tiposFamilia && ultimaReevaluacion.tiposFamilia.length > 0
+                    ? ultimaReevaluacion.tiposFamilia.map(tipo => tipo.id || tipo)
+                    : (responseData.tipoFamiliaOtro ? ['Otras'] : [])
+                }
+              : {
+                nombres: ultimaReevaluacion.paciente?.nombres || responseData.paciente?.nombres || '',
+              apellidos: ultimaReevaluacion.paciente?.apellidos || responseData.paciente?.apellidos || '',
+              rut: ultimaReevaluacion.paciente?.rut || responseData.paciente?.rut || '',
+              telefonoPrincipal: ultimaReevaluacion.paciente?.telefonoPrincipal || responseData.paciente?.telefonoPrincipal || '',
+              telefonoSecundario: ultimaReevaluacion.paciente?.telefonoSecundario || responseData.paciente?.telefonoSecundario || '',
+              fechaNacimiento: ultimaReevaluacion.paciente?.fechaNacimiento || responseData.paciente?.fechaNacimiento || '',
+              
+              // Parsear edad de la última reevaluación o de los datos originales
+              ...parseEdad(
+                ultimaReevaluacion.paciente?.edad || 
+                responseData.paciente?.edad || 
+                ''
+              ),
+              
+              // Evaluación Psicomotora
+              evaluacionPsicomotora: {
+                puntajeDPM: ultimaReevaluacion.evaluacionPsicomotora?.puntajeDPM || 
+                            responseData.evaluacionPsicomotora?.puntajeDPM || '',
+                diagnosticoDSM: ultimaReevaluacion.evaluacionPsicomotora?.diagnosticoDSM || 
+                                responseData.evaluacionPsicomotora?.diagnosticoDSM || ''
+              },
+              
+              // Información Familiar
+              informacionFamiliar: {
+                conQuienVive: ultimaReevaluacion.informacionFamiliar?.conQuienVive || 
+                              responseData.informacionFamiliar?.conQuienVive || '',
+                localidad: ultimaReevaluacion.informacionFamiliar?.localidad || 
+                          responseData.informacionFamiliar?.localidad || '',
+                
+                // Tipos de Familia
+                tiposFamilia: (ultimaReevaluacion.informacionFamiliar?.tiposFamilia || 
+                              responseData.informacionFamiliar?.tiposFamilia || []).map(tipo => ({
+                  id: tipo.id || null,
+                  nombre: tipo.nombre || null,
+                  tipoFamiliaOtro: tipo.tipoFamiliaOtro || null
+                })),
+                
+                // Ciclo Vital Familiar
+                cicloVitalFamiliar: ultimaReevaluacion.informacionFamiliar?.cicloVitalFamiliar || 
+                                    responseData.informacionFamiliar?.cicloVitalFamiliar || null,
+                
+                // Información de Padres
+                padres: (ultimaReevaluacion.informacionFamiliar?.padres || 
+                        responseData.informacionFamiliar?.padres || []).map(padre => ({
+                  nombre: padre.nombre || '',
+                  ocupacion: padre.ocupacion || '',
+                  escolaridad: {
+                    id: padre.escolaridad?.id || null,
+                    nivel: padre.escolaridad?.nivel || ''
+                  }
+                }))
+              },
+      
+              // Factores de Riesgo
+              factoresRiesgo: {
+                // Factores de Riesgo del Niño
+                nino: (ultimaReevaluacion.factoresRiesgo?.nino || 
+                      responseData.factoresRiesgo?.nino || []).map(factor => ({
+                  id: factor.id || null,
+                  nombre: factor.nombre || ''
+                })),
+                
+                // Factores de Riesgo Familiares
+                familiares: (ultimaReevaluacion.factoresRiesgo?.familiares || 
+                            responseData.factoresRiesgo?.familiares || []).map(factor => ({
+                  id: factor.id || null,
+                  nombre: factor.nombre || '',
+                  otras: factor.otras || ''
+                }))
+                }
+              };
+
+          // Calcular cambios
+            const cambios = compararDatos(responseData, ultimaReevaluacion);
+            setCambiosDetectados(cambios);
+            
+            return datosBase;
+          }
+          return tipo === 'adulto' 
+            ? {
+                nombres: responseData.paciente?.nombres || '',
+                apellidos: responseData.paciente?.apellidos || '',
+                rut: responseData.paciente?.rut || '',
+                edad: responseData.paciente?.edad || '',
+                telefonoPrincipal: responseData.paciente?.telefonoPrincipal || '',
+                telefonoSecundario: responseData.paciente?.telefonoSecundario || '',
+                
+                // Manejo específico de diagnóstico
+                diagnostico: responseData.diagnostico?.id || '',
+                diagnostico_otro: responseData.diagnostico_otro || 
+                                  responseData.diagnostico?.diagnosticoOtro || 
+                                  '',
+                
+                escolaridad: responseData.escolaridad?.id || '',
+                ocupacion: responseData.ocupacion || '',
+                direccion: responseData.direccion || '',
+                valorHbac1: responseData.factoresRiesgo?.valorHbac1 || '',
+                alcoholDrogas: responseData.factoresRiesgo?.alcoholDrogas || false,
+                tabaquismo: responseData.factoresRiesgo?.tabaquismo || false,
+                otrosFactoresRiesgo: responseData.factoresRiesgo?.otros || '',
+                conQuienVive: responseData.conQuienVive || '',
+                horarioLlamada: responseData.horarioLlamada || '',
+                conectividad: responseData.conectividad || '',
+                cicloVitalFamiliar: responseData.cicloVitalFamiliar?.id || '',
+                
+                // Manejo de tipos de familia
+                tiposFamilia: responseData.tiposFamilia && responseData.tiposFamilia.length > 0
+                  ? responseData.tiposFamilia.map(tipo => tipo.id || tipo)
+                  : (responseData.tipoFamiliaOtro ? ['Otras'] : []),
+
+              }
+            : {
+                // Mantener la lógica existente para infantil
+                nombres: responseData.paciente?.nombres || '',
+                apellidos: responseData.paciente?.apellidos || '',
+                rut: responseData.paciente?.rut || '',
+                telefonoPrincipal: responseData.paciente?.telefonoPrincipal || '',
+                telefonoSecundario: responseData.paciente?.telefonoSecundario || '',
+                fechaNacimiento: responseData.paciente?.fechaNacimiento || '',
+                ...parseEdad(responseData.paciente?.edad),
+                evaluacionPsicomotora: {
+                  puntajeDPM: responseData.evaluacionPsicomotora?.puntajeDPM || '',
+                  diagnosticoDSM: responseData.evaluacionPsicomotora?.diagnosticoDSM || ''
+                },
+                informacionFamiliar: {
+                  conQuienVive: responseData.informacionFamiliar?.conQuienVive || '',
+                  localidad: responseData.informacionFamiliar?.localidad || '',
+                  tiposFamilia: responseData.informacionFamiliar?.tiposFamilia || [],
+                  cicloVitalFamiliar: responseData.informacionFamiliar?.cicloVitalFamiliar || null,
+                  padres: responseData.informacionFamiliar?.padres || []
+                },
+                factoresRiesgo: {
+                  nino: responseData.factoresRiesgo?.nino || [],
+                  familiares: responseData.factoresRiesgo?.familiares || []
+                }
+              };
+          };
+        
         setFichaOriginal({
-          ...response.data.data,
+          ...responseOriginal.data.data,
           institucion_id: institucionId
         });
         setTipoFicha(tipo);
-    
-        // Preparar datos iniciales basados en el tipo de ficha
-        const prepararDatosIniciales = () => {
-          if (tipo === 'adulto') {
-            return {
-              // Datos personales básicos
-              nombres: response.data.data.paciente?.nombres || '',
-              apellidos: response.data.data.paciente?.apellidos || '',
-              rut: response.data.data.paciente?.rut || '',
-              edad: response.data.data.paciente?.edad || '',
-              telefonoPrincipal: response.data.data.paciente?.telefonoPrincipal || '',
-              telefonoSecundario: response.data.data.paciente?.telefonoSecundario || '',
- 
-              // Información adicional
-              diagnostico: response.data.data.diagnostico?.id || '',
-              escolaridad: response.data.data.escolaridad?.id || '',
-              ocupacion: response.data.data.ocupacion || '',
-              direccion: response.data.data.direccion || '',
-              
-              // Factores de riesgo
-              valorHbac1: response.data.data.factoresRiesgo?.valorHbac1 || '',
-              alcoholDrogas: response.data.data.factoresRiesgo?.alcoholDrogas || false,
-              tabaquismo: response.data.data.factoresRiesgo?.tabaquismo || false,
-              otrosFactoresRiesgo: response.data.data.factoresRiesgo?.otros || '',
-        
-              // Contexto familiar
-              conQuienVive: response.data.data.conQuienVive || '',
-              horarioLlamada: response.data.data.horarioLlamada || '',
-              conectividad: response.data.data.conectividad || '',
-              cicloVitalFamiliar: response.data.data.cicloVitalFamiliar?.id || '',
-              tiposFamilia: response.data.data.tiposFamilia?.map(tipo => tipo.id) || [],
-            };
-          } else if (tipo === 'infantil') {
-            // Function to parse age string
-            const parseEdad = (edadString) => {
-              if (!edadString || edadString === 'N/A') {
-                return {
-                  edadAnios: '',
-                  edadMeses: '',
-                  edadDias: ''
-                };
-              }
-          
-              // Regular expression to match years, months, and days
-              const edadRegex = /(\d+)\s*años?,\s*(\d+)\s*meses?,\s*(\d+)\s*días?/;
-              const match = edadString.match(edadRegex);
-          
-              if (match) {
-                return {
-                  edadAnios: match[1] || '',
-                  edadMeses: match[2] || '',
-                  edadDias: match[3] || ''
-                };
-              }
-          
-              // Fallback if the regex doesn't match
-              console.warn('Formato de edad no reconocido:', edadString);
-              return {
-                edadAnios: '',
-                edadMeses: '',
-                edadDias: ''
-              };
-            };
-          
-            // Parse the age
-            const { edadAnios, edadMeses, edadDias } = parseEdad(response.data.data.paciente?.edad);
-          
-            return {
-              // Datos personales del niño
-              nombres: response.data.data.paciente?.nombres || '',
-              apellidos: response.data.data.paciente?.apellidos || '',
-              rut: response.data.data.paciente?.rut || '',
-              telefonoPrincipal: response.data.data.paciente?.telefonoPrincipal || '',
-              telefonoSecundario: response.data.data.paciente?.telefonoSecundario || '',
-              fechaNacimiento: response.data.data.paciente?.fechaNacimiento || '',
-              
-              // Add parsed age fields
-              edadAnios,
-              edadMeses,
-              edadDias,
-          
-              // Rest of the existing code remains the same
-              evaluacionPsicomotora: {
-                puntajeDPM: response.data.data.evaluacionPsicomotora?.puntajeDPM || '',
-                diagnosticoDSM: response.data.data.evaluacionPsicomotora?.diagnosticoDSM || ''
-              },
-          
-              informacionFamiliar: {
-                conQuienVive: response.data.data.informacionFamiliar?.conQuienVive || '',
-                localidad: response.data.data.informacionFamiliar?.localidad || '',
-                tiposFamilia: response.data.data.informacionFamiliar?.tiposFamilia || [],
-                cicloVitalFamiliar: response.data.data.informacionFamiliar?.cicloVitalFamiliar || null,
-                padres: response.data.data.informacionFamiliar?.padres || []
-              },
-          
-              factoresRiesgo: {
-                nino: response.data.data.factoresRiesgo?.nino || [],
-                familiares: response.data.data.factoresRiesgo?.familiares || []
-              }
-            };
-          }
-        };
-        
         setDatosIniciales(prepararDatosIniciales());
-
         setLoading(false);
       } catch (err) {
-        console.error('Error al obtener la ficha original:', err);
-        toast.error('No se pudo cargar la ficha original: ' + err.message);
+        console.error('Error al obtener datos:', err);
+        toast.error('No se pudo cargar la información: ' + err.message);
         setLoading(false);
         navigate(-1);
       }
     };
   
-    fetchFichaOriginal();
-  }, [location.state, getToken, navigate, user.institucion_id]);
+    fetchDatosReevaluacion();
+  }, [location.state, getToken, navigate, user.institucion_id, compararDatos, parseEdad]);
 
   const handleReevaluacionExitosa = (nuevaFicha) => {
     toast.success('Reevaluación registrada exitosamente');
@@ -198,6 +375,19 @@ const Reevaluacion = () => {
   return (
     <div className="container">
       <ToastContainer />
+      <div className="d-flex mb-3">
+        <Button 
+          variant="" 
+          onClick={handleVolver}
+          style={{
+            border: 'none',
+            boxShadow: 'none',
+            color: 'black'
+          }}
+        >
+          <i className="fas fa-arrow-left me-8 pr-1"></i>Volver
+        </Button>
+      </div>
       <h2 className="text-center mb-4">
         Reevaluación - {tipoFicha === 'adulto' ? 'Adulto' : 'Infantil'}
       </h2>
@@ -206,25 +396,27 @@ const Reevaluacion = () => {
         <FichaClinicaAdulto
           key="reevaluacion-adulto"
           datosIniciales={datosIniciales}
-          onVolver={() => navigate(-1)}
+          onVolver={handleVolver}
           onIngresar={handleReevaluacionExitosa}
           esReevaluacion={true}
-        
           institucionId={fichaOriginal.institucion_id}
+          cambiosDetectados={cambiosDetectados}
+          ultimaReevaluacion={ultimaReevaluacion}
         />
       ) : (
         <FichaClinicaInfantil
           key="reevaluacion-infantil"
           datosIniciales={datosIniciales}
-          onVolver={() => navigate(-1)}
+          onVolver={handleVolver}
           onIngresar={handleReevaluacionExitosa}
           esReevaluacion={true}
-          
           institucionId={fichaOriginal.institucion_id}
+          cambiosDetectados={cambiosDetectados}
+          ultimaReevaluacion={ultimaReevaluacion}
         />
       )}
     </div>
   );
-  };
-  
-  export default Reevaluacion;
+};
+
+export default Reevaluacion;

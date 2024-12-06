@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Form, Button, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
@@ -29,10 +29,42 @@ const PrimerLlamado = ({
   setSeguimiento, 
   onComplete, 
   disabled,
+  guardarSeguimiento,
   paciente
 }) => {  
   const { user } = useAuth();
-  console.log('2',user);
+  const [mostrarBotonActualizar, setMostrarBotonActualizar] = useState(false);
+  const [tiempoRestante, setTiempoRestante] = useState(0);
+
+  // Efecto para manejar la visibilidad del botón de actualizar
+  useEffect(() => {
+    let temporizador;
+
+    // Solo para usuarios con rol_id === 3 (estudiantes)
+    if (user.rol_id === 3) {
+      // Mostrar el botón de actualizar por 1 minuto después de guardar
+      if (mostrarBotonActualizar) {
+        setTiempoRestante(60); // 60 segundos = 1 minuto
+
+        temporizador = setInterval(() => {
+          setTiempoRestante((prevTiempo) => {
+            if (prevTiempo <= 1) {
+              setMostrarBotonActualizar(false);
+              return 0;
+            }
+            return prevTiempo - 1;
+          });
+        }, 1000);
+      }
+    }
+
+    // Limpiar el temporizador
+    return () => {
+      if (temporizador) {
+        clearInterval(temporizador);
+      }
+    };
+  }, [mostrarBotonActualizar, user.rol_id]);
 
   const preguntasAutoeficacia = [
     { 
@@ -116,11 +148,14 @@ const PrimerLlamado = ({
       estudiante_id: user.estudiante_id || null, // Esto debería ser null
       usuario_id: user.id || null // Esto debería ser 1
     };
-  
-    console.log('Data a enviar:', dataToSubmit); // Verifica que esto contenga el usuario_id correcto
-  
+
     // Si pasa validaciones, llamar a la función de completar
     onComplete(dataToSubmit);
+
+    // Mostrar el botón de actualizar solo para estudiantes
+    if (user.rol_id === 3) {
+      setMostrarBotonActualizar(true);
+    }
   };
 
   const renderContent = () => {
@@ -195,6 +230,7 @@ const PrimerLlamado = ({
                         fechaHerida: e.target.value
                       }
                     }))}
+                    max={new Date().toISOString().split('T')[0]} // Establece la fecha máxima como hoy
                   />
                 </Form.Group>
                 <Form.Group className="mb-3">
@@ -584,12 +620,12 @@ const PrimerLlamado = ({
           <Form.Check 
             type="checkbox"
             label="Náuseas y vómitos"
-            checked={seguimiento.riesgoHipertension.nauseas}
+            checked={seguimiento.riesgoHipertension.nauseaVomitos}
             onChange={() => setSeguimiento(prev => ({
               ...prev,
               riesgoHipertension: {
                 ...prev.riesgoHipertension,
-                nauseas: !prev.riesgoHipertension.nauseas
+                nauseaVomitos: !prev.riesgoHipertension.nauseaVomitos
               }
             }))}
           />
@@ -831,43 +867,85 @@ const PrimerLlamado = ({
         </div>
 
         <div data-pdf-section>
-            {/* Sección de Autoeficacia */}
-            <div style={sectionStyles}>
-              <h5 style={{
-                ...headingStyles,
-                backgroundColor: '#17a2b8' // Cyan para autoeficacia
-              }}>
-                <i className="fas fa-chart-line mr-3"></i>
-                Evaluación de Autoeficacia en Diabetes Tipo 2
-              </h5>
+          {/* Sección de Autoeficacia */}
+          <div style={{
+            ...sectionStyles,
+            // Añade algunos ajustes para móviles
+            padding: '15px',
+            '@media (max-width: 768px)': {
+              padding: '10px'
+            }
+          }}>
+            <h5 style={{
+              ...headingStyles,
+              backgroundColor: '#17a2b8', 
+              // Ajustes para texto en móviles
+              fontSize: 'calc(1rem + 0.5vw)', // Tamaño de fuente responsivo
+              padding: '10px',
+              textAlign: 'center'
+            }}>
+              <i className="fas fa-chart-line mr-3"></i>
+              Evaluación de Autoeficacia en Diabetes Tipo 2
+            </h5>
 
-              <p className="text-muted mb-4">
-                En las siguientes preguntas nos gustaría saber qué piensa Ud. de sus habilidades para controlar su enfermedad.
-              </p>
+            <p className="text-muted mb-4 text-center" style={{
+              // Ajustes para párrafo en móviles
+              fontSize: 'calc(0.8rem + 0.3vw)'
+            }}>
+              En las siguientes preguntas nos gustaría saber qué piensa Ud. de sus habilidades para controlar su enfermedad.
+            </p>
+
             {preguntasAutoeficacia.map((pregunta, index) => (
               <Form.Group key={index} className="mb-3">
-                <Form.Label>{pregunta.label}</Form.Label>
-                <div className="d-flex align-items-center">
-                  <span className="mr-2">Muy inseguro(a)</span>
-                  <Form.Control 
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={seguimiento.autoeficacia[pregunta.key] || 1}
-                    onChange={(e) => setSeguimiento(prev => ({
-                      ...prev,
-                      autoeficacia: {
-                        ...prev.autoeficacia,
-                        [pregunta.key]: parseInt(e.target.value)
-                      }
-                    }))}
-                  />
-                  <span className="ml-2">Seguro(a)</span>
+                <Form.Label style={{
+                  // Tamaño de fuente responsivo para etiquetas
+                  fontSize: 'calc(0.9rem + 0.2vw)'
+                }}>{pregunta.label}</Form.Label>
+                <div className="d-flex flex-column flex-md-row align-items-center">
+                  {/* Etiqueta para móviles */}
+                  <span className="mb-2 mb-md-0 mr-md-2 text-muted" style={{
+                    fontSize: 'calc(0.7rem + 0.2vw)'
+                  }}>
+                    Muy inseguro(a)
+                  </span>
+                  <div className="flex-grow-1 mx-2">
+                    <Form.Control 
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={seguimiento.autoeficacia[pregunta.key] || 1}
+                      onChange={(e) => setSeguimiento(prev => ({
+                        ...prev,
+                        autoeficacia: {
+                          ...prev.autoeficacia,
+                          [pregunta.key]: parseInt(e.target.value)
+                        }
+                      }))}
+                      style={{
+                        // Asegurar que el slider sea responsivo
+                        width: '100%',
+                        height: '10px'
+                      }}
+                    />
+                  </div>
+                  {/* Etiqueta para móviles */}
+                  <span className="mt-2 mt-md-0 ml-md-2 text-muted" style={{
+                    fontSize: 'calc(0.7rem + 0.2vw)'
+                  }}>
+                    Seguro(a)
+                  </span>
                 </div>
-                <div className="text-center">{seguimiento.autoeficacia[pregunta.key]}</div>
+                
+                {/* Valor actual centrado y con tamaño responsivo */}
+                <div className="text-center mt-2" style={{
+                  fontSize: 'calc(0.9rem + 0.2vw)',
+                  fontWeight: 'bold'
+                }}>
+                  {seguimiento.autoeficacia[pregunta.key]}
+                </div>
               </Form.Group>
             ))}
-            </div>
+          </div>
 
             <Alert variant="info" style={{ borderRadius: '8px', marginTop: '20px' }}>
               <p>
@@ -876,6 +954,27 @@ const PrimerLlamado = ({
                 Muchas gracias por su colaboración, ¡Hasta pronto!
               </p>
             </Alert>
+
+            {/* Sección de Comentarios */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '15px',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              marginBottom: '20px',
+            }}>
+              <Form.Group className="mb-3">
+                <Form.Label>Comentarios</Form.Label>
+                <Form.Control 
+                  as="textarea" 
+                  value={seguimiento.comentario_primer_llamado}
+                  onChange={(e) => setSeguimiento(prev => ({
+                    ...prev, 
+                    comentario_primer_llamado: e.target.value
+                  }))}
+                />
+              </Form.Group>
+            </div>
           </div>
         </div>
     );
@@ -969,6 +1068,17 @@ return (
         {renderContent()}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
           <Button type="submit" disabled={disabled}>Guardar</Button>
+          {/* Botón de Actualizar con tiempo restante */}
+          {mostrarBotonActualizar && user.rol_id === 3 && (
+              <Button 
+                variant="success" 
+                onClick={() => {
+                  guardarSeguimiento(1, true);
+                }}
+              >
+                Actualizar {tiempoRestante > 0 ? `(${tiempoRestante}s)` : ''}
+              </Button>
+            )}
           {seguimiento.riesgoInfeccion.herida || seguimiento.efectosSecundarios.malestar  ? (
               <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
           ) : null}

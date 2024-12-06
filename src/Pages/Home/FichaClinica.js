@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Tabs, Tab, Container, Button } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import _ from 'lodash';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './FichaClinica.css';
@@ -9,6 +10,8 @@ import './FichaClinica.css';
 import SeguimientoInfantil from './SeguimientoInfantil';
 import SeguimientoAdulto from './SeguimientoAdulto';
 import Reevaluacion from './Reevaluacion';
+import ModalEditarFichaAdulto from './ModalEditarFichaAdulto'; // Ajusta la ruta según tu estructura
+import ModalEditarFichaInfantil from './ModalEditarFichaInfantil'; // Ajusta la ruta según tu estructura
 
 const FichaClinicaAdulto = ({ fichaClinica }) => {
   const navigate = useNavigate();
@@ -21,7 +24,6 @@ const FichaClinicaAdulto = ({ fichaClinica }) => {
           <h5 className="border-bottom pb-2">Datos Personales</h5>
           <div className="row">
             <div className="col-md-6">
-              <p><strong>ID:</strong> {fichaClinica.id}</p>
               <p><strong>RUT:</strong> {fichaClinica.paciente?.rut}</p>
               <p><strong>Nombres:</strong> {fichaClinica.paciente?.nombres}</p>
               <p><strong>Apellidos:</strong> {fichaClinica.paciente?.apellidos}</p>
@@ -40,7 +42,13 @@ const FichaClinicaAdulto = ({ fichaClinica }) => {
           <h5 className="border-bottom pb-2">Información Médica</h5>
           <div className="row">
             <div className="col-md-6">
-            <p><strong>Diagnostico:</strong> {fichaClinica.diagnostico}</p>
+            <p>
+                <strong>Diagnóstico: </strong> 
+                {fichaClinica.diagnostico?.nombre || 
+                fichaClinica.diagnostico?.diagnosticoOtro || 
+                fichaClinica.diagnostico_otro || 
+                'N/A'}
+              </p>
               <p>
                 <strong>Escolaridad:</strong> {
                   (fichaClinica.escolaridad && 
@@ -97,7 +105,9 @@ const FichaClinicaAdulto = ({ fichaClinica }) => {
           <ul className="list-unstyled">
             {fichaClinica.informacionFamiliar?.tiposFamilia && fichaClinica.informacionFamiliar.tiposFamilia.length > 0 ? (
               fichaClinica.informacionFamiliar.tiposFamilia.map((tipo, index) => (
-                <li key={tipo.id || index}>{tipo.nombre}</li>
+                <li key={tipo.id || index}>
+                  {tipo.tipoFamiliaOtro || tipo.nombre}
+                </li>
               ))
             ) : (
               <li>No hay tipos de familia registrados</li>
@@ -141,7 +151,6 @@ const FichaClinicaInfantil = ({ fichaClinica }) => {
           <h5 className="border-bottom pb-2">Datos Personales</h5>
           <div className="row">
             <div className="col-md-6">
-              <p><strong>ID:</strong> {fichaClinica.id}</p>
               <p><strong>RUT:</strong> {fichaClinica.paciente?.rut}</p>
               <p><strong>Nombres:</strong> {fichaClinica.paciente?.nombres}</p>
               <p><strong>Apellidos:</strong> {fichaClinica.paciente?.apellidos}</p>
@@ -193,10 +202,10 @@ const FichaClinicaInfantil = ({ fichaClinica }) => {
           <h6>Tipo de Familia:</h6>
           {fichaClinica.informacionFamiliar?.tiposFamilia && fichaClinica.informacionFamiliar.tiposFamilia.length > 0 ? (
             fichaClinica.informacionFamiliar.tiposFamilia.map((tipo, index) => (
-              <p key={tipo.id || index}>{tipo.nombre}</p>
+              <p key={tipo.id || index}>{tipo.nombre || tipo.tipoFamiliaOtro}</p>
             ))
           ) : (
-            <p>No especificado</p>
+            <p></p>
           )}
           <h6>Ciclo Vital Familiar:</h6>
           <p>{fichaClinica.informacionFamiliar?.cicloVitalFamiliar?.ciclo || 'No especificado'}</p>
@@ -275,7 +284,14 @@ const formatearFichaAdulto = (fichaClinica) => {
       telefonoPrincipal: fichaClinica.paciente?.telefonoPrincipal || 'N/A',
       telefonoSecundario: fichaClinica.paciente?.telefonoSecundario || 'N/A'
     },
-    diagnostico: fichaClinica.diagnostico?.nombre || 'N/A', // Cambio aquí
+    diagnostico: {
+      nombre: fichaClinica.diagnostico?.nombre || 
+              (fichaClinica.diagnostico && fichaClinica.diagnostico.nombre) || 
+              null,
+      diagnosticoOtro: fichaClinica.diagnostico_otro || 
+                       (fichaClinica.diagnostico && fichaClinica.diagnostico.diagnosticoOtro) || 
+                       null
+    },
     escolaridad: {
       id: fichaClinica.escolaridad?.id || null,
       nivel: fichaClinica.escolaridad?.nivel || 'No especificado'
@@ -299,12 +315,14 @@ const formatearFichaAdulto = (fichaClinica) => {
     ],
     tiposFamilia: (fichaClinica.tiposFamilia || []).map(t => ({
       id: t.id || null,
-      nombre: t.nombre || 'N/A'
+      nombre: t.nombre || null,
+      tipoFamiliaOtro: t.tipoFamiliaOtro || null
     })),
     informacionFamiliar: {
       tiposFamilia: (fichaClinica.tiposFamilia || []).map(t => ({
         id: t.id || null,
-        nombre: t.nombre || 'N/A'
+        nombre: t.nombre || null,
+        tipoFamiliaOtro: t.tipoFamiliaOtro || null
       }))
     },
     estudiante: {
@@ -350,7 +368,8 @@ const formatearFichaInfantil = (fichaClinica) => {
       conQuienVive: fichaClinica.informacionFamiliar?.conQuienVive || 'N/A',
       tiposFamilia: (fichaClinica.informacionFamiliar?.tiposFamilia || []).map(tipo => ({
         id: tipo.id || null,
-        nombre: tipo.nombre || 'No especificado'
+        tipoFamilia: tipo.nombre || null,
+        tipoFamiliaOtro: tipo.tipoFamiliaOtro || null
       })),
       cicloVitalFamiliar: {
         id: fichaClinica.informacionFamiliar?.cicloVitalFamiliar?.id || null,
@@ -410,12 +429,19 @@ const FichaClinica = () => {
   const [activeTab, setActiveTab] = useState('informacion');
   const [reevaluaciones, setReevaluaciones] = useState([]);
   const [expandido, setExpandido] = useState(false);
-
+  const [mostrarModalEdicion, setMostrarModalEdicion] = useState(false);
+  const [cambiosDetectados, setCambiosDetectados] = useState({});
+  const [cambiosExpandidos, setCambiosExpandidos] = useState(false);
   const [paginaActual, setPaginaActual] = useState(1);
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [totalPaginas, setTotalPaginas] = useState(0);
   const reevaluacionesPorPagina = 5;
+
+  const handleActualizarFicha = () => {
+    // Recargar la ficha clínica después de la actualización
+    fetchFichaClinica();
+  };
 
   // Definición de fetchFichaClinica como función
   const fetchFichaClinica = async () => {
@@ -453,12 +479,9 @@ const FichaClinica = () => {
 
   // Función para volver al listado de fichas clínicas
   const handleVolver = () => {
-    navigate('?component=listado-fichas-clinicas', { 
-      state: { 
-        tipo: tipo
-      } 
-    });
+    navigate(-1);
   };
+  
   const fetchReevaluaciones = async (pagina = 1, fechaInicio = '', fechaFin = '') => {
   try {
     const token = getToken();
@@ -476,24 +499,16 @@ const FichaClinica = () => {
       }
     );
 
-    console.log('Respuesta completa de reevaluaciones:', response.data);
-    
     // Verificar si hay datos
     if (response.data && response.data.data) {
-      console.log('Número de reevaluaciones:', response.data.data.length);
-      
       // Formatear las reevaluaciones según el tipo
       const reevaluacionesFormateadas = response.data.data.map(reevaluacion => 
         tipo === 'adulto' 
           ? formatearFichaAdulto(reevaluacion) 
           : formatearFichaInfantil(reevaluacion)
       );
-
-      console.log('Reevaluaciones formateadas:', reevaluacionesFormateadas);
-
       setReevaluaciones(reevaluacionesFormateadas);
     } else {
-      console.log('No se encontraron reevaluaciones');
       setReevaluaciones([]);
     }
 
@@ -504,6 +519,163 @@ const FichaClinica = () => {
     setReevaluaciones([]);
   }
 };
+
+const compararDatos = (original, reevaluacion) => {
+  const cambios = {};
+  
+  // Campos a comparar dependiendo del tipo de ficha
+  const camposComparar = tipo === 'adulto' ? [
+    'diagnostico', 
+    'escolaridad', 
+    'ocupacion', 
+    'direccion',
+    'factoresRiesgo.valorHbac1',
+    'factoresRiesgo.alcoholDrogas',
+    'factoresRiesgo.tabaquismo',
+    'conQuienVive',
+    'horarioLlamada',
+    'conectividad'
+  ] : [
+    'evaluacionPsicomotora.puntajeDPM',
+    'evaluacionPsicomotora.diagnosticoDSM',
+    'informacionFamiliar.conQuienVive',
+    'informacionFamiliar.localidad',
+    'informacionFamiliar.tiposFamilia',
+    'factoresRiesgo.nino',
+    'factoresRiesgo.familiares'
+  ];
+
+  camposComparar.forEach(campo => {
+    // Función para obtener valor de un objeto anidado
+    const getNestedValue = (obj, path) => {
+      return path.split('.').reduce((acc, part) => 
+        acc && acc[part] !== undefined ? acc[part] : undefined, obj);
+    };
+
+    const valorOriginal = getNestedValue(original, campo);
+    const valorReevaluacion = getNestedValue(reevaluacion, campo);
+
+    // Comparación de arrays
+    if (Array.isArray(valorOriginal) && Array.isArray(valorReevaluacion)) {
+      if (!_.isEqual(valorOriginal, valorReevaluacion)) {
+        cambios[campo] = {
+          original: valorOriginal,
+          reevaluacion: valorReevaluacion
+        };
+      }
+    } 
+    // Comparación de objetos
+    else if (valorOriginal && valorReevaluacion && typeof valorOriginal === 'object' && typeof valorReevaluacion === 'object') {
+      if (!_.isEqual(valorOriginal, valorReevaluacion)) {
+        cambios[campo] = {
+          original: valorOriginal,
+          reevaluacion: valorReevaluacion
+        };
+      }
+    }
+    // Comparación de valores simples
+    else if (valorOriginal !== valorReevaluacion) {
+      cambios[campo] = {
+        original: valorOriginal,
+        reevaluacion: valorReevaluacion
+      };
+    }
+  });
+
+  return cambios;
+};
+
+const renderCambiosDetectados = (cambios) => {
+  const traducirCampo = (campo) => {
+    const mapaCampos = {
+      'diagnostico': 'Diagnóstico',
+      'escolaridad': 'Escolaridad',
+      'ocupacion': 'Ocupación',
+      'direccion': 'Dirección',
+      'factoresRiesgo.valorHbac1': 'Valor HbA1c',
+      'factoresRiesgo.alcoholDrogas': 'Alcohol/Drogas',
+      'factoresRiesgo.tabaquismo': 'Tabaquismo',
+      'conQuienVive': 'Con Quién Vive',
+      'horarioLlamada': 'Horario de Llamada',
+      'conectividad': 'Conectividad',
+      'evaluacionPsicomotora.puntajeDPM': 'Puntaje DPM',
+      'evaluacionPsicomotora.diagnosticoDSM': 'Diagnóstico DSM',
+      'informacionFamiliar.conQuienVive': 'Con Quién Vive',
+      'informacionFamiliar.localidad': 'Localidad',
+      'informacionFamiliar.tiposFamilia': 'Tipos de Familia',
+      'factoresRiesgo.nino': 'Factores de Riesgo del Niño',
+      'factoresRiesgo.familiares': 'Factores de Riesgo Familiares'
+    };
+    return mapaCampos[campo] || campo;
+  };
+
+  const formatearValor = (valor) => {
+    // Caso específico para diagnóstico
+    if (valor && typeof valor === 'object' && ('nombre' in valor || 'diagnosticoOtro' in valor)) {
+      // Prioriza diagnosticoOtro si existe
+      if (valor.diagnosticoOtro) return valor.diagnosticoOtro;
+      // Si no, usa nombre
+      if (valor.nombre) return valor.nombre;
+      // Si ninguno tiene valor, retorna N/A
+      return 'N/A';
+    }
+  
+    // Resto del código anterior
+    if (valor === null || valor === undefined) return 'N/A';
+    if (typeof valor === 'boolean') return valor ? 'Sí' : 'No';
+    if (Array.isArray(valor)) return valor.map(v => v.nombre || v).join(', ');
+    if (typeof valor === 'object') return valor.nombre || valor.nivel || JSON.stringify(valor);
+    return valor.toString();
+  };
+
+  return (
+    <div className="row g-2">
+      {Object.entries(cambios).map(([campo, cambio]) => (
+        <div key={campo} className="col-md-6">
+          <div 
+            className="card border-warning"
+          >
+            <div className="card-body py-2 px-3">
+              <div className="d-flex justify-content-between align-items-center">
+                <span className="fw-bold me-2">
+                  {traducirCampo(campo)}
+                </span>
+                <div>
+                  <span className="text-muted me-2">
+                    {formatearValor(cambio.original)}
+                  </span>
+                  <span className="text-primary">
+                    <i className="fas fa-arrow-right me-2"></i>
+                    {formatearValor(cambio.reevaluacion)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// En tu useEffect para reevaluaciones
+useEffect(() => {
+  if (reevaluaciones.length > 0 && fichaClinica) {
+    // Tomar la primera reevaluación (más reciente)
+    const ultimaReevaluacion = reevaluaciones[0];
+    
+    console.log('Ficha Clínica Original:', fichaClinica);
+    console.log('Última Reevaluación:', ultimaReevaluacion);
+    
+    // Comparar datos originales con la última reevaluación
+    const cambiosDetectados = compararDatos(fichaClinica, ultimaReevaluacion);
+    
+    console.log('Cambios Detectados:', cambiosDetectados);
+    
+    // Actualizar estado de cambios
+    setCambiosDetectados(cambiosDetectados);
+  }
+}, [reevaluaciones, fichaClinica]);
   
   useEffect(() => {
     if (fichaId && tipo) {
@@ -545,10 +717,27 @@ const FichaClinica = () => {
         >
           <i className="fas fa-arrow-left me-8 pr-1"></i>Volver
         </Button>
+
+        {/* Modal de edición condicional */}
+        {tipo === 'infantil' ? (
+          <ModalEditarFichaInfantil 
+            show={mostrarModalEdicion} 
+            onHide={() => setMostrarModalEdicion(false)} 
+            fichaClinica={fichaClinica} 
+            onActualizar={handleActualizarFicha} 
+          />
+        ) : tipo === 'adulto' ? (
+          <ModalEditarFichaAdulto 
+            show={mostrarModalEdicion} 
+            onHide={() => setMostrarModalEdicion(false)} 
+            fichaClinica={fichaClinica} 
+            onActualizar={handleActualizarFicha} 
+          />
+        ) : null}
+
         <h2 className="text-center mb-0 pb-2">
           Ficha Clínica {tipo === 'adulto' ? 'Adulto' : 'Infantil'} - {fichaClinica.paciente?.nombres} {fichaClinica.paciente?.apellidos}
         </h2>
-      
       <Tabs 
         id="ficha-clinica-tabs"
         activeKey={activeTab}
@@ -561,6 +750,13 @@ const FichaClinica = () => {
               <i className="fas fa-user-circle me-2"></i>Información del Paciente
             </div>
             <div className="card-body">
+              <Button 
+                variant="outline-primary" 
+                onClick={() => setMostrarModalEdicion(true)}
+                className="mb-3"
+              >
+                <i className="fas fa-edit me-2"></i>Editar Ficha
+              </Button>
               {tipo === 'adulto' ? (
                   <FichaClinicaAdulto fichaClinica={fichaClinica} />
                 ) : (
@@ -575,6 +771,7 @@ const FichaClinica = () => {
             <SeguimientoInfantil 
               pacienteId={fichaClinica.paciente.id} 
               fichaId={fichaId} 
+              fichaClinica={fichaClinica}
             />
           ) : (
             <SeguimientoAdulto 
@@ -642,7 +839,7 @@ const FichaClinica = () => {
                   {reevaluaciones.map((reevaluacion, index) => (
                     <div key={reevaluacion.id} className="card mb-3">
                       <div 
-                        className="card-header d-flex justify-content-between align-items-center" 
+                        className="card-header d-flex justify-content-between align-items-center bg-primary" 
                         onClick={() => setExpandido(index === expandido ? null : index)}
                         style={{ cursor: 'pointer' }}
                       >
@@ -655,14 +852,42 @@ const FichaClinica = () => {
                         </div>
                       </div>
                       {expandido === index && (
-                        <div className="card-body">
+                        <>
+                          {Object.keys(cambiosDetectados).length > 0 && (
+                            <div className="card-body border-bottom" style={{ 
+                                backgroundColor: '#e3f0fb', 
+                                borderWidth: '2px' 
+                              }}>
+                              <div 
+                                className="d-flex justify-content-between align-items-center" 
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setCambiosExpandidos(!cambiosExpandidos)}
+                              >
+                                <h6 className="text-muted mb-0">Cambios Detectados</h6>
+                                <i className={`fas fa-chevron-${cambiosExpandidos ? 'up' : 'down'}`}></i>
+                              </div>
+                              
+                              {cambiosExpandidos && (
+                                <div className="mt-3">
+                                  {renderCambiosDetectados(cambiosDetectados)}
+                                </div>
+                              )}
+                            </div>
+                          )}
                           {tipo === 'adulto' ? (
-                            // Contenido para reevaluación de adulto (existente)
-                            <>
+                            // Contenido para reevaluación de adulto
+                            <div className="card-body">
                               <div className="row">
                                 <div className="col-md-6">
                                   <h6 className="border-bottom pb-2">Información Personal</h6>
-                                  <p><strong>Diagnóstico:</strong> {reevaluacion?.diagnostico || 'N/A'}</p>
+                                  <p>
+                                    <strong>Diagnóstico:</strong> {
+                                      (reevaluacion.diagnostico?.nombre || 
+                                      reevaluacion.diagnostico?.diagnosticoOtro || 
+                                      reevaluacion.diagnostico_otro || 
+                                      'N/A')
+                                    }
+                                  </p>
                                   <p><strong>Ocupación:</strong> {reevaluacion.ocupacion || 'N/A'}</p>
                                   <p><strong>Escolaridad:</strong> {reevaluacion.escolaridad?.nivel || 'N/A'}</p>
                                   <p><strong>Con quién vive:</strong> {reevaluacion.conQuienVive || 'N/A'}</p>
@@ -688,7 +913,7 @@ const FichaClinica = () => {
                                   <ul>
                                     {reevaluacion.tiposFamilia && reevaluacion.tiposFamilia.length > 0 ? (
                                       reevaluacion.tiposFamilia.map((tipo, idx) => (
-                                        <li key={idx}>{tipo.nombre}</li>
+                                        <li key={idx}>{tipo.nombre || tipo.tipoFamiliaOtro}</li>
                                       ))
                                     ) : (
                                       <li>No hay tipos de familia registrados</li>
@@ -702,11 +927,11 @@ const FichaClinica = () => {
                                   <p><strong>Conectividad:</strong> {reevaluacion.conectividad || 'N/A'}</p>
                                 </div>
                               </div>
-                            </>
+                            </div>
                           ) : (
                             // Contenido para reevaluación infantil
                             <>
-                              <div className="row">
+                              <div className="row m-1  mt-3">
                                 <div className="col-md-6">
                                   <h6 className="border-bottom pb-2">Evaluación Psicomotora</h6>
                                   <p><strong>Puntaje DPM:</strong> {reevaluacion.evaluacionPsicomotora?.puntajeDPM || 'N/A'}</p>
@@ -718,12 +943,12 @@ const FichaClinica = () => {
                                   <p><strong>Localidad:</strong> {reevaluacion.informacionFamiliar?.localidad || 'N/A'}</p>
                                 </div>
                               </div>
-                              <div className="row mt-3">
+                              <div className="row m-1">
                                 <div className="col-md-6">
                                   <h6 className="border-bottom pb-2">Tipos de Familia</h6>
                                   {reevaluacion.informacionFamiliar?.tiposFamilia && reevaluacion.informacionFamiliar.tiposFamilia.length > 0 ? (
                                     reevaluacion.informacionFamiliar.tiposFamilia.map((tipo, idx) => (
-                                      <p key={idx}>{tipo.nombre}</p>
+                                      <p key={idx}>{tipo.nombre || tipo.tipoFamiliaOtro}</p>
                                     ))
                                   ) : (
                                     <p>No hay tipos de familia registrados</p>
@@ -734,7 +959,7 @@ const FichaClinica = () => {
                                   <p>{reevaluacion.informacionFamiliar?.cicloVitalFamiliar?.ciclo || 'No especificado'}</p>
                                 </div>
                               </div>
-                              <div className="row mt-3">
+                              <div className="row m-1">
                                 <div className="col-md-6">
                                   <h6 className="border-bottom pb-2">Factores de Riesgo del Niño</h6>
                                   <ul>
@@ -766,13 +991,13 @@ const FichaClinica = () => {
                           )}
                           
                           {/* Sección común para ambos tipos */}
-                          <div className="row mt-3">
+                          <div className="row m-1">
                             <div className="col-12">
                               <h6 className="border-bottom pb-2">Observaciones</h6>
                               <p>{reevaluacion.observaciones || 'Sin observaciones'}</p>
                             </div>
                           </div>
-                          <div className="row mt-3">
+                          <div className="row m-1">
                             <div className="col-md-6">
                               <h6 className="border-bottom pb-2">
                                 {reevaluacion.estudiante && reevaluacion.estudiante.nombres ? 'Estudiante' : 'Responsable'}
@@ -803,7 +1028,7 @@ const FichaClinica = () => {
                               <p><strong>Nombre:</strong> {reevaluacion.institucion?.nombre || 'N/A'}</p>
                             </div>
                           </div>
-                        </div>
+                        </>
                       )}
                     </div>
                   ))}

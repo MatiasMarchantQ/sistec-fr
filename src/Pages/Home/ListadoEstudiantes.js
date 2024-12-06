@@ -250,7 +250,6 @@ const Estudiantes = () => {
   
       if (response.data.mensaje) {
         // Aquí podrías mostrar un mensaje de éxito
-        console.log('Actualización exitosa:', response.data.mensaje);
       }
   
       obtenerEstudiantes();

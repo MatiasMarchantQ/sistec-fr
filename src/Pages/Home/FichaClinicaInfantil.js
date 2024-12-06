@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosIniciales }) => {
+const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosIniciales, ultimaReevaluacion }) => {
     const [datosNino, setDatosNino] = useState({
         fechaNacimiento: '',
         nombres: '',
@@ -48,102 +48,236 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
     const [tiposFamilia, setTiposFamilia] = useState([]);
     const [errores, setErrores] = useState({});
 
-    useEffect(() => {
-      console.log('Datos Iniciales Recibidos:', datosIniciales);
+    const parseEdad = useMemo(() => (edadString) => {
+      // Si no hay valor o es null, devolver objeto vacío
+      if (!edadString) {
+        return {
+          edadAnios: '',
+          edadMeses: '',
+          edadDias: ''
+        };
+      }
     
-      // Cargar datos iniciales si están disponibles
-      if (datosIniciales) {
+      // Si ya es un objeto con años, meses y días, devolverlo directamente
+      if (
+        edadString.edadAnios !== undefined && 
+        edadString.edadMeses !== undefined && 
+        edadString.edadDias !== undefined
+      ) {
+        return {
+          edadAnios: String(edadString.edadAnios || ''),
+          edadMeses: String(edadString.edadMeses || ''),
+          edadDias: String(edadString.edadDias || '')
+        };
+      }
+    
+      // Regex para parsear cadenas como "5 meses", "4 años", "3 años, 5 meses"
+      const edadRegex = /^(\d+)\s*(año|años|mes|meses|día|días)$/;
+      const match = edadString.match(edadRegex);
+    
+      if (match) {
+        const valor = match[1];
+        const unidad = match[2];
+    
+        switch(unidad) {
+          case 'año':
+          case 'años':
+            return {
+              edadAnios: valor,
+              edadMeses: '',
+              edadDias: ''
+            };
+          case 'mes':
+          case 'meses':
+            return {
+              edadAnios: '',
+              edadMeses: valor,
+              edadDias: ''
+            };
+          case 'día':
+          case 'días':
+            return {
+              edadAnios: '',
+              edadMeses: '',
+              edadDias: valor
+            };
+        }
+      }
+    
+      // Regex para cadenas más complejas como "4 años, 5 meses, 4 días"
+      const edadComplejaRegex = /(\d+)\s*años?,\s*(\d+)\s*meses?,\s*(\d+)\s*días?/;
+      const matchCompleja = edadString.match(edadComplejaRegex);
+    
+      if (matchCompleja) {
+        return {
+          edadAnios: matchCompleja[1] || '',
+          edadMeses: matchCompleja[2] || '',
+          edadDias: matchCompleja[3] || ''
+        };
+      }
+    
+      console.warn('Formato de edad no reconocido:', edadString);
+      return {
+        edadAnios: '',
+        edadMeses: '',
+        edadDias: ''
+      };
+    }, []);
+
+    useEffect(() => {
+      // Priorizar ultimaReevaluacion sobre datosIniciales
+      const datosBase = ultimaReevaluacion || datosIniciales;
+    
+      if (datosBase) {
         // Datos personales del niño
         setDatosNino(prev => ({
           ...prev,
-          nombres: datosIniciales.nombres || '',
-          apellidos: datosIniciales.apellidos || '',
-          rut: datosIniciales.rut || '',
-          telefonoPrincipal: datosIniciales.telefonoPrincipal || '',
-          telefonoSecundario: datosIniciales.telefonoSecundario || '',
-          fechaNacimiento: datosIniciales.fechaNacimiento || '',
+          nombres: datosBase.nombres || datosBase.paciente?.nombres || '',
+          apellidos: datosBase.apellidos || datosBase.paciente?.apellidos || '',
+          rut: datosBase.rut || datosBase.paciente?.rut || '',
+          telefonoPrincipal: datosBase.telefonoPrincipal || datosBase.paciente?.telefonoPrincipal || '',
+          telefonoSecundario: datosBase.telefonoSecundario || datosBase.paciente?.telefonoSecundario || '',
+          fechaNacimiento: datosBase.fechaNacimiento || datosBase.paciente?.fechaNacimiento || '',
           
-          // Manejo de edad si es necesario
-          edadAnios: datosIniciales.edadAnios || '',
-          edadMeses: datosIniciales.edadMeses || '',
-          edadDias: datosIniciales.edadDias || ''
+          // Manejo de edad con múltiples formatos
+          ...parseEdad(
+            datosBase.edad || 
+            datosBase.paciente?.edad || 
+            (datosBase.edadAnios && datosBase.edadMeses && datosBase.edadDias 
+              ? `${datosBase.edadAnios} años, ${datosBase.edadMeses} meses, ${datosBase.edadDias} días`
+              : '')
+          )
         }));
     
         // Evaluación psicomotora
-        setPuntajeDPM(datosIniciales.evaluacionPsicomotora?.puntajeDPM || '');
-        setDiagnosticoDSM(datosIniciales.evaluacionPsicomotora?.diagnosticoDSM || '');
+        setPuntajeDPM(
+          datosBase.puntajeDPM || 
+          datosBase.evaluacionPsicomotora?.puntajeDPM || 
+          ''
+        );
+        setDiagnosticoDSM(
+          datosBase.diagnosticoDSM || 
+          datosBase.evaluacionPsicomotora?.diagnosticoDSM || 
+          ''
+        );
     
         // Información familiar
-        setConQuienVive(datosIniciales.informacionFamiliar?.conQuienVive || '');
-        setLocalidad(datosIniciales.informacionFamiliar?.localidad || '');
-        
-        console.log('Estructura de tipos de familia:', {
-          tiposFamiliaInformacionFamiliar: datosIniciales.informacionFamiliar?.tiposFamilia,
-          primerTipoFamilia: datosIniciales.informacionFamiliar?.tiposFamilia?.[0],
-          idTipoFamilia: datosIniciales.informacionFamiliar?.tiposFamilia?.[0]?.id
-        });
-        
-        // Tipos de familia
-        setTipoFamilia(
-          datosIniciales.informacionFamiliar?.tiposFamilia?.[0]?.id?.toString() || ''
+        setConQuienVive(
+          datosBase.conQuienVive || 
+          datosBase.informacionFamiliar?.conQuienVive || 
+          ''
         );
-
+        setLocalidad(
+          datosBase.localidad || 
+          datosBase.informacionFamiliar?.localidad || 
+          ''
+        );
+    
+        // Tipos de familia
+        const tipoFamiliaData = 
+          datosBase.informacionFamiliar?.tiposFamilia || 
+          datosBase.tiposFamilia || 
+          [];
+    
+        // Determinar el tipo de familia y su variante
+        if (tipoFamiliaData.length > 0) {
+          const primerTipoFamilia = tipoFamiliaData[0];
+          
+          // Si el ID es null o 'Otras', usar el campo tipoFamiliaOtro
+          if (primerTipoFamilia.id === null || primerTipoFamilia.id === 'Otras') {
+            setTipoFamilia('Otras');
+            setOtraTipoFamilia(
+              primerTipoFamilia.tipoFamiliaOtro || 
+              datosBase.tipoFamiliaOtro || 
+              'PRUEBAAA'
+            );
+          } else {
+            // Establecer el tipo de familia con su ID
+            setTipoFamilia(primerTipoFamilia.id.toString());
+            setOtraTipoFamilia('');
+          }
+        } else {
+          // Si no hay datos de tipos de familia
+          setTipoFamilia('');
+          setOtraTipoFamilia('');
+        }
+    
         // Ciclo vital familiar
         setCicloVitalFamiliar(
-          datosIniciales.informacionFamiliar?.cicloVitalFamiliar?.id || 
-          datosIniciales.cicloVitalFamiliar?.id || 
+          datosBase.cicloVitalFamiliar || 
+          datosBase.informacionFamiliar?.cicloVitalFamiliar?.id || 
           ''
         );
     
         // Padres/Tutores
-        if (datosIniciales.informacionFamiliar?.padres && datosIniciales.informacionFamiliar.padres.length > 0) {
-          setPadres(datosIniciales.informacionFamiliar.padres.map(padre => ({
-            nombre: padre.nombre || '',
-            escolaridad: padre.escolaridad?.id || '',
-            ocupacion: padre.ocupacion || ''
-          })));
-        }
+        const padresData = 
+          datosBase.padres || 
+          datosBase.informacionFamiliar?.padres || 
+          [{ nombre: '', escolaridad: '', ocupacion: '' }];
+        
+        setPadres(padresData.map(padre => ({
+          nombre: padre.nombre || '',
+          escolaridad: padre.escolaridad?.id || padre.escolaridad || '',
+          ocupacion: padre.ocupacion || ''
+        })));
     
-       // Factores de riesgo del niño
-        const factoresRiesgoNino = datosIniciales.factoresRiesgo?.nino || [];
+        // Factores de riesgo del niño
+        const factoresNinoData = 
+          datosBase.factoresRiesgoNino || 
+          datosBase.factoresRiesgo?.nino || 
+          [];
+        
         const nuevosFactoresNino = {};
         factoresRiesgoNinoDisponibles.forEach(factorDisponible => {
-          const factorEncontrado = factoresRiesgoNino.find(
-            factor => factor.id === factorDisponible.id || factor.nombre === factorDisponible.nombre
+          const factorEncontrado = factoresNinoData.some(
+            factor => 
+              factor.id === factorDisponible.id || 
+              factor.nombre === factorDisponible.nombre ||
+              factor === factorDisponible.nombre
           );
           
-          if (factorEncontrado) {
-            console.log("Cargando factor de riesgo del niño:", factorDisponible.nombre);
-            nuevosFactoresNino[factorDisponible.nombre] = true;
-          }
+          nuevosFactoresNino[factorDisponible.nombre] = factorEncontrado;
         });
         setFactoresRiesgoNino(nuevosFactoresNino);
-
-        // Similar cambio para factores de riesgo familiares
-        const factoresRiesgoFamilia = datosIniciales.factoresRiesgo?.familiares || [];
+    
+        // Factores de riesgo familiares
+        const factoresFamiliaData = 
+          datosBase.factoresRiesgoFamiliares || 
+          datosBase.factoresRiesgo?.familiares || 
+          [];
+        
         const nuevosFactoresFamiliares = { otras: '' };
         factoresRiesgoFamiliaresDisponibles.forEach(factorDisponible => {
           if (factorDisponible.nombre !== 'Otras') {
-            const factorEncontrado = factoresRiesgoFamilia.find(
-              factor => factor.id === factorDisponible.id || factor.nombre === factorDisponible.nombre
+            const factorEncontrado = factoresFamiliaData.some(
+              factor => 
+                factor.id === factorDisponible.id || 
+                factor.nombre === factorDisponible.nombre ||
+                factor === factorDisponible.nombre
             );
             
-            if (factorEncontrado) {
-              console.log("Cargando factor de riesgo familiar:", factorDisponible.nombre);
-              nuevosFactoresFamiliares[factorDisponible.nombre] = true;
-            }
+            nuevosFactoresFamiliares[factorDisponible.nombre] = factorEncontrado;
           }
         });
-
+    
         // Manejo de 'otras'
-        const otrasFactores = factoresRiesgoFamilia.find(factor => factor.nombre === 'Otras');
-        if (otrasFactores && otrasFactores.otras) {
-          nuevosFactoresFamiliares.otras = otrasFactores.otras;
+        const otrasFactores = factoresFamiliaData.find(
+          factor => factor.nombre === 'Otras' || factor === 'Otras'
+        );
+        
+        if (otrasFactores) {
+          nuevosFactoresFamiliares.otras = otrasFactores.otras || ' ';
         }
         
         setFactoresRiesgoFamiliares(nuevosFactoresFamiliares);
       }
-    }, [datosIniciales, factoresRiesgoNinoDisponibles, factoresRiesgoFamiliaresDisponibles]);
+    }, [
+      datosIniciales, 
+      ultimaReevaluacion, 
+      factoresRiesgoNinoDisponibles, 
+      factoresRiesgoFamiliaresDisponibles,
+      parseEdad
+    ]);
 
     useEffect(() => {
       const cargarDatos = async () => {
@@ -225,7 +359,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
     if (!datosNino.telefonoPrincipal) erroresValidacion.telefonoPrincipal = 'El teléfono principal es requerido';
   
     setErrores(erroresValidacion);
-    console.log("Validation errors:", erroresValidacion);
     return Object.keys(erroresValidacion).length === 0;
   };
 
@@ -306,7 +439,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
     };
   
     try {
-      console.log("Datos a enviar:", datosParaEnviar);
       const token = getToken();
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/fichas-clinicas/infantil`,

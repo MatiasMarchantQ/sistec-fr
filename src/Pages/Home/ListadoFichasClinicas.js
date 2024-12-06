@@ -297,7 +297,13 @@ const ListadoFichasClinicas = () => {
                   const esInfantil = ficha.PacienteInfantil !== undefined;
                   const paciente = esInfantil ? ficha.PacienteInfantil : ficha.PacienteAdulto;
                   const fecha = new Date(ficha.createdAt).toLocaleDateString('es-CL');
-                  const diagnostico = esInfantil ? ficha.diagnostico_dsm : (ficha.diagnostico?.nombre || 'Sin diagnóstico');
+                  const diagnostico = esInfantil 
+                  ? ficha.diagnostico_dsm 
+                  : (
+                      ficha.diagnostico?.nombre || 
+                      ficha.diagnostico_otro || 
+                      'No especificado'
+                    );
                   const cantidadReevaluaciones = ficha.reevaluaciones || 'No aplicado';
 
                   return (

@@ -171,7 +171,7 @@ const Login = () => {
 
           <div className="card" style={{ boxShadow: 'none', transform: 'none', transition: 'none' }}>
             <div className="card-body login-card-body">
-              <p className="login-box-msg">Iniciar sesión</p>
+            <p>¿Eres un Director/Docente? <a href="#" onClick={() => setShowDirectorModal(true)}>Inicia sesión aquí</a></p>
               <form onSubmit={handleSubmit}>
                 <div className="input-group mb-3">
                   <input
@@ -245,9 +245,6 @@ const Login = () => {
                       'Iniciar Sesión'
                     )}
                   </button>
-                  <p>
-                    ¿Eres un Director/Docente? <a href="#" onClick={() => setShowDirectorModal(true)}>Inicia sesión aquí</a>
-                  </p>
                 </div>
               </form>
             </div>

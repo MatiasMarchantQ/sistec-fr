@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect} from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciales }) => {
+const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciales, ultimaReevaluacion = null }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, getToken } = useAuth();
   const initialDatosAdulto = {
     nombres: '',
@@ -42,61 +45,120 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  
-  // Añadir el estado para escolaridad
-  const [escolaridadSeleccionada, setEscolaridadSeleccionado] = useState('');
+
+  const handleVolver = () => {
+    // Verificar el estado de navegación o usar una lógica predeterminada
+    const estadoNavegacion = location.state;
+
+    if (estadoNavegacion && estadoNavegacion.origen) {
+      // Si hay un estado de navegación específico, usar esa ruta
+      switch(estadoNavegacion.origen) {
+        case 'listado-fichas':
+          navigate('?component=listado-fichas-clinicas', { 
+            state: { tipo: 'adulto' } 
+          });
+          break;
+        case 'dashboard':
+          navigate('/dashboard');
+          break;
+        case 'reevaluacion':
+          navigate('?component=reevaluacion', { 
+            state: { tipo: 'adulto' } 
+          });
+          break;
+        default:
+          // Ruta por defecto si no se especifica
+          navigate(-1); // Volver a la página anterior
+      }
+    } else {
+      // Si no hay estado específico, volver a la página anterior
+      navigate(-1);
+    }
+  };
 
   useEffect(() => {
     console.log('Datos Iniciales Recibidos:', datosIniciales);
+    console.log('Última Reevaluación:', ultimaReevaluacion);
+    
+    // Determinar la fuente de datos principal
+    const datosBase = ultimaReevaluacion || datosIniciales;
 
-    // Cargar datos iniciales si están disponibles
-    if (datosIniciales) {
+    if (datosBase) {
       setDatosAdulto(prev => ({
         ...prev,
-        nombres: datosIniciales.nombres || '',
-        apellidos: datosIniciales.apellidos || '',
-        rut: datosIniciales.rut || '',
-        edad: datosIniciales.edad || '',
-        ocupacion: datosIniciales.ocupacion || '',
-        direccion: datosIniciales.direccion || '',
-        conQuienVive: datosIniciales.conQuienVive || '',
-        telefonoPrincipal: datosIniciales.telefonoPrincipal || '',
-        telefonoSecundario: datosIniciales.telefonoSecundario || '',
-        horarioLlamada: datosIniciales.horarioLlamada || '',
-        conectividad: datosIniciales.conectividad || '',
-        valorHbac1: datosIniciales.valorHbac1 || '',
-        
-        // Añadir diagnóstico y escolaridad directamente al estado de datosAdulto
-        diagnostico: datosIniciales.diagnostico?.id || datosIniciales.diagnostico || '',
-        escolaridad: datosIniciales.escolaridad?.id || datosIniciales.escolaridad || ''
+        nombres: datosBase.nombres || datosBase.paciente?.nombres || '',
+        apellidos: datosBase.apellidos || datosBase.paciente?.apellidos || '',
+        rut: datosBase.rut || datosBase.paciente?.rut || '',
+        edad: datosBase.edad || datosBase.paciente?.edad || '',
+        ocupacion: datosBase.ocupacion || '',
+        direccion: datosBase.direccion || '',
+        conQuienVive: datosBase.conQuienVive || '',
+        telefonoPrincipal: datosBase.telefonoPrincipal || datosBase.paciente?.telefonoPrincipal || '',
+        telefonoSecundario: datosBase.telefonoSecundario || datosBase.paciente?.telefonoSecundario || '',
+        horarioLlamada: datosBase.horarioLlamada || '',
+        conectividad: datosBase.conectividad || '',
+        valorHbac1: datosBase.valorHbac1 || datosBase.factoresRiesgo?.valorHbac1 || '',
+        escolaridad: datosBase.escolaridad?.id || datosBase.escolaridad || ''
       }));
 
-      // Asignar los estados adicionales
-      setDiagnosticoSeleccionado(datosIniciales.diagnostico?.id || datosIniciales.diagnostico || '');
-      setEscolaridadSeleccionado(datosIniciales.escolaridad?.id || datosIniciales.escolaridad || '');
-      setTiposFamiliaSeleccionados(
-        datosIniciales.tiposFamilia?.id || 
-        datosIniciales.tiposFamilia || 
+      // Lógica para diagnóstico
+      const diagnosticoAMostrar = datosBase.diagnostico?.id || 
+                                   datosBase.diagnostico || 
+                                   datosBase.diagnostico_id;
+      const diagnosticoOtroAMostrar = datosBase.diagnostico_otro || 
+                                      datosBase.diagnostico?.diagnosticoOtro;
+
+      if (diagnosticoOtroAMostrar) {
+        setDiagnosticoSeleccionado('otro');
+        setDiagnosticoOtro(diagnosticoOtroAMostrar);
+      } else if (diagnosticoAMostrar) {
+        setDiagnosticoSeleccionado(diagnosticoAMostrar);
+      }
+
+      // Manejo de tipos de familia
+      let tiposFamiliaPreseleccionados = [];
+      const tiposFamiliaBase = datosBase.tiposFamilia || 
+                                datosBase.informacionFamiliar?.tiposFamilia || 
+                                [];
+
+      if (tiposFamiliaBase.length > 0) {
+        tiposFamiliaPreseleccionados = tiposFamiliaBase.map(tipo => 
+          typeof tipo === 'object' ? (tipo.id || tipo) : tipo
+        );
+
+        // Verificar si incluye "Otras"
+        if (tiposFamiliaBase.some(tipo => 
+          (typeof tipo === 'object' && tipo.tipoFamiliaOtro) || 
+          tipo === 'Otras'
+        )) {
+          tiposFamiliaPreseleccionados = ['Otras'];
+          const tipoOtro = tiposFamiliaBase.find(tipo => 
+            typeof tipo === 'object' && tipo.tipoFamiliaOtro
+          );
+          setTipoFamiliaOtro(tipoOtro?.tipoFamiliaOtro || '');
+        }
+      }
+
+      setTiposFamiliaSeleccionados(tiposFamiliaPreseleccionados);
+
+      // Ciclo Vital Familiar
+      setCicloVitalSeleccionado(
+        datosBase.cicloVitalFamiliar?.id || 
+        datosBase.ciclo_vital_familiar_id || 
+        datosBase.cicloVitalFamiliar || 
         ''
       );
 
-      console.log( 'TIPO FAMILIA ADULTO', datosIniciales.tiposFamilia?.id || 
-        datosIniciales.tiposFamilia || 
-        '')
-      setCicloVitalSeleccionado(
-        datosIniciales.cicloVitalFamiliar?.id || 
-        datosIniciales.cicloVitalFamiliar || 
-        ''
-      );
+      // Factores de Riesgo
       setFactoresRiesgo({
-        alcoholDrogas: datosIniciales.alcoholDrogas || 
-                       datosIniciales.factoresRiesgo?.alcoholDrogas || 
- false,
-        tabaquismo: datosIniciales.tabaquismo || 
-                    datosIniciales.factoresRiesgo?.tabaquismo || 
+        alcoholDrogas: datosBase.alcoholDrogas || 
+                       datosBase.factoresRiesgo?.alcoholDrogas || 
+                       false,
+        tabaquismo: datosBase.tabaquismo || 
+                    datosBase.factoresRiesgo?.tabaquismo || 
                     false,
-        otros: datosIniciales.otrosFactoresRiesgo || 
-               datosIniciales.factoresRiesgo?.otros || 
+        otros: datosBase.otrosFactoresRiesgo || 
+               datosBase.factoresRiesgo?.otros || 
                ''
       });
     }
@@ -288,6 +350,13 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
   return (
     <>
     <ToastContainer />
+    {/* Botón de volver al principio */}
+      <button 
+          className="btn btn-outline-secondary mb-3" 
+          onClick={handleVolver}
+        >
+          <i className="fas fa-arrow-left me-2"></i>Volver
+      </button>
       <div className="alert alert-info">
         <strong>Ingreso Programa Telecuidado</strong>
         <p>
@@ -349,40 +418,40 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
           <div className="row mt-3">
             <div className="col-md-4">
             <div className="form-group">
-  <label>Edad</label>
-  <input
-    type="number"
-    className={`form-control ${errores.edad ? 'is-invalid' : ''}`}
-    name="edad"
-    value={datosAdulto.edad}
-    onInput={(e) => {
-      const valor = e.target.value;
-      
-      // Permite escribir libremente
-      handleChange(e);
-      
-      // Validación posterior
-      const numero = parseInt(valor);
-      if (!isNaN(numero) && (numero < 18 || numero > 120)) {
-        // Si está fuera del rango, marca el error
-        setErrores(erroresAnteriores => ({
-          ...erroresAnteriores,
-          edad: 'La edad debe estar entre 18 y 120 años'
-        }));
-      } else {
-        // Limpia el error si está en el rango
-        setErrores(erroresAnteriores => ({
-          ...erroresAnteriores,
-          edad: ''
-        }));
-      }
-    }}
-    min="18"
-    max="120"
-    placeholder="Ingrese edad"
-  />
-  {errores.edad && <div className="invalid-feedback">{errores.edad}</div>}
-</div>
+              <label>Edad</label>
+              <input
+                type="number"
+                className={`form-control ${errores.edad ? 'is-invalid' : ''}`}
+                name="edad"
+                value={datosAdulto.edad}
+                onInput={(e) => {
+                  const valor = e.target.value;
+                  
+                  // Permite escribir libremente
+                  handleChange(e);
+                  
+                  // Validación posterior
+                  const numero = parseInt(valor);
+                  if (!isNaN(numero) && (numero < 18 || numero > 120)) {
+                    // Si está fuera del rango, marca el error
+                    setErrores(erroresAnteriores => ({
+                      ...erroresAnteriores,
+                      edad: 'La edad debe estar entre 18 y 120 años'
+                    }));
+                  } else {
+                    // Limpia el error si está en el rango
+                    setErrores(erroresAnteriores => ({
+                      ...erroresAnteriores,
+                      edad: ''
+                    }));
+                  }
+                }}
+                min="18"
+                max="120"
+                placeholder="Ingrese edad"
+              />
+              {errores.edad && <div className="invalid-feedback">{errores.edad}</div>}
+            </div>
             </div>
             <div className="col-md-4">
               <div className="form-group">
@@ -400,7 +469,6 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   }}
                 >
                 <option value="">Seleccione un diagnóstico</option>
-                {console.log('Diagnósticos:', diagnosticos)}
                 {diagnosticos.map((diagnostico, index) => (
                   <option 
                     key={`${diagnostico.id}-${index}`}
@@ -503,39 +571,43 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
               <div className="form-group">
                 <label>Tipo de familia</label>
                 <select
-                    className={`form-control ${errores.tiposFamilia ? 'is-invalid' : ''}`}
-                    name="tiposFamilia"
-                    value={tiposFamiliaSeleccionados}
-                    onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === 'Otras') {
-                            setTipoFamiliaOtro('');
-                            setTiposFamiliaSeleccionados(['Otras']);
-                        } else {
-                            setTiposFamiliaSeleccionados([value]);
-                        }
-                    }}
-                >
-                    <option value="">Seleccione...</option>
-                    {tiposFamilia.map((tipo, index) => (
-                      <option 
-                        key={`${tipo.id}-${index}`}
-                        value={tipo.id}
-                      >
-                        {tipo.nombre}
-                      </option>
-                    ))}
-                    <option value="Otras">Otras</option>
-                </select>
-                {tiposFamiliaSeleccionados.includes('Otras') && (
-                    <input
-                        type="text"
-                        className="form-control mt-2"
-                        value={tipoFamiliaOtro}
-                        onChange={(e) => setTipoFamiliaOtro(e.target.value)}
-                        placeholder="Especifique otro tipo de familia"
-                    />
-                )}
+  
+  className={`form-control ${errores.tiposFamilia ? 'is-invalid' : ''}`}
+  name="tiposFamilia"
+  value={tiposFamiliaSeleccionados}
+  onChange={(e) => {
+    const selectedValues = Array.from(e.target.selectedOptions, option => option.value);
+    
+    // Si se selecciona "Otras", agregar solo "Otras"
+    if (selectedValues.includes('Otras')) {
+      setTiposFamiliaSeleccionados(['Otras']);
+      setTipoFamiliaOtro('');
+    } else {
+      // Filtrar "Otras" si se seleccionan otros tipos
+      const filteredValues = selectedValues.filter(val => val !== 'Otras');
+      setTiposFamiliaSeleccionados(filteredValues);
+    }
+  }}
+>
+  {tiposFamilia.map((tipo, index) => (
+    <option 
+      key={`${tipo.id}-${index}`}
+      value={tipo.id}
+    >
+      {tipo.nombre}
+    </option>
+  ))}
+  <option value="Otras">Otras</option>
+</select>
+{tiposFamiliaSeleccionados.includes('Otras') && (
+  <input
+    type="text"
+    className="form-control mt-2"
+    value={tipoFamiliaOtro}
+    onChange={(e) => setTipoFamiliaOtro(e.target.value)}
+    placeholder="Especifique otro tipo de familia"
+  />
+)}
 
               </div>
             </div>
@@ -633,7 +705,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
               <div className="form-group">
                 <label>Valor HbA1c Previo</label>
                 <input
-                  type="text"
+                  type="number"
                   className="form-control"
                   name="valorHbac1"
                   value={datosAdulto.valorHbac1}

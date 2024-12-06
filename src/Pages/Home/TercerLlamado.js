@@ -384,6 +384,34 @@ const TercerLlamado = ({
             </div>
           </div>
         </div>
+        <Alert variant="info" style={{ borderRadius: '8px', marginTop: '20px' }}>
+              <p>
+                Para finalizar este llamado, recuerde registrar todos los síntomas, dudas y/o comentarios que presente. 
+                Además, respete las indicaciones de su médico y del equipo de salud. 
+                Muchas gracias por su colaboración, ¡Hasta pronto!
+              </p>
+            </Alert>
+
+            {/* Sección de Comentarios */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '15px',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              marginBottom: '20px',
+            }}>
+              <Form.Group className="mb-3">
+                <Form.Label>Comentarios</Form.Label>
+                <Form.Control 
+                  as="textarea" 
+                  value={seguimiento.comentario_tercer_llamado}
+                  onChange={(e) => setSeguimiento(prev => ({
+                    ...prev, 
+                    comentario_tercer_llamado: e.target.value
+                  }))}
+                />
+              </Form.Group>
+            </div>
         </div>
       )};
 

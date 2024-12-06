@@ -86,17 +86,12 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
 
     const agruparAsignacionesPorPeriodo = (asignaciones) => {
         if (!Array.isArray(asignaciones)) {
-            console.log('agruparAsignacionesPorPeriodo: asignaciones no es un array');
             return [];
         }
-
-    console.log('Agrupando asignaciones:', asignaciones.length);
-
     const grupos = {};
     
     asignaciones.forEach(asignacion => {
         if (!asignacion.fecha_inicio || !asignacion.fecha_fin) {
-            console.log('Asignación sin fechas:', asignacion);
             return;
         }
 
@@ -157,18 +152,13 @@ const fetchAsignaciones = async () => {
             year: year
         };
 
-        console.log('Fetching asignaciones con params:', params);
-
         const response = await axios.get(`${apiUrl}/asignaciones`, {
             headers: { Authorization: `Bearer ${token}` },
             params
         });
 
-        console.log('Respuesta de API:', response.data);
-
         if (response.data && Array.isArray(response.data.asignaciones)) {
             const asignacionesGrupadas = agruparAsignacionesPorPeriodo(response.data.asignaciones);
-            console.log('Asignaciones grupadas:', asignacionesGrupadas);
             setAsignaciones(asignacionesGrupadas);
             setPaginationInfo(prev => ({
                 ...prev,
@@ -551,7 +541,7 @@ const handlePaginationClick = (page) => {
                                                         {ficha.paciente?.nombres} {ficha.paciente?.apellidos}
                                                     </div>
                                                 ))}
-                                                {institucion.fichasClinicas.length > 2 && (
+                                                {institucion.fichasClinicas.length > 1 && (
                                                     <button 
                                                         className="btn btn-link btn-sm"
                                                         onClick={(e) => {

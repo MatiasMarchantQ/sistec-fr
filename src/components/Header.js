@@ -68,7 +68,6 @@ const Header = ({ toggleSidebar }) => {
       }
   
       const updatedData = await response.json();
-      console.log('Datos actualizados:', updatedData);
       setShowUpdateModal(false);
       
       toast.success('Datos actualizados correctamente', {
@@ -164,7 +163,6 @@ const Header = ({ toggleSidebar }) => {
       }
   
       const result = await response.json();
-      console.log('Contraseña cambiada:', result);
       setShowChangePasswordModal(false);
       setNewPassword('');
       setConfirmPassword('');

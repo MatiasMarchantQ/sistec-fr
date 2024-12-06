@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Container, Form, Button, Table, Card, 
-  Accordion, Modal, Alert 
+  Accordion, Modal, Alert, ButtonGroup
 } from 'react-bootstrap';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
@@ -200,9 +200,11 @@ const RECOMENDACIONES = {
   }
 };
 
-const SeguimientoInfantil = ( pacienteId, fichaId ) => {
+const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
   const pacienteIdValor = pacienteId.pacienteId || pacienteId;
   const fichaIdValor = fichaId.fichaId || fichaId;
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [seguimientoOriginal, setSeguimientoOriginal] = useState(null);
 
   const { getToken, user } = useAuth();
   const location = useLocation();
@@ -232,7 +234,85 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
   const [showResponsableModal, setShowResponsableModal] = useState(false);
   const [responsableData, setResponsableData] = useState(null);
   console.log('Selected Seguimiento:', selectedSeguimiento);
+
+  const calcularGrupoEdad = (fechaNacimiento) => {
+    const fechaNac = new Date(fechaNacimiento);
+    const hoy = new Date();
+    
+    // Calcular edad en meses y años
+    const mesesEdad = (hoy.getFullYear() - fechaNac.getFullYear()) * 12 + 
+                      (hoy.getMonth() - fechaNac.getMonth());
+    const añosEdad = Math.floor(mesesEdad / 12);
+    const mesesRestantes = mesesEdad % 12;
   
+    // Mapeo de grupos de edad
+    if (mesesEdad < 5) return '4-5 meses';
+    if (mesesEdad >= 5 && mesesEdad < 8) return '6-7 meses';
+    if (mesesEdad >= 8 && mesesEdad < 10) return '8-9 meses';
+    if (mesesEdad >= 10 && mesesEdad < 12) return '10-11 meses';
+    if (mesesEdad >= 12 && mesesEdad < 15) return '12-14 meses';
+    if (mesesEdad >= 15 && mesesEdad < 18) return '15-17 meses';
+    if (mesesEdad >= 18 && mesesEdad < 24) return '18-23 meses';
+    if (añosEdad === 2 && mesesRestantes < 12) return '2 años';
+    if (añosEdad === 3 && mesesRestantes < 12) return '3 años';
+    if (añosEdad === 4 && mesesRestantes < 12) return '4 años';
+    
+    // Si supera 4 años, podrías manejarlo según tu lógica de negocio
+    return '4 años';
+  };
+  
+  // En tu useEffect o donde cargas los datos del paciente
+  useEffect(() => {
+    // Verificar si fichaClinica contiene el paciente y su fecha de nacimiento
+    if (fichaClinica?.paciente?.fechaNacimiento) {
+      const grupoEdadCalculado = calcularGrupoEdad(fichaClinica.paciente.fechaNacimiento);
+      
+      setSeguimiento(prev => ({
+        ...prev,
+        grupoEdad: grupoEdadCalculado
+      }));
+
+      // También puedes generar recomendaciones automáticamente
+      generarRecomendaciones(grupoEdadCalculado);
+    }
+  }, []);
+  
+  const iniciarEdicion = (seguimientoSeleccionado) => {
+    // Clonar el seguimiento para evitar modificaciones directas
+    const seguimientoParaEdicion = { ...seguimientoSeleccionado };
+  
+    setSeguimiento({
+      fecha: seguimientoParaEdicion.fecha,
+      pacienteId: seguimientoParaEdicion.paciente_id || pacienteId,
+      grupoEdad: seguimientoParaEdicion.grupo_edad,
+      areaDPM: {
+        motorGrueso: seguimientoParaEdicion.areaDPM.motorGrueso,
+        motorFino: seguimientoParaEdicion.areaDPM.motorFino,
+        cognoscitivo: seguimientoParaEdicion.areaDPM.cognoscitivo,
+        comunicacion: seguimientoParaEdicion.areaDPM.comunicacion,
+        socioemocional: seguimientoParaEdicion.areaDPM.socioemocional
+      },
+      recomendaciones: {
+        areaMotora: seguimientoParaEdicion.recomendaciones?.areaMotora || '',
+        areaLenguaje: seguimientoParaEdicion.recomendaciones?.areaLenguaje || '',
+        areaSocioemocional: seguimientoParaEdicion.recomendaciones?.areaSocioemocional || '',
+        areaCognitiva: seguimientoParaEdicion.recomendaciones?.areaCognitiva || ''
+      }
+    });
+  
+    // Guardar el seguimiento original completo
+    setSeguimientoOriginal(seguimientoParaEdicion);
+    
+    // Activar modo de edición
+    setModoEdicion(true);
+  
+    // Desplazar hacia arriba
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   const handleShowResponsable = (seguimiento) => {
     if (seguimiento.usuario) {
       setResponsableData(seguimiento.usuario);
@@ -331,13 +411,24 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
                 }
             };
         });
-  
-        setSeguimientosAnteriores(seguimientosNormalizados);
-    } catch (error) {
-        console.error('Error al cargar seguimientos anteriores', error);
-        setSeguimientosAnteriores([]);
-    }
-  };
+      // Ordenar los seguimientos primero por número de llamado (de mayor a menor) 
+        // y luego por fecha (de más reciente a más antigua)
+        const seguimientosOrdenados = seguimientosNormalizados.sort((a, b) => {
+          // Primero comparar por número de llamado
+          if (b.numero_llamado !== a.numero_llamado) {
+              return (b.numero_llamado || 0) - (a.numero_llamado || 0);
+          }
+          
+          // Si los números de llamado son iguales, comparar por fecha
+          return new Date(b.fecha) - new Date(a.fecha);
+      });
+
+      setSeguimientosAnteriores(seguimientosOrdenados);
+  } catch (error) {
+      console.error('Error al cargar seguimientos anteriores', error);
+      setSeguimientosAnteriores([]);
+  }
+};
 
   const handleHitoCumplido = (valor, area) => {
     setSeguimiento(prev => ({
@@ -350,71 +441,93 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
   };
 
   const guardarSeguimiento = async () => {
-    try {
-      const token = getToken();
-      
-      // Contar seguimientos anteriores para generar el número de llamado
-      const seguimientosAnterioresCount = seguimientosAnteriores.length;
-      const nuevoNumeroDeLlamado = seguimientosAnterioresCount + 1;
-  
-      const seguimientoParaEnviar = {
-        pacienteId: pacienteIdValor,
-        fecha: seguimiento.fecha,
-        grupoEdad: seguimiento.grupoEdad,
-        numero_llamado: nuevoNumeroDeLlamado, // Añadir número de llamado
-        areaDPM: {
-          motorGrueso: seguimiento.areaDPM.motorGrueso ? 1 : 0,
-          motorFino: seguimiento.areaDPM.motorFino ? 1 : 0,
-          comunicacion: seguimiento.areaDPM.comunicacion ? 1 : 0,
-          cognoscitivo: seguimiento.areaDPM.cognoscitivo ? 1 : 0,
-          socioemocional: seguimiento.areaDPM.socioemocional ? 1 : 0
+  try {
+    const token = getToken();
+    
+    const seguimientoParaEnviar = {
+      pacienteId: pacienteIdValor,
+      fecha: seguimiento.fecha,
+      grupoEdad: seguimiento.grupoEdad,
+      areaDPM: {
+        motorGrueso: seguimiento.areaDPM.motorGrueso ? 1 : 0,
+        motorFino: seguimiento.areaDPM.motorFino ? 1 : 0,
+        comunicacion: seguimiento.areaDPM.comunicacion ? 1 : 0,
+        cognoscitivo: seguimiento.areaDPM.cognoscitivo ? 1 : 0,
+        socioemocional: seguimiento.areaDPM.socioemocional ? 1 : 0
+      },
+      tipo_paciente: 'infantil',
+      usuario_id: user.id, 
+      estudiante_id: user.estudiante_id
+    };
+
+    if (modoEdicion && seguimientoOriginal) {
+      // Actualizar seguimiento existente
+      const response = await axios.put(
+        `${process.env.REACT_APP_API_URL}/seguimientos/infantil/${seguimientoOriginal.id}`,
+        {
+          ...seguimientoParaEnviar,
+          id: seguimientoOriginal.id,  // Incluir el ID original
+          numero_llamado: seguimientoOriginal.numero_llamado
         },
-        tipo_paciente: 'infantil',
-        usuario_id: user.id, 
-        estudiante_id: user.estudiante_id
-      };
-  
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Actualizar en la lista de seguimientos anteriores
+      setSeguimientosAnteriores(prev => 
+        prev.map(seg => 
+          seg.id === seguimientoOriginal.id 
+            ? { 
+                ...seg, 
+                ...response.data,
+                areaDPM: seguimientoParaEnviar.areaDPM,
+                recomendaciones: seguimiento.recomendaciones
+              } 
+            : seg
+        )
+      );
+
+      alert('Seguimiento actualizado correctamente');
+    } else {
+      // Crear nuevo seguimiento (código existente)
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/seguimientos/infantil`,
         seguimientoParaEnviar,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       // Añadir el nuevo seguimiento a la lista
-      const nuevoSeguimiento = {
-        ...response.data,
-        numero_llamado: nuevoNumeroDeLlamado,
-        recomendaciones: seguimientoParaEnviar.recomendaciones
-      };
-  
-      setSeguimientosAnteriores(prev => [...prev, nuevoSeguimiento]);
+      setSeguimientosAnteriores(prev => [...prev, response.data]);
       
-      // Opcional: Reiniciar el estado de seguimiento
-      setSeguimiento({
-        fecha: new Date().toISOString().split('T')[0],
-        pacienteId: pacienteId,
-        grupoEdad: '4-5 meses',
-        areaDPM: {
-          motorGrueso: null,
-          motorFino: null,
-          cognoscitivo: null,
-          comunicacion: null,
-          socioemocional: null
-        },
-        recomendaciones: {
-          areaMotora: '',
-          areaLenguaje: '',
-          areaSocioemocional: '',
-          areaCognitiva: ''
-        }
-      });
-  
       alert('Seguimiento guardado correctamente');
-    } catch (error) {
-      console.error('Error al guardar seguimiento', error);
-      alert(`Error: ${error.response?.data?.message || error.message}`);
     }
-  };
+
+    // Resetear estados
+    setSeguimiento({
+      fecha: new Date().toISOString().split('T')[0],
+      pacienteId: pacienteId,
+      grupoEdad: '4-5 meses',
+      areaDPM: {
+        motorGrueso: null,
+        motorFino: null,
+        cognoscitivo: null,
+        comunicacion: null,
+        socioemocional: null
+      },
+      recomendaciones: {
+        areaMotora: '',
+        areaLenguaje: '',
+        areaSocioemocional: '',
+        areaCognitiva: ''
+      }
+    });
+    setModoEdicion(false);
+    setSeguimientoOriginal(null);
+
+  } catch (error) {
+    console.error('Error al guardar/actualizar seguimiento', error);
+    alert(`Error: ${error.response?.data?.message || error.message}`);
+  }
+};
 
   const handleEdadChange = (e) => {
     const grupoEdad = e.target.value;
@@ -484,44 +597,83 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
     };
     
     return (
-      <Accordion>
-        {Object.entries(hitosGrupo).map(([area, hitos], index) => (
-          <Accordion.Item key={index} eventKey={index.toString()}>
-            <Accordion.Header>{nombresAreas[area]}</Accordion.Header>
-            <Accordion.Body>
-              <Form>
-                {hitos.map((hito, hitoIndex) => (
-                  <div key={hitoIndex} className="mb-3">
-                    <Form.Group>
-                      <Form.Label>{hito.descripcion}</Form.Label>
-                      <div>
-                        <Form.Check
-                          inline
-                          type="radio"
-                          label="Sí"
-                          name={`${area}-${hitoIndex}`}
-                          checked={seguimiento.areaDPM[area] === true}
-                          onChange={() => handleHitoCumplido(true, area)}
-                          id={`${area}-${hitoIndex}-si`}
-                        />
-                        <Form.Check
-                          inline
-                          type="radio"
-                          label="No"
-                          name={`${area}-${hitoIndex}`}
-                          checked={seguimiento.areaDPM[area] === false}
-                          onChange={() => handleHitoCumplido(false, area)}
-                          id={`${area}-${hitoIndex}-no`}
-                        />
-                      </div>
-                    </Form.Group>
+      <Card>
+        <Card.Body>
+          {Object.entries(hitosGrupo).map(([area, hitos]) => (
+            <div key={area} className="mb-4">
+              <h5 className="mb-3">
+                {
+                  {
+                    motorGrueso: 'Motor Grueso',
+                    motorFino: 'Motor Fino',
+                    cognoscitivo: 'Cognoscitivo',
+                    comunicacion: 'Comunicación',
+                    socioemocional: 'Socioemocional'
+                  }[area]
+                }
+              </h5>
+              {hitos.map((hito, index) => (
+                <div 
+                  key={index} 
+                  className="row align-items-center mb-3"
+                  style={{ 
+                    backgroundColor: 
+                      seguimiento.areaDPM[area] === true 
+                        ? 'rgba(40, 167, 69, 0.1)' 
+                        : seguimiento.areaDPM[area] === false 
+                          ? 'rgba(220, 53, 69, 0.1)' 
+                          : 'transparent',
+                    borderRadius: '5px',
+                    padding: '10px'
+                  }}
+                >
+                  <div className="col-12 col-md-8 mb-2 mb-md-0">
+                    <span>{hito.descripcion}</span>
                   </div>
-                ))}
-              </Form>
-            </Accordion.Body>
-          </Accordion.Item>
-        ))}
-      </Accordion>
+                  <div className="col-12 col-md-4 d-flex justify-content-start justify-content-md-end">
+                    <div className="d-flex gap-2">
+                      <Button 
+                        variant={seguimiento.areaDPM[area] === true ? "success" : "outline-success"}
+                        onClick={() => {
+                          const nuevoValor = seguimiento.areaDPM[area] === true ? null : true;
+                          setSeguimiento(prev => ({
+                            ...prev,
+                            areaDPM: {
+                              ...prev.areaDPM,
+                              [area]: nuevoValor
+                            }
+                          }));
+                        }}
+                        size="sm"
+                        className="px-3"
+                      >
+                        Sí
+                      </Button>
+                      <Button 
+                        variant={seguimiento.areaDPM[area] === false ? "danger" : "outline-danger"}
+                        onClick={() => {
+                          const nuevoValor = seguimiento.areaDPM[area] === false ? null : false;
+                          setSeguimiento(prev => ({
+                            ...prev,
+                            areaDPM: {
+                              ...prev.areaDPM,
+                              [area]: nuevoValor
+                            }
+                          }));
+                        }}
+                        size="sm"
+                        className="px-3"
+                      >
+                        No
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </Card.Body>
+      </Card>
     );
   };
 
@@ -666,9 +818,30 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
       </Card>
 
       {/* Botón para guardar seguimiento */}
-      <Button variant="primary" onClick={guardarSeguimiento}>
-        Guardar Seguimiento
+      <div className="d-flex gap-2">
+  {!modoEdicion ? (
+    <Button variant="primary" onClick={guardarSeguimiento}>
+      Guardar Seguimiento
+    </Button>
+  ) : (
+    <>
+      <Button variant="warning" onClick={guardarSeguimiento}>
+        Actualizar Seguimiento
       </Button>
+      <Button 
+        variant="secondary" 
+        onClick={() => {
+          // Restaurar el estado original y salir del modo edición
+          setSeguimiento(seguimientoOriginal);
+          setModoEdicion(false);
+          setSeguimientoOriginal(null);
+        }}
+      >
+        Cancelar Edición
+      </Button>
+    </>
+  )}
+</div>
 
       {/* Listado de seguimientos anteriores */}
       <Card className="mt-4">
@@ -707,6 +880,22 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
                         }}
                       >
                         Ver Detalles
+                      </Button>
+                      <Button 
+                        variant="warning" 
+                        onClick={() => {
+                          // Directamente iniciar la edición desde la tabla
+                          iniciarEdicion(seguimiento);
+                          
+                          // Desplazar automáticamente hacia arriba para mostrar el formulario de edición
+                          window.scrollTo({
+                            top: 0,
+                            behavior: 'smooth'
+                          });
+                        }}
+                        style={{ marginLeft: '10px' }}
+                      >
+                        <i className="fas fa-edit"></i> Editar
                       </Button>
                       <Button 
                         variant="secondary" 
@@ -837,16 +1026,12 @@ const SeguimientoInfantil = ( pacienteId, fichaId ) => {
             ))}
         </div>
     )}
-</Modal.Body>
-        <div className="text-center m-3 mt-0">
-          <Button 
-            variant="primary" 
-            className="col-5"
-            onClick={() => exportarDetallesPDF(selectedSeguimiento)}
-          >
+    </Modal.Body>
+        <Modal.Footer>
+          <Button variant="primary" onClick={() => exportarDetallesPDF(selectedSeguimiento)}>
             Exportar a PDF
           </Button>
-        </div>
+        </Modal.Footer>
       </Modal>
     </Container>
   );
