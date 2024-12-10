@@ -156,17 +156,11 @@ const AsignarEstudiantes = () => {
   };
 
   const handleAsignarCentro = async () => {
-    if (!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin) {
-      setErrorMessage('Por favor, completa todos los campos.');
-      toast.error('Por favor, completa todos los campos.');
-      return;
-    }
-  
     try {
       const token = getToken();
       const apiUrl = process.env.REACT_APP_API_URL;
       
-      // Primero, verificar si hay asignaciones existentes para este período
+      // Primero, verificar si hay conflictos
       const asignacionesExistentes = asignaciones.filter(asig => 
         asig.receptor_id === parseInt(receptorSeleccionado) &&
         ((new Date(asig.fecha_inicio) <= new Date(fechaFin) && 
@@ -174,29 +168,51 @@ const AsignarEstudiantes = () => {
       );
   
       if (asignacionesExistentes.length > 0) {
-        const detallesAsignaciones = asignacionesExistentes.map(asig => {
-          const estudiante = estudiantes.find(e => e.id === asig.estudiante_id);
-          return `- ${estudiante?.nombres} ${estudiante?.apellidos}: ${formatDate(asig.fecha_inicio)} a ${formatDate(asig.fecha_fin)}`;
-        }).join('\n');
-  
-        setErrorMessage(
-          `Ya existen asignaciones para este receptor en este periodo:\n\n${detallesAsignaciones}\n\nPor favor, seleccione un periodo diferente.`
+        // Mostrar modal de confirmación para asignación excepcional
+        const confirmar = window.confirm(
+          `Ya existen asignaciones para este receptor en este periodo. ¿Desea realizar una asignación excepcional?\n\n` +
+          asignacionesExistentes.map(asig => 
+            `- ${formatDate(asig.fecha_inicio)} a ${formatDate(asig.fecha_fin)}`
+          ).join('\n')
         );
-        return;
-      }
   
-      // Si no hay conflictos, proceder con la creación de asignaciones
-      await Promise.all(selectedEstudiantes.map(async (estudiante) => {
-        await axios.post(`${apiUrl}/asignaciones`, {
-          estudiante_id: estudiante.id,
-          institucion_id: parseInt(institucionSeleccionada),
-          receptor_id: parseInt(receptorSeleccionado),
-          fecha_inicio: fechaInicio,
-          fecha_fin: fechaFin
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      }));
+        if (!confirmar) return;
+  
+        const justificacion = window.prompt('Ingrese la justificación para la asignación excepcional:');
+        
+        if (!justificacion) {
+          toast.error('Debe proporcionar una justificación para la asignación excepcional');
+          return;
+        }
+  
+        // Enviar con bandera de asignación excepcional
+        await Promise.all(selectedEstudiantes.map(async (estudiante) => {
+          await axios.post(`${apiUrl}/asignaciones`, {
+            estudiante_id: estudiante.id,
+            institucion_id: parseInt(institucionSeleccionada),
+            receptor_id: parseInt(receptorSeleccionado),
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin,
+            es_asignacion_excepcional: true,
+            justificacion_excepcional: justificacion
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }));
+      } else {
+        // Proceso normal de asignación
+        await Promise.all(selectedEstudiantes.map(async (estudiante) => {
+          await axios.post(`${apiUrl}/asignaciones`, {
+            estudiante_id: estudiante.id,
+            institucion_id: parseInt(institucionSeleccionada),
+            receptor_id: parseInt(receptorSeleccionado),
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }));
+      }
   
       await fetchData(currentPage);
       setShowAsignarModal(false);

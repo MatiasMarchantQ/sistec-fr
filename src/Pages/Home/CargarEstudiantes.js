@@ -47,52 +47,148 @@ const CargarEstudiantes = () => {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
-    
-        const formattedData = jsonData.map((student, index) => {
-          // Función para manejar diferentes tipos de entrada de RUT
-          const processRUT = (rut) => {
-            // Si es null, undefined o no es un tipo que se pueda convertir a string
-            if (rut == null) return '';
-            
-            // Convertir a string y eliminar espacios
-            const rutString = String(rut).trim();
-            
-            // Si está vacío después de trim, devolver vacío
-            if (!rutString) return '';
-        
-            // Eliminar cualquier carácter que no sea número o guión
-            const cleanRut = rutString.replace(/[^\d-]/g, '');
-            
-            // Eliminar guiones y cualquier carácter no numérico
-            return cleanRut.includes('-') 
-              ? cleanRut.split('-')[0].replace(/\D/g, '')
-              : cleanRut.replace(/\D/g, '');
-          };
-        
+  
+        // Detectar duplicados
+        const duplicates = {
+          rut: {},
+          correo: {}
+        };
+  
+        const processRUT = (rut) => {
+          if (rut == null) return '';
+          const rutString = String(rut).trim();
+          if (!rutString) return '';
+          const cleanRut = rutString.replace(/[^\d-]/g, '');
+          return cleanRut.includes('-') 
+            ? cleanRut.split('-')[0].replace(/\D/g, '')
+            : cleanRut.replace(/\D/g, '');
+        };
+  
+        // Primer paso: identificar duplicados
+        const processedStudents = jsonData.map((student, index) => {
           const formattedRut = processRUT(student['RUT']);
-        
+          const correo = student['Correo'] || '';
+  
+          // Rastrear duplicados de RUT
+          if (!duplicates.rut[formattedRut]) {
+            duplicates.rut[formattedRut] = [];
+          }
+          duplicates.rut[formattedRut].push({
+            index,
+            nombres: student['Nombres'],
+            apellidos: student['Apellidos'],
+            correo: correo
+          });
+  
+          // Rastrear duplicados de correo
+          if (!duplicates.correo[correo]) {
+            duplicates.correo[correo] = [];
+          }
+          duplicates.correo[correo].push({
+            index,
+            rut: formattedRut,
+            nombres: student['Nombres'],
+            apellidos: student['Apellidos']
+          });
+  
           const symbols = '!#$%&*+?';
           const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
           
           const contrasena = `UCM${formattedRut}${randomSymbol}`;
-        
+  
           return {
             id: index + 1,
             nombres: student['Nombres'] || '',
             apellidos: student['Apellidos'] || '',
             rut: formattedRut,
-            correo: student['Correo'] || '',
+            correo: correo,
             contrasena: contrasena,
             debe_cambiar_contrasena: true,
             estado: 'Activo',
             contador_registros: 0,
             anos_cursados: year.toString(),
-            semestre: semester,
             rol_id: 3,
           };
         });
-    
-        setStudents(formattedData);
+  
+        // Filtrar duplicados reales
+        const rutDuplicates = Object.entries(duplicates.rut)
+          .filter(([_, entries]) => entries.length > 1)
+          .map(([rut, entries]) => ({ rut, entries }));
+  
+        const correoDuplicates = Object.entries(duplicates.correo)
+          .filter(([correo, entries]) => entries.length > 1 && correo !== '')
+          .map(([correo, entries]) => ({ correo, entries }));
+  
+        // Si hay duplicados, mostrar alerta
+        if (rutDuplicates.length > 0 || correoDuplicates.length > 0) {
+          const duplicateMessage = (
+            <div>
+              {rutDuplicates.length > 0 && (
+                <>
+                  <p className="text-danger">Duplicados de RUT encontrados:</p>
+                  <ul>
+                    {rutDuplicates.map(({ rut, entries }) => (
+                      <li key={rut}>
+                        RUT {rut}:
+                        <ul>
+                          {entries.map((entry, idx) => (
+                            <li key={idx}>
+                              {entry.nombres} {entry.apellidos} (Correo: {entry.correo})
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              
+              {correoDuplicates.length > 0 && (
+                <>
+                  <p className="text-danger">Duplicados de Correo encontrados:</p>
+                  <ul>
+                    {correoDuplicates.map(({ correo, entries }) => (
+                      <li key={correo}>
+                        Correo {correo}:
+                        <ul>
+                          {entries.map((entry, idx) => (
+                            <li key={idx}>
+                              {entry.nombres} {entry.apellidos} (RUT: {entry.rut})
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              <p>Por favor, revise y corrija los duplicados antes de cargar.</p>
+            </div>
+          );
+  
+          setAlertMessage(duplicateMessage);
+          
+          // Marcar estudiantes con duplicados
+          const rutsDuplicados = new Set(rutDuplicates.flatMap(d => 
+            d.entries.map(entry => entry.rut)
+          ));
+          const correosDuplicados = new Set(correoDuplicates.flatMap(d => 
+            d.entries.map(entry => entry.correo)
+          ));
+  
+          const studentsWithErrors = processedStudents.map(student => ({
+            ...student,
+            hasError: rutsDuplicados.has(student.rut) || correosDuplicados.has(student.correo)
+          }));
+  
+          setStudents(studentsWithErrors);
+          setFailedStudents(new Set([...rutsDuplicados, ...correosDuplicados]));
+          return;
+        }
+  
+        // Si no hay duplicados, cargar normalmente
+        setStudents(processedStudents);
         toast.success('Estudiantes cargados con éxito!');
       } catch (error) {
         console.error('Error al procesar el archivo:', error);
@@ -146,7 +242,6 @@ const CargarEstudiantes = () => {
           estado: 'Activo',
           contador_registros: 0,
           anos_cursados: year.toString(),
-          semestre: semester,
           rol_id: 3,
         };
         setStudents([...students, updatedNewStudent]);
@@ -298,7 +393,7 @@ const handleCancel = () => {
         <h2 className="mb-4">Cargar Estudiantes</h2>        
         <div className="card card-primary mb-4">
           <div className="card-header">
-            <h3 className="card-title">Seleccionar Año y Semestre</h3>
+            <h3 className="card-title">Seleccionar Año</h3>
           </div>
           <div className="card-body">
           <Form.Group controlId="formYear">
@@ -309,17 +404,6 @@ const handleCancel = () => {
               onChange={(e) => setYear(parseInt(e.target.value))}
             />
           </Form.Group>
-            <Form.Group controlId="formSemester">
-              <Form.Label>Semestre</Form.Label>
-              <Form.Control 
-                as="select"
-                value={semester}
-                onChange={(e) => setSemester(parseInt(e.target.value))}
-              >
-                <option value={1}>1</option>
-                <option value={2}>2</option>
-              </Form.Control>
-            </Form.Group>
           </div>
         </div>
 
@@ -374,13 +458,13 @@ const handleCancel = () => {
                 </tr>
               </thead>
               <tbody>
-                {students.map((student) => {
-                  const hasError = failedStudents.has(student.rut);
-                  return (
-                    <tr 
-                      key={student.id}
-                      className={hasError ? 'table-danger' : 'table-success'}
-                    >
+              {students.map((student) => {
+                    const hasError = failedStudents.has(student.rut) || student.hasError;
+                    return (
+                      <tr 
+                        key={student.id}
+                        className={hasError ? 'table-danger' : 'table-success'}
+                      >
                       <td>{student.id}</td>
                       <td>{student.rut}</td>
                       <td>{student.nombres}</td>

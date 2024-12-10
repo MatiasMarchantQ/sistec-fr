@@ -35,7 +35,24 @@ const Usuarios = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
 
   const handleModalOpen = () => setModalOpen(true);
-  const handleModalClose = () => setModalOpen(false);
+  const handleModalClose = () => {
+    // Limpiar todos los campos del nuevo usuario
+    setNuevoUsuario({
+      nombres: '',
+      apellidos: '',
+      rut: '',
+      correo: '',
+      rol_id: '',
+      contrasena: ''
+    });
+
+    // Restablecer otros estados relacionados
+  setShowPassword(false);
+  
+  // Cerrar el modal
+  setModalOpen(false);
+  };
+
   const goToPage = (page) => setCurrentPage(page);
   const isFirstPage = currentPage === 1;
   const isLastPage = currentPage === totalPages;
@@ -43,6 +60,12 @@ const Usuarios = () => {
   useEffect(() => {
     obtenerPersonal();
   }, [currentPage, tipo, searchTerm, estadoFiltro]);
+
+  const generarContrasena = (rut) => {
+    const symbols = '!#$%&*+?';
+    const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+    return `UCM${rut}${randomSymbol}`;
+  };
 
   const obtenerRoles = async () => {
     try {
@@ -122,18 +145,42 @@ const Usuarios = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Si no hay contraseña, generar una automáticamente
+      const contrasenaFinal = nuevoUsuario.contrasena || 
+        generarContrasena(nuevoUsuario.rut);
+      
       const token = getToken();
-      await axios.post(`${process.env.REACT_APP_API_URL}/personal`, nuevoUsuario, {
+      await axios.post(`${process.env.REACT_APP_API_URL}/personal`, {
+        ...nuevoUsuario,
+        contrasena: contrasenaFinal
+      }, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      obtenerPersonal();
-      handleModalClose();
-    } catch (error) {
-      console.error('Error al crear usuario:', error);
-    }
-  };
+      
+      // Mostrar la contraseña generada o utilizada
+      alert(`Contraseña: ${contrasenaFinal}`);
+      setNuevoUsuario({
+      nombres: '',
+      apellidos: '',
+      rut: '',
+      correo: '',
+      rol_id: '',
+      contrasena: ''
+    });
+    
+    // Restablecer otros estados relacionados
+    setShowPassword(false);
+    
+    obtenerPersonal();
+    handleModalClose();
+  } catch (error) {
+    console.error('Error al crear usuario:', error);
+    // Opcional: mostrar un mensaje de error al usuario
+    alert('Error al crear usuario. Por favor, intente nuevamente.');
+  }
+};
 
 
   const handleEdit = (usuarioId) => {
@@ -206,7 +253,7 @@ const Usuarios = () => {
           }
         }
       );
-      alert(`Cred enciales enviadas a ${usuario.nombres} ${usuario.apellidos}`);
+      alert(`Credenciales enviadas a ${usuario.nombres} ${usuario.apellidos}`);
     } catch (error) {
       console.error('Error al enviar credenciales:', error);
       alert('No se pudieron enviar las credenciales');
@@ -307,6 +354,7 @@ const Usuarios = () => {
                     type="text"
                     name="nombres"
                     className="form-control"
+                    placeholder="Ingrese nombres"
                     value={nuevoUsuario.nombres}
                     onChange={handleInputChange}
                     required
@@ -318,22 +366,28 @@ const Usuarios = () => {
                     type="text"
                     name="apellidos"
                     className="form-control"
+                    placeholder="Ingrese apellidos"
                     value={nuevoUsuario.apellidos}
                     onChange={handleInputChange}
                     required
                   />
                 </div>
                 <div className="form-group">
-                  <label>RUT (sin puntos con guión)</label>
+                  <label>RUT (sin puntos, sin guión)</label>
                   <input
                     type="text"
                     name="rut"
                     className="form-control"
+                    placeholder="Ingrese RUT sin puntos ni guión (máximo 8 dígitos)"
                     value={nuevoUsuario.rut}
-                    onChange={handleInputChange}
+                    onChange={(e) => {
+                      // Permitir solo números y limitar a 8 dígitos
+                      const cleanedRut = e.target.value.replace(/\D/g, '').slice(0, 8);
+                      setNuevoUsuario(prev => ({ ...prev, rut: cleanedRut }));
+                    }}
                     required
-                    pattern="\d{1,2}\.\d{3}\.\d{3}[-][0-9kK]{1}"
-                    title="Formato: 12.345.678-9"
+                    pattern="\d{7,8}"
+                    title="Ingrese RUT sin puntos ni guión (7-8 dígitos)"
                   />
                 </div>
                 <div className="form-group">
@@ -342,6 +396,7 @@ const Usuarios = () => {
                     type="email"
                     name="correo"
                     className="form-control"
+                    placeholder="Ingrese correo electrónico"
                     value={nuevoUsuario.correo}
                     onChange={handleInputChange}
                     required
@@ -367,36 +422,56 @@ const Usuarios = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Contraseña</label>
-                  <div className="input-group">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="contrasena"
-                      className="form-control"
-                      value={nuevoUsuario.contrasena}
-                      onChange={handleInputChange}
-                      required
-                    />
-                    <div className="input-group-append">
-                      <button 
-                        className="btn btn-outline-secondary" 
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                      </button>
-                    </div>
-                  </div>
+              <label>Contraseña</label>
+              <div className="input-group">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="contrasena"
+                  className="form-control"
+                  value={nuevoUsuario.contrasena}
+                  onChange={(e) => {
+                    setNuevoUsuario(prev => ({ ...prev, contrasena: e.target.value }));
+                  }}
+                  placeholder="Contraseña generada automáticamente o personalizada"
+                />
+                <div className="input-group-append">
+                  <button 
+                    className="btn btn-outline-secondary" 
+                    type="button"
+                    onClick={() => {
+                      // Generar contraseña automáticamente cuando se hace clic
+                      const contrasenaGenerada = generarContrasena(nuevoUsuario.rut || '12345');
+                      setNuevoUsuario(prev => ({ ...prev, contrasena: contrasenaGenerada }));
+                    }}
+                  >
+                    <i className="fas fa-sync"></i>
+                  </button>
+                  <button 
+                    className="btn btn-outline-secondary" 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
                 </div>
-                <button type="submit" className="usuarios__btn usuarios__btn--success mt-3">
-                  Registrar
-                </button>
-              </form>
+              </div>
+              <small className="form-text text-muted">
+                Puede generar una contraseña automática o escribir una personalizada
+              </small>
             </div>
-          </div>
+            <button 
+            type="submit" 
+            className="usuarios__btn usuarios__btn--success mt-3"
+            disabled={!nuevoUsuario.nombres || !nuevoUsuario.apellidos || !nuevoUsuario.rut || !nuevoUsuario.correo || !nuevoUsuario.rol_id}
+          >
+            <i className="fas fa-save me-2"></i>Registrar Usuario
+          </button>
+          </form>
         </div>
       </div>
-    )}
+    </div>
+  </div>
+)}
 
       {/* Tabla de usuarios */}
       <div className="usuarios__card card">

@@ -877,6 +877,21 @@ useEffect(() => {
                           {tipo === 'adulto' ? (
                             // Contenido para reevaluación de adulto
                             <div className="card-body">
+                              <button 
+                                className="btn btn-primary" 
+                                onClick={() => {
+                                  navigate('?component=reevaluacion', { 
+                                    state: { 
+                                      fichaId: fichaClinica.id, 
+                                      tipo: tipo,
+                                      reevaluacionId: reevaluacion.id,
+                                      modoEdicion: true
+                                    }
+                                  });
+                                }}
+                              >
+                                <i className="fas fa-edit me-2"></i>Editar Reevaluación
+                              </button>
                               <div className="row">
                                 <div className="col-md-6">
                                   <h6 className="border-bottom pb-2">Información Personal</h6>
@@ -933,6 +948,21 @@ useEffect(() => {
                             <>
                               <div className="row m-1  mt-3">
                                 <div className="col-md-6">
+                                  <button 
+                                    className="btn btn-primary" 
+                                    onClick={() => {
+                                      navigate('?component=reevaluacion', { 
+                                        state: { 
+                                          fichaId: fichaClinica.id, 
+                                          tipo: tipo,
+                                          reevaluacionId: reevaluacion.id,
+                                          modoEdicion: true
+                                        }
+                                      });
+                                    }}
+                                  >
+                                    <i className="fas fa-edit me-2"></i>Editar Reevaluación
+                                  </button>
                                   <h6 className="border-bottom pb-2">Evaluación Psicomotora</h6>
                                   <p><strong>Puntaje DPM:</strong> {reevaluacion.evaluacionPsicomotora?.puntajeDPM || 'N/A'}</p>
                                   <p><strong>Diagnóstico DSM:</strong> {reevaluacion.evaluacionPsicomotora?.diagnosticoDSM || 'N/A'}</p>

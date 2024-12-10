@@ -77,6 +77,10 @@
   [class*=sidebar-dark] .brand-link {
     border-bottom: 1px solid #ffffff;
   }
+
+  [class*=sidebar-dark-] .nav-treeview>.nav-item>.nav-link {
+    color: #ffffff;
+  }
   
   .nav-item .nav-treeview {
     max-height: 0;

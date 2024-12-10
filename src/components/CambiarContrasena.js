@@ -8,6 +8,12 @@ const CambiarContrasena = () => {
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Estados para mostrar/ocultar contraseñas
+  const [showContrasenaActual, setShowContrasenaActual] = useState(false);
+  const [showNuevaContrasena, setShowNuevaContrasena] = useState(false);
+  const [showConfirmarContrasena, setShowConfirmarContrasena] = useState(false);
+
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -49,7 +55,6 @@ const CambiarContrasena = () => {
       localStorage.clear();
       sessionStorage.clear();
 
-  
       navigate('/');
     } catch (error) {
       console.error('Error completo:', error);
@@ -61,6 +66,11 @@ const CambiarContrasena = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Función para alternar visibilidad de contraseña
+  const togglePasswordVisibility = (setter) => {
+    setter((prev) => !prev);
   };
 
   return (
@@ -79,7 +89,7 @@ const CambiarContrasena = () => {
             <form onSubmit={handleSubmit}>
               <div className="input-group mb-3">
                 <input
-                  type="password"
+                  type={showContrasenaActual ? "text" : "password"}
                   className="form-control"
                   placeholder="Contraseña actual"
                   value={contrasenaActual}
@@ -88,15 +98,18 @@ const CambiarContrasena = () => {
                   disabled={loading}
                 />
                 <div className="input-group-append">
-                  <div className="input-group-text">
-                    <span className="fas fa-lock" />
+                  <div 
+                    className="input-group-text cursor-pointer" 
+                    onClick={() => togglePasswordVisibility(setShowContrasenaActual)}
+                  >
+                    <span className={`fas ${showContrasenaActual ? 'fa-eye-slash' : 'fa-eye'}`} />
                   </div>
                 </div>
               </div>
 
               <div className="input-group mb-3">
                 <input
-                  type="password"
+                  type={showNuevaContrasena ? "text" : "password"}
                   className="form-control"
                   placeholder="Nueva contraseña"
                   value={nuevaContrasena}
@@ -105,15 +118,18 @@ const CambiarContrasena = () => {
                   disabled={loading}
                 />
                 <div className="input-group-append">
-                  <div className="input-group-text">
-                    <span className="fas fa-lock" />
+                  <div 
+                    className="input-group-text cursor-pointer" 
+                    onClick={() => togglePasswordVisibility(setShowNuevaContrasena)}
+                  >
+                    <span className={`fas ${showNuevaContrasena ? 'fa-eye-slash' : 'fa-eye'}`} />
                   </div>
                 </div>
               </div>
 
               <div className="input-group mb-3">
                 <input
-                  type="password"
+                  type={showConfirmarContrasena ? "text" : "password"}
                   className="form-control"
                   placeholder="Confirmar nueva contraseña"
                   value={confirmarContrasena}
@@ -122,8 +138,11 @@ const CambiarContrasena = () => {
                   disabled={loading}
                 />
                 <div className="input-group-append">
-                  <div className="input-group-text">
-                    <span className="fas fa-lock" />
+                  <div 
+                    className="input-group-text cursor-pointer" 
+                    onClick={() => togglePasswordVisibility(setShowConfirmarContrasena)}
+                  >
+                    <span className={`fas ${showConfirmarContrasena ? 'fa-eye-slash' : 'fa-eye'}`} />
                   </div>
                 </div>
               </div>

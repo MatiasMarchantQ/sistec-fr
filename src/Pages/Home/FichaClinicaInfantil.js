@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosIniciales, ultimaReevaluacion }) => {
+const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosIniciales, ultimaReevaluacion = null, reevaluacionSeleccionada = null }) => {
     const [datosNino, setDatosNino] = useState({
         fechaNacimiento: '',
         nombres: '',
@@ -126,7 +126,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
 
     useEffect(() => {
       // Priorizar ultimaReevaluacion sobre datosIniciales
-      const datosBase = ultimaReevaluacion || datosIniciales;
+      const datosBase = reevaluacionSeleccionada || ultimaReevaluacion || datosIniciales;
     
       if (datosBase) {
         // Datos personales del niño
@@ -274,6 +274,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
     }, [
       datosIniciales, 
       ultimaReevaluacion, 
+      reevaluacionSeleccionada,
       factoresRiesgoNinoDisponibles, 
       factoresRiesgoFamiliaresDisponibles,
       parseEdad
@@ -387,6 +388,130 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleUpdate = async () => {
+    if (!validarFormulario()) {
+      return;
+    }
+  
+    setIsSubmitting(true);
+    setSubmitError('');
+    setSuccessMessage('');
+
+    // Construir la cadena de edad
+    let edad = '';
+    if (datosNino.edadAnios) {
+        edad += `${datosNino.edadAnios} años`;
+    }
+    if (datosNino.edadMeses) {
+        if (edad) edad += ', '; // Añadir coma si ya hay años
+        edad += `${datosNino.edadMeses} meses`;
+    }
+    if (datosNino.edadDias) {
+        if (edad) edad += ', '; // Añadir coma si ya hay años o meses
+        edad += `${datosNino.edadDias} días`;
+    }
+  
+    const datosParaEnviar = {
+      tipo: 'infantil', // Asegúrate de que el tipo se envíe correctamente
+      fechaNacimiento: datosNino.fechaNacimiento,
+      nombres: datosNino.nombres,
+      apellidos: datosNino.apellidos,
+      rut: datosNino.rut,
+      edad,
+      telefonoPrincipal: datosNino.telefonoPrincipal,
+      telefonoSecundario: datosNino.telefonoSecundario,
+      puntajeDPM,
+      diagnosticoDSM,
+      padres,
+      conQuienVive,
+      tipoFamilia: tipoFamilia === 'Otras' ? null : tipoFamilia,
+      tipoFamiliaOtro: tipoFamilia === 'Otras' ? otraTipoFamilia : '',
+      cicloVitalFamiliar: cicloVitalFamiliar || null,
+      localidad,
+      factoresRiesgoNino: Object.keys(factoresRiesgoNino).filter(key => factoresRiesgoNino[key]),
+      factoresRiesgoFamiliares: Object.keys(factoresRiesgoFamiliares)
+            .filter(key => factoresRiesgoFamiliares[key] && key !== 'otras'),
+      otrosFactoresRiesgoFamiliares: factoresRiesgoFamiliares.otras || '',
+      estudiante_id: user.estudiante_id,
+      usuario_id: user.id,
+      institucion_id: institucionId,
+      isReevaluacion: true
+    };
+  
+    try {
+      const token = getToken();
+      
+      // Determinar el ID correcto de la reevaluación
+      const reevaluacionId = reevaluacionSeleccionada?.id || 
+                              ultimaReevaluacion?.id || 
+                              datosIniciales?.id;
+  
+      if (!reevaluacionId) {
+        throw new Error('No se encontró un ID de reevaluación válido');
+      }
+  
+      const url = `${process.env.REACT_APP_API_URL}/fichas-clinicas/reevaluaciones-infantil/${reevaluacionId}`;
+  
+      const response = await axios.put(url, datosParaEnviar, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+  
+      if (response.data.success) {
+        toast.success('Reevaluación actualizada exitosamente');
+        onIngresar(response.data.data); // Refresh the data
+        
+        // Limpiar el formulario
+        setDatosNino({
+          fechaNacimiento: '',
+          nombres: '',
+          apellidos: '',
+          rut: '',
+          edadAnios: '',
+          edadMeses: '',
+          edadDias: '',
+          telefonoPrincipal: '',
+          telefonoSecundario: ''
+        });
+        
+        setPuntajeDPM('');
+        setDiagnosticoDSM('');
+        
+        setPadres([{ nombre: '', escolaridad: '', ocupacion: '' }]);
+        
+        setConQuienVive('');
+        setTipoFamilia('');
+        setCicloVitalFamiliar('');
+        setLocalidad('');
+        setOtraTipoFamilia('');
+        
+        // Resetear factores de riesgo
+        const resetFactoresNino = {};
+        factoresRiesgoNinoDisponibles.forEach(factor => {
+          resetFactoresNino[factor.nombre] = false;
+        });
+        setFactoresRiesgoNino(resetFactoresNino);
+        
+        const resetFactoresFamiliares = { otras: '' };
+        factoresRiesgoFamiliaresDisponibles.forEach(factor => {
+          if (factor.nombre !== 'Otras') {
+            resetFactoresFamiliares[factor.nombre] = false;
+          }
+        });
+        setFactoresRiesgoFamiliares(resetFactoresFamiliares);
+        
+        setErrores({});
+      } else {
+        setSubmitError('Error al actualizar la reevaluación');
+      }
+    } catch (error) {
+      console.error('Error completo:', error);
+      toast.error(error.response?.data?.message || 'Error al actualizar la reevaluación');
+      setSubmitError(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -988,6 +1113,13 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         </button>
         <button className="btn btn-secondary px-4 mx-2" onClick={onVolver}>
           Volver
+        </button>
+        <button 
+          className="btn btn-warning px-4 mx-2" 
+          onClick={handleUpdate}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Actualizando...' : 'Actualizar Reevaluación'}
         </button>
       </div>
       {submitError && (

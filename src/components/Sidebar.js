@@ -170,6 +170,18 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
                 </li>
               </>
             )}
+            {(user && (user.rol_id === 1 || user.rol_id === 2)) && (
+              <li className="nav-item">
+                <Link 
+                  to="?component=dashboard"
+                  className="nav-link"
+                  onClick={() => handleSetActiveComponent('dashboard')} 
+                >
+                  <i className="nav-icon fas fa-chart-pie"></i>
+                  <p>Dashboard</p>
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
       </div>

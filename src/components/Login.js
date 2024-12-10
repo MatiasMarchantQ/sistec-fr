@@ -153,7 +153,7 @@ const Login = () => {
       <div className="hold-transition login-page" style={{ 
           backgroundImage: `
           linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
-          url(/banner_Fac_Salud-UCM-p3fznpdsj07a1jvjynfznq321kfyi5dthrhd9x5mt4.png)
+          url(/banner.jpg)
         `,
         backgroundSize: 'cover',
         backgroundPosition: 'center',

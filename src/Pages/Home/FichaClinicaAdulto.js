@@ -5,7 +5,7 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciales, ultimaReevaluacion = null }) => {
+const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciales, ultimaReevaluacion = null, reevaluacionSeleccionada = null }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, getToken } = useAuth();
@@ -77,13 +77,11 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
   };
 
   useEffect(() => {
-    console.log('Datos Iniciales Recibidos:', datosIniciales);
-    console.log('Última Reevaluación:', ultimaReevaluacion);
-    
     // Determinar la fuente de datos principal
-    const datosBase = ultimaReevaluacion || datosIniciales;
+    const datosBase = reevaluacionSeleccionada || ultimaReevaluacion || datosIniciales;
 
     if (datosBase) {
+      // Lógica de carga de datos existente
       setDatosAdulto(prev => ({
         ...prev,
         nombres: datosBase.nombres || datosBase.paciente?.nombres || '',
@@ -101,18 +99,29 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
         escolaridad: datosBase.escolaridad?.id || datosBase.escolaridad || ''
       }));
 
-      // Lógica para diagnóstico
+      // Lógica para diagnóstico - Modificada para ser más exhaustiva
       const diagnosticoAMostrar = datosBase.diagnostico?.id || 
                                    datosBase.diagnostico || 
                                    datosBase.diagnostico_id;
-      const diagnosticoOtroAMostrar = datosBase.diagnostico_otro || 
-                                      datosBase.diagnostico?.diagnosticoOtro;
+      const diagnosticoOtroAMostrar = 
+        datosBase.diagnostico_otro || 
+        datosBase.diagnostico?.diagnosticoOtro || 
+        datosBase.diagnosticoOtro || 
+        datosBase.diagnostico?.nombre || // Añadido para capturar el nombre cuando no hay otro
+        '';
 
-      if (diagnosticoOtroAMostrar) {
+      // Modificación clave: Si el diagnóstico a mostrar tiene nombre y no es un ID estándar
+      if (diagnosticoAMostrar?.nombre && (!diagnosticoAMostrar.id || diagnosticoAMostrar.id === null)) {
+        setDiagnosticoSeleccionado('otro');
+        setDiagnosticoOtro(diagnosticoAMostrar.nombre);
+      } else if (diagnosticoOtroAMostrar) {
+        // Si hay un diagnóstico personalizado, establecer como 'otro'
         setDiagnosticoSeleccionado('otro');
         setDiagnosticoOtro(diagnosticoOtroAMostrar);
       } else if (diagnosticoAMostrar) {
+        // Si es un diagnóstico estándar, establecer su ID
         setDiagnosticoSeleccionado(diagnosticoAMostrar);
+        setDiagnosticoOtro('');
       }
 
       // Manejo de tipos de familia
@@ -162,7 +171,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                ''
       });
     }
-  }, [datosIniciales]);
+  }, [datosIniciales, ultimaReevaluacion, reevaluacionSeleccionada]);
 
   useEffect(() => {
     obtenerNivelesEscolaridad();
@@ -296,6 +305,88 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
     setErrores({});
   };
 
+  const handleUpdate = async () => {
+    if (!validarFormulario()) {
+        return;
+    }
+  
+    setIsSubmitting(true);
+    setSubmitError('');
+    setSuccessMessage('');
+  
+    const datosParaEnviar = {
+        tipo: 'adulto', // Agregar tipo explícitamente
+        ...datosAdulto,
+        diagnostico_id: diagnosticoSeleccionado !== 'otro' ? diagnosticoSeleccionado : null,
+        diagnostico_otro: diagnosticoSeleccionado === 'otro' ? diagnosticoOtro : null,
+        tiposFamilia: tiposFamiliaSeleccionados.includes('Otras') ? null : parseInt(tiposFamiliaSeleccionados[0]),
+        tipoFamiliaOtro: tiposFamiliaSeleccionados.includes('Otras') ? tipoFamiliaOtro : null,
+        ciclo_vital_familiar_id: cicloVitalSeleccionado,
+        factoresRiesgo,
+        estudiante_id: user.estudiante_id,
+        usuario_id: user.id,
+        institucion_id: institucionId,
+        isReevaluacion: true
+    };
+  
+    try {
+        const token = getToken();
+        
+        // Determinar el ID correcto de la reevaluación
+        const reevaluacionId = reevaluacionSeleccionada?.id || 
+                                ultimaReevaluacion?.id || 
+                                datosIniciales?.id;
+  
+        if (!reevaluacionId) {
+            throw new Error('No se encontró un ID de reevaluación válido');
+        }
+  
+        const url = `${process.env.REACT_APP_API_URL}/fichas-clinicas/reevaluaciones/${reevaluacionId}`;
+  
+        const response = await axios.put(url, datosParaEnviar, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+  
+        if (response.data.success) {
+            toast.success('Reevaluación actualizada exitosamente');
+            
+            // Actualizar estados basados en la respuesta del servidor
+            const datosActualizados = response.data.data;
+            
+            // Lógica de diagnóstico similar a la de formatearFichaAdulto
+            const diagnosticoAMostrar = datosActualizados.diagnostico?.id || 
+                                       datosActualizados.diagnostico || 
+                                       datosActualizados.diagnostico_id;
+            const diagnosticoOtroAMostrar = datosActualizados.diagnostico_otro || 
+                                            datosActualizados.diagnostico?.diagnosticoOtro || 
+                                            '';
+
+            // Establecer los estados de diagnóstico
+            if (diagnosticoOtroAMostrar) {
+                setDiagnosticoSeleccionado('otro');
+                setDiagnosticoOtro(diagnosticoOtroAMostrar);
+            } else if (diagnosticoAMostrar) {
+                setDiagnosticoSeleccionado(diagnosticoAMostrar);
+                setDiagnosticoOtro('');
+            }
+
+            // Actualizar otros estados
+            onIngresar(datosActualizados);
+            
+            // No limpiar el formulario para mantener los datos actualizados
+            // limpiarFormulario();
+        } else {
+            setSubmitError('Error al actualizar la reevaluación');
+        }
+    } catch (error) {
+        console.error('Error completo:', error);
+        toast.error(error.response?.data?.message || 'Error al actualizar la reevaluación');
+        setSubmitError(error.message);
+    } finally {
+        setIsSubmitting(false);
+    }
+};
+
   const handleSubmit = async () => {
     if (!validarFormulario()) {
       return;
@@ -322,26 +413,25 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
   
     try {
       const token = getToken();
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/fichas-clinicas/adulto`,
-        datosParaEnviar,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const url = datosIniciales.id 
+        ? `${process.env.REACT_APP_API_URL}/fichas-clinicas/adulto/${datosIniciales.id}` 
+        : `${process.env.REACT_APP_API_URL}/fichas-clinicas/adulto`;
+  
+      const method = datosIniciales.id ? 'put' : 'post';
+      const response = await axios[method](url, datosParaEnviar, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
   
       if (response.data.success) {
-        toast.success('Ficha clínica creada exitosamente');
-        onIngresar(response.data.data);
+        toast.success('Ficha clínica actualizada exitosamente');
+        onIngresar(response.data.data); // Refresh the data
         limpiarFormulario();
-        setTimeout(() => {
-        }, 3000);
       } else {
-        setSubmitError('Error al crear la ficha clínica');
+        setSubmitError('Error al actualizar la ficha clínica');
       }
     } catch (error) {
       console.error('Error completo:', error);
-      toast.error(error.response?.data?.message || 'Error al crear la ficha clínica');
+      toast.error(error.response?.data?.message || 'Error al actualizar la ficha clínica');
     } finally {
       setIsSubmitting(false);
     }
@@ -572,42 +662,42 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                 <label>Tipo de familia</label>
                 <select
   
-  className={`form-control ${errores.tiposFamilia ? 'is-invalid' : ''}`}
-  name="tiposFamilia"
-  value={tiposFamiliaSeleccionados}
-  onChange={(e) => {
-    const selectedValues = Array.from(e.target.selectedOptions, option => option.value);
-    
-    // Si se selecciona "Otras", agregar solo "Otras"
-    if (selectedValues.includes('Otras')) {
-      setTiposFamiliaSeleccionados(['Otras']);
-      setTipoFamiliaOtro('');
-    } else {
-      // Filtrar "Otras" si se seleccionan otros tipos
-      const filteredValues = selectedValues.filter(val => val !== 'Otras');
-      setTiposFamiliaSeleccionados(filteredValues);
-    }
-  }}
->
-  {tiposFamilia.map((tipo, index) => (
-    <option 
-      key={`${tipo.id}-${index}`}
-      value={tipo.id}
-    >
-      {tipo.nombre}
-    </option>
-  ))}
-  <option value="Otras">Otras</option>
-</select>
-{tiposFamiliaSeleccionados.includes('Otras') && (
-  <input
-    type="text"
-    className="form-control mt-2"
-    value={tipoFamiliaOtro}
-    onChange={(e) => setTipoFamiliaOtro(e.target.value)}
-    placeholder="Especifique otro tipo de familia"
-  />
-)}
+                  className={`form-control ${errores.tiposFamilia ? 'is-invalid' : ''}`}
+                  name="tiposFamilia"
+                  value={tiposFamiliaSeleccionados}
+                  onChange={(e) => {
+                    const selectedValues = Array.from(e.target.selectedOptions, option => option.value);
+                    
+                    // Si se selecciona "Otras", agregar solo "Otras"
+                    if (selectedValues.includes('Otras')) {
+                      setTiposFamiliaSeleccionados(['Otras']);
+                      setTipoFamiliaOtro('');
+                    } else {
+                      // Filtrar "Otras" si se seleccionan otros tipos
+                      const filteredValues = selectedValues.filter(val => val !== 'Otras');
+                      setTiposFamiliaSeleccionados(filteredValues);
+                    }
+                  }}
+                >
+                  {tiposFamilia.map((tipo, index) => (
+                    <option 
+                      key={`${tipo.id}-${index}`}
+                      value={tipo.id}
+                    >
+                      {tipo.nombre}
+                    </option>
+                  ))}
+                  <option value="Otras">Otras</option>
+                </select>
+                {tiposFamiliaSeleccionados.includes('Otras') && (
+                  <input
+                    type="text"
+                    className="form-control mt-2"
+                    value={tipoFamiliaOtro}
+                    onChange={(e) => setTipoFamiliaOtro(e.target.value)}
+                    placeholder="Especifique otro tipo de familia"
+                  />
+                )}
 
               </div>
             </div>
@@ -776,6 +866,13 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
           disabled={isSubmitting}
         >
           Volver
+        </button>
+        <button 
+          className="btn btn-warning px-4 mx-2" 
+          onClick={handleUpdate}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Actualizando...' : 'Actualizar Ficha Clínica'}
         </button>
       </div>
       {successMessage && (

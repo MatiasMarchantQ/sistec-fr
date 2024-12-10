@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'react-toastify';
+import { Modal, Button } from 'react-bootstrap';
 import 'react-toastify/dist/ReactToastify.css';
 
 const AuthContext = createContext(null);
@@ -12,6 +13,117 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isUnauthorized, setIsUnauthorized] = useState(false);
+  const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
+  
+  // Referencia para el temporizador de expiración
+  const expirationTimerRef = useRef(null);
+
+  const logout = async () => {
+    try {
+      setLoading(true);
+      if (token) {
+        await axios.post(`${process.env.REACT_APP_API_URL}/auth/logout`, {}, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error durante el logout:', error);
+      
+      if (!isUnauthorized) {
+        setIsUnauthorized(true);
+        
+        toast.error('Error al cerrar sesión', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          onClose: () => {
+            setIsUnauthorized(false);
+          }
+        });
+      }
+    } finally {
+      // Limpiar completamente
+      localStorage.clear();
+      sessionStorage.clear();
+      setToken(null);
+      setUser(null);
+      
+      // Limpiar temporizador de expiración
+      clearExpirationTimer();
+      
+      setLoading(false);
+    }
+  };
+
+  // Función para limpiar temporizadores
+  const clearExpirationTimer = useCallback(() => {
+    if (expirationTimerRef.current) {
+      clearTimeout(expirationTimerRef.current);
+      expirationTimerRef.current = null;
+    }
+  }, []);
+
+  // Configurar temporizador de expiración
+  const setupTokenExpirationTimer = useCallback((storedToken) => {
+    // Limpiar cualquier temporizador existente
+    clearExpirationTimer();
+
+    try {
+      const decoded = jwtDecode(storedToken);
+      const currentTime = Date.now() / 1000;
+      const timeUntilExpiration = (decoded.exp - currentTime) * 1000;
+
+      // Solo configurar si hay tiempo hasta la expiración
+      if (timeUntilExpiration > 0) {
+        expirationTimerRef.current = setTimeout(() => {
+          handleSessionExpired();
+        }, timeUntilExpiration);
+      } else {
+        // Token ya expirado
+        handleSessionExpired();
+      }
+    } catch (error) {
+      console.error('Error al configurar temporizador de token:', error);
+      handleSessionExpired();
+    }
+  }, []);
+
+  // Manejar expiración de sesión
+  const handleSessionExpired = useCallback(() => {
+    // Limpiar temporizador
+    clearExpirationTimer();
+
+    // Solo mostrar modal si no estamos en página de inicio de sesión o cambio de contraseña
+    if (!window.location.pathname.includes('/') && !window.location.pathname.includes('/cambiar-contrasena')) {
+      setShowSessionExpiredModal(true);
+    }
+  }, [clearExpirationTimer]);
+
+  // Modal de sesión expirada
+  const SessionExpiredModal = () => (
+    <Modal show={showSessionExpiredModal} onHide={() => {}} centered>
+      <Modal.Header>
+        <Modal.Title>Sesión Expirada</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        Su sesión ha expirado. Por favor, inicie sesión nuevamente.
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="primary" onClick={() => {
+          setShowSessionExpiredModal(false);
+          logout();
+          window.location.href = '/';
+        }}>
+          Iniciar Sesión
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
 
   useEffect(() => {
     // Configurar el interceptor de Axios
@@ -91,6 +203,9 @@ export const AuthProvider = ({ children }) => {
           // Establecer el token y los datos del usuario
           setToken(storedToken);
           
+          // Configurar temporizador de expiración
+          setupTokenExpirationTimer(storedToken);
+          
           if (parsedUserData) {
             setUser(parsedUserData);
           } else {
@@ -160,8 +275,9 @@ export const AuthProvider = ({ children }) => {
     // Limpiar el interceptor cuando el componente se desmonte
     return () => {
       axios.interceptors.response.eject(interceptor);
+      clearExpirationTimer();
     };
-  }, []);
+  }, [setupTokenExpirationTimer, logout, clearExpirationTimer]);
   
   const login = async (rut, contrasena, rememberMe) => {
     try {
@@ -179,6 +295,9 @@ export const AuthProvider = ({ children }) => {
       storage.setItem('refreshToken', refreshToken);
   
       setToken(accessToken);
+  
+      // Configurar temporizador de expiración
+      setupTokenExpirationTimer(accessToken);
   
       const decoded = jwtDecode(accessToken);
       const userData = {
@@ -221,6 +340,9 @@ export const AuthProvider = ({ children }) => {
   
       setToken(accessToken);
   
+      // Configurar temporizador de expiración
+      setupTokenExpirationTimer(accessToken);
+  
       const decoded = jwtDecode(accessToken);
       const userData = {
         id: decoded.id,
@@ -242,45 +364,6 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
-  
-
-  const logout = async () => {
-    try {
-      setLoading(true);
-      if (token) {
-        await axios.post(`${process.env.REACT_APP_API_URL}/auth/logout`, {}, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error durante el logout:', error);
-      
-      if (!isUnauthorized) {
-        setIsUnauthorized(true);
-        
-        toast.error('Error al cerrar sesión', {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          onClose: () => {
-            setIsUnauthorized(false);
-          }
-        });
-      }
-    } finally {
-      // Limpiar completamente
-      localStorage.clear();
-      sessionStorage.clear();
-      setToken(null);
-      setUser(null);
-      setLoading(false);
-    }
-  };
 
   const getToken = () => token;
 
@@ -299,6 +382,7 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={value}>
       {children}
+      <SessionExpiredModal />
     </AuthContext.Provider>
   );
 };

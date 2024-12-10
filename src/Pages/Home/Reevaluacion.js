@@ -19,10 +19,119 @@ const Reevaluacion = () => {
   const [tipoFicha, setTipoFicha] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cambiosDetectados, setCambiosDetectados] = useState({});
+  const [reevaluaciones, setReevaluaciones] = useState([]); // Para almacenar las reevaluaciones
+  const [reevaluacionSeleccionada, setReevaluacionSeleccionada] = useState(null); // Para la reevaluación seleccionada
 
   const handleVolver = () => {
     navigate(-1);
   };
+    
+    const formatearFichaAdulto = (fichaClinica) => {
+      return {
+        nombres: fichaClinica.paciente?.nombres || fichaClinica.nombres || '',
+        apellidos: fichaClinica.paciente?.apellidos || fichaClinica.apellidos || '',
+        rut: fichaClinica.paciente?.rut || fichaClinica.rut || '',
+        edad: fichaClinica.paciente?.edad || fichaClinica.edad || '',
+        telefonoPrincipal: fichaClinica.paciente?.telefonoPrincipal || fichaClinica.telefonoPrincipal || '',
+        telefonoSecundario: fichaClinica.paciente?.telefonoSecundario || fichaClinica.telefonoSecundario || '',
+        
+        diagnostico: fichaClinica.diagnostico?.id || fichaClinica.diagnostico || fichaClinica.diagnostico_id || '',
+        diagnostico_otro: fichaClinica.diagnostico_otro || 
+                          fichaClinica.diagnostico?.diagnosticoOtro || 
+                          '',
+        
+        escolaridad: fichaClinica.escolaridad?.id || fichaClinica.escolaridad || '',
+        ocupacion: fichaClinica.ocupacion || '',
+        direccion: fichaClinica.direccion || '',
+        valorHbac1: fichaClinica.factoresRiesgo?.valorHbac1 || fichaClinica.valorHbac1 || '',
+        alcoholDrogas: fichaClinica.factoresRiesgo?.alcoholDrogas || fichaClinica.alcoholDrogas || false,
+        tabaquismo: fichaClinica.factoresRiesgo?.tabaquismo || fichaClinica.tabaquismo || false,
+        otrosFactoresRiesgo: fichaClinica.factoresRiesgo?.otros || fichaClinica.otrosFactoresRiesgo || '',
+        conQuienVive: fichaClinica.conQuienVive || '',
+        horarioLlamada: fichaClinica.horarioLlamada || '',
+        conectividad: fichaClinica.conectividad || '',
+        cicloVitalFamiliar: fichaClinica.cicloVitalFamiliar?.id || fichaClinica.cicloVitalFamiliar || '',
+        
+        tiposFamilia: (fichaClinica.tiposFamilia || []).map(tipo => 
+          typeof tipo === 'object' ? (tipo.id || tipo) : tipo
+        )
+      };
+    };
+    
+    const formatearFichaInfantil = (fichaClinica) => {
+      return {
+        nombres: fichaClinica.paciente?.nombres || fichaClinica.nombres || '',
+        apellidos: fichaClinica.paciente?.apellidos || fichaClinica.apellidos || '',
+        rut: fichaClinica.paciente?.rut || fichaClinica.rut || '',
+        telefonoPrincipal: fichaClinica.paciente?.telefonoPrincipal || fichaClinica.telefonoPrincipal || '',
+        telefonoSecundario: fichaClinica.paciente?.telefonoSecundario || fichaClinica.telefonoSecundario || '',
+        fechaNacimiento: fichaClinica.paciente?.fechaNacimiento || fichaClinica.fechaNacimiento || '',
+        
+        // Parsear edad 
+        ...parseEdad(
+          fichaClinica.paciente?.edad || 
+          fichaClinica.edad || 
+          ''
+        ),
+        
+        // Evaluación Psicomotora
+        evaluacionPsicomotora: {
+          puntajeDPM: fichaClinica.evaluacionPsicomotora?.puntajeDPM || 
+                      fichaClinica.puntajeDPM || '',
+          diagnosticoDSM: fichaClinica.evaluacionPsicomotora?.diagnosticoDSM || 
+                          fichaClinica.diagnosticoDSM || ''
+        },
+        
+        // Información Familiar
+        informacionFamiliar: {
+          conQuienVive: fichaClinica.informacionFamiliar?.conQuienVive || 
+                        fichaClinica.conQuienVive || '',
+          localidad: fichaClinica.informacionFamiliar?.localidad || 
+                     fichaClinica.localidad || '',
+          
+          // Tipos de Familia
+          tiposFamilia: (fichaClinica.informacionFamiliar?.tiposFamilia || 
+                        fichaClinica.tiposFamilia || []).map(tipo => ({
+            id: tipo.id || null,
+            nombre: tipo.nombre || null,
+            tipoFamiliaOtro: tipo.tipoFamiliaOtro || null
+          })),
+          
+          // Ciclo Vital Familiar
+          cicloVitalFamiliar: fichaClinica.informacionFamiliar?.cicloVitalFamiliar || 
+                              fichaClinica.cicloVitalFamiliar || null,
+          
+          // Información de Padres
+          padres: (fichaClinica.informacionFamiliar?.padres || 
+                  fichaClinica.padres || []).map(padre => ({
+            nombre: padre.nombre || '',
+            ocupacion: padre.ocupacion || '',
+            escolaridad: {
+              id: padre.escolaridad?.id || null,
+              nivel: padre.escolaridad?.nivel || ''
+            }
+          }))
+        },
+    
+        // Factores de Riesgo
+        factoresRiesgo: {
+          // Factores de Riesgo del Niño
+          nino: (fichaClinica.factoresRiesgo?.nino || 
+                fichaClinica.nino || []).map(factor => ({
+            id: factor.id || null,
+            nombre: factor.nombre || ''
+          })),
+          
+          // Factores de Riesgo Familiares
+          familiares: (fichaClinica.factoresRiesgo?.familiares || 
+                      fichaClinica.familiares || []).map(factor => ({
+            id: factor.id || null,
+            nombre: factor.nombre || '',
+            otras: factor.otras || ''
+          }))
+        }
+      };
+    };
 
   // Función para parsear edad (memoizada)
   const parseEdad = useMemo(() => (edadString) => {
@@ -106,7 +215,7 @@ const Reevaluacion = () => {
   }, [tipoFicha]);
 
   useEffect(() => {
-    const { fichaId, tipo } = location.state || {};
+    const { fichaId, tipo, reevaluacionId, modoEdicion } = location.state || {};
     
     if (!fichaId || !tipo) {
       toast.error('No se proporcionó un ID de ficha válido');
@@ -147,25 +256,47 @@ const Reevaluacion = () => {
   
         // Establecer el estado de la última reevaluación
         setUltimaReevaluacion(ultimaReevaluacion);
-
+        setReevaluaciones(responseReevaluaciones.data.data || []); // Guardar todas las reevaluaciones
+  
         // Obtener institucion_id
         const institucionId = 
           responseOriginal.data.data.institucion?.id || 
           responseOriginal.data.data.institucionId || 
           (responseOriginal.data.data.paciente && responseOriginal.data.data.paciente.institucion_id) ||
           user.institucion_id;
-
+  
         if (!institucionId) {
           throw new Error("No se pudo encontrar un institucion_id válido");
         }
-
+  
         // Preparar datos iniciales
         const prepararDatosIniciales = () => {
           const responseData = responseOriginal.data.data;
           
-          // Verificar si hay reevaluaciones previas
+          // Si estamos en modo edición y hay un reevaluacionId
+          if (modoEdicion && reevaluacionId) {
+            // Encontrar la reevaluación específica
+            const reevaluacionParaEditar = responseReevaluaciones.data.data.find(
+              reevaluacion => reevaluacion.id === reevaluacionId
+            );
+  
+            if (reevaluacionParaEditar) {
+              // Formatear los datos de la reevaluación seleccionada
+              const datosFormateados = tipo === 'adulto' 
+                ? formatearFichaAdulto(reevaluacionParaEditar) 
+                : formatearFichaInfantil(reevaluacionParaEditar);
+  
+              // Calcular cambios con la ficha original
+              const cambios = compararDatos(responseData, reevaluacionParaEditar);
+              setCambiosDetectados(cambios);
+              setReevaluacionSeleccionada(reevaluacionParaEditar);
+  
+              return datosFormateados;
+            }
+          }
+  
+          // Si no hay reevaluación para editar, seguir con la lógica anterior
           if (responseReevaluaciones.data.data && responseReevaluaciones.data.data.length > 0) {
-            // Usar los datos de la última reevaluación
             const ultimaReevaluacion = responseReevaluaciones.data.data[0];
             
             // Establecer los datos de la última reevaluación como base
@@ -203,78 +334,78 @@ const Reevaluacion = () => {
                 }
               : {
                 nombres: ultimaReevaluacion.paciente?.nombres || responseData.paciente?.nombres || '',
-              apellidos: ultimaReevaluacion.paciente?.apellidos || responseData.paciente?.apellidos || '',
-              rut: ultimaReevaluacion.paciente?.rut || responseData.paciente?.rut || '',
-              telefonoPrincipal: ultimaReevaluacion.paciente?.telefonoPrincipal || responseData.paciente?.telefonoPrincipal || '',
-              telefonoSecundario: ultimaReevaluacion.paciente?.telefonoSecundario || responseData.paciente?.telefonoSecundario || '',
-              fechaNacimiento: ultimaReevaluacion.paciente?.fechaNacimiento || responseData.paciente?.fechaNacimiento || '',
-              
-              // Parsear edad de la última reevaluación o de los datos originales
-              ...parseEdad(
-                ultimaReevaluacion.paciente?.edad || 
-                responseData.paciente?.edad || 
-                ''
-              ),
-              
-              // Evaluación Psicomotora
-              evaluacionPsicomotora: {
-                puntajeDPM: ultimaReevaluacion.evaluacionPsicomotora?.puntajeDPM || 
-                            responseData.evaluacionPsicomotora?.puntajeDPM || '',
-                diagnosticoDSM: ultimaReevaluacion.evaluacionPsicomotora?.diagnosticoDSM || 
-                                responseData.evaluacionPsicomotora?.diagnosticoDSM || ''
-              },
-              
-              // Información Familiar
-              informacionFamiliar: {
-                conQuienVive: ultimaReevaluacion.informacionFamiliar?.conQuienVive || 
-                              responseData.informacionFamiliar?.conQuienVive || '',
-                localidad: ultimaReevaluacion.informacionFamiliar?.localidad || 
-                          responseData.informacionFamiliar?.localidad || '',
+                apellidos: ultimaReevaluacion.paciente?.apellidos || responseData.paciente?.apellidos || '',
+                rut: ultimaReevaluacion.paciente?.rut || responseData.paciente?.rut || '',
+                telefonoPrincipal: ultimaReevaluacion.paciente?.telefonoPrincipal || responseData.paciente?.telefonoPrincipal || '',
+                telefonoSecundario: ultimaReevaluacion.paciente?.telefonoSecundario || responseData.paciente?.telefonoSecundario || '',
+                fechaNacimiento: ultimaReevaluacion.paciente?.fechaNacimiento || responseData.paciente?.fechaNacimiento || '',
                 
-                // Tipos de Familia
-                tiposFamilia: (ultimaReevaluacion.informacionFamiliar?.tiposFamilia || 
-                              responseData.informacionFamiliar?.tiposFamilia || []).map(tipo => ({
-                  id: tipo.id || null,
-                  nombre: tipo.nombre || null,
-                  tipoFamiliaOtro: tipo.tipoFamiliaOtro || null
-                })),
+                // Parsear edad de la última reevaluación o de los datos originales
+                ...parseEdad(
+                  ultimaReevaluacion.paciente?.edad || 
+                  responseData.paciente?.edad || 
+                  ''
+                ),
                 
-                // Ciclo Vital Familiar
-                cicloVitalFamiliar: ultimaReevaluacion.informacionFamiliar?.cicloVitalFamiliar || 
-                                    responseData.informacionFamiliar?.cicloVitalFamiliar || null,
+                // Evaluación Psicomotora
+                evaluacionPsicomotora: {
+                  puntajeDPM: ultimaReevaluacion.evaluacionPsicomotora?.puntajeDPM || 
+                              responseData.evaluacionPsicomotora?.puntajeDPM || '',
+                  diagnosticoDSM: ultimaReevaluacion.evaluacionPsicomotora?.diagnosticoDSM || 
+                                  responseData.evaluacionPsicomotora?.diagnosticoDSM || ''
+                },
                 
-                // Información de Padres
-                padres: (ultimaReevaluacion.informacionFamiliar?.padres || 
-                        responseData.informacionFamiliar?.padres || []).map(padre => ({
-                  nombre: padre.nombre || '',
-                  ocupacion: padre.ocupacion || '',
-                  escolaridad: {
-                    id: padre.escolaridad?.id || null,
-                    nivel: padre.escolaridad?.nivel || ''
-                  }
-                }))
-              },
-      
-              // Factores de Riesgo
-              factoresRiesgo: {
-                // Factores de Riesgo del Niño
-                nino: (ultimaReevaluacion.factoresRiesgo?.nino || 
-                      responseData.factoresRiesgo?.nino || []).map(factor => ({
-                  id: factor.id || null,
-                  nombre: factor.nombre || ''
-                })),
-                
-                // Factores de Riesgo Familiares
-                familiares: (ultimaReevaluacion.factoresRiesgo?.familiares || 
-                            responseData.factoresRiesgo?.familiares || []).map(factor => ({
-                  id: factor.id || null,
-                  nombre: factor.nombre || '',
-                  otras: factor.otras || ''
-                }))
+                // Información Familiar
+                informacionFamiliar: {
+                  conQuienVive: ultimaReevaluacion.informacionFamiliar?.conQuienVive || 
+                                responseData.informacionFamiliar?.conQuienVive || '',
+                  localidad: ultimaReevaluacion.informacionFamiliar?.localidad || 
+                            responseData.informacionFamiliar?.localidad || '',
+                  
+                  // Tipos de Familia
+                  tiposFamilia: (ultimaReevaluacion.informacionFamiliar?.tiposFamilia || 
+                                responseData.informacionFamiliar?.tiposFamilia || []).map(tipo => ({
+                    id: tipo.id || null,
+                    nombre: tipo.nombre || null,
+                    tipoFamiliaOtro: tipo.tipoFamiliaOtro || null
+                  })),
+                  
+                  // Ciclo Vital Familiar
+                  cicloVitalFamiliar: ultimaReevaluacion.informacionFamiliar?.cicloVitalFamiliar || 
+                                      responseData.informacionFamiliar?.cicloVitalFamiliar || null,
+                  
+                  // Información de Padres
+                  padres: (ultimaReevaluacion.informacionFamiliar?.padres || 
+                          responseData.informacionFamiliar?.padres || []).map(padre => ({
+                    nombre: padre.nombre || '',
+                    ocupacion: padre.ocupacion || '',
+                    escolaridad: {
+                      id: padre.escolaridad?.id || null,
+                      nivel: padre.escolaridad?.nivel || ''
+                    }
+                  }))
+                },
+        
+                // Factores de Riesgo
+                factoresRiesgo: {
+                  // Factores de Riesgo del Niño
+                  nino: (ultimaReevaluacion.factoresRiesgo?.nino || 
+                        responseData.factoresRiesgo?.nino || []).map(factor => ({
+                    id: factor.id || null,
+                    nombre: factor.nombre || ''
+                  })),
+                  
+                  // Factores de Riesgo Familiares
+                  familiares: (ultimaReevaluacion.factoresRiesgo?.familiares || 
+                              responseData.factoresRiesgo?.familiares || []).map(factor => ({
+                    id: factor.id || null,
+                    nombre: factor.nombre || '',
+                    otras: factor.otras || ''
+                  }))
                 }
               };
 
-          // Calcular cambios
+            // Calcular cambios
             const cambios = compararDatos(responseData, ultimaReevaluacion);
             setCambiosDetectados(cambios);
             
@@ -340,26 +471,27 @@ const Reevaluacion = () => {
               };
           };
         
-        setFichaOriginal({
-          ...responseOriginal.data.data,
-          institucion_id: institucionId
-        });
-        setTipoFicha(tipo);
-        setDatosIniciales(prepararDatosIniciales());
-        setLoading(false);
-      } catch (err) {
-        console.error('Error al obtener datos:', err);
-        toast.error('No se pudo cargar la información: ' + err.message);
-        setLoading(false);
-        navigate(-1);
-      }
-    };
-  
-    fetchDatosReevaluacion();
-  }, [location.state, getToken, navigate, user.institucion_id, compararDatos, parseEdad]);
+          setFichaOriginal({
+            ...responseOriginal.data.data,
+            institucion_id: institucionId
+          });
+          setTipoFicha(tipo);
+          setDatosIniciales(prepararDatosIniciales());
+          setLoading(false);
+        } catch (err) {
+          console.error('Error al obtener datos:', err);
+          toast.error('No se pudo cargar la información: ' + err.message);
+          setLoading(false);
+          navigate(-1);
+        }
+      };
+    
+      fetchDatosReevaluacion();
+    }, [location.state, getToken, navigate, user.institucion_id, compararDatos, parseEdad]);
 
   const handleReevaluacionExitosa = (nuevaFicha) => {
     toast.success('Reevaluación registrada exitosamente');
+    setUltimaReevaluacion(nuevaFicha); // Actualizar la última reevaluación
     navigate('?component=listado-fichas-clinicas', { 
       state: { 
         tipo: tipoFicha,
@@ -402,6 +534,7 @@ const Reevaluacion = () => {
           institucionId={fichaOriginal.institucion_id}
           cambiosDetectados={cambiosDetectados}
           ultimaReevaluacion={ultimaReevaluacion}
+          reevaluacionSeleccionada={reevaluacionSeleccionada}
         />
       ) : (
         <FichaClinicaInfantil
@@ -413,6 +546,7 @@ const Reevaluacion = () => {
           institucionId={fichaOriginal.institucion_id}
           cambiosDetectados={cambiosDetectados}
           ultimaReevaluacion={ultimaReevaluacion}
+          reevaluacionSeleccionada={reevaluacionSeleccionada}
         />
       )}
     </div>
