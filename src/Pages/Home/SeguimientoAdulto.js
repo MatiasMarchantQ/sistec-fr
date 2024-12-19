@@ -359,6 +359,8 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
   
   // Función para cargar seguimientos anteriores
   const cargarSeguimientosAnteriores = async () => {
+    if (loading) return;
+    setLoading(true);
     try {
         setLoading(true);
         const token = getToken();
@@ -391,6 +393,10 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
                 estudiante: procesado.estudiante
             };
         });
+
+        if (procesados.length === 0) {
+          toast.info('No se encontraron seguimientos anteriores para este paciente.');
+        }
 
         setSeguimientosAnteriores(procesados); // Actualiza el estado con los datos procesados
 

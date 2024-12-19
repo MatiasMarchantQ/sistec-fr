@@ -29,6 +29,7 @@ const Usuarios = () => {
   const [estadoFiltro, setEstadoFiltro] = useState('activos');
   const limit = 10;
   const totalPages = Math.ceil(totalElements / limit);
+  const [isFiltered, setIsFiltered] = useState(false);
 
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -112,34 +113,35 @@ const Usuarios = () => {
   const handleTipoChange = (e) => {
     const selectedTipo = e.target.value;
     setTipo(selectedTipo);
-    setCurrentPage(1); // Resetear a la primera página cuando cambia el tipo
+    setCurrentPage(1);
+    setIsFiltered(selectedTipo !== '');
   };
-
+  
   const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
+    const newSearchTerm = e.target.value;
+    setSearchTerm(newSearchTerm);
+    setIsFiltered(newSearchTerm !== '');
   };
-
-  // const handleSearchSubmit = () => {
-  //   setCurrentPage(1);
-  //   obtenerPersonal();
-  // };
-
+  
+  const handleEstadoChange = (e) => {
+    const newEstadoFiltro = e.target.value;
+    setEstadoFiltro(newEstadoFiltro);
+    setCurrentPage(1);
+    setIsFiltered(newEstadoFiltro !== 'todos');
+  };
+  
   const handleClearSearch = () => {
     setSearchTerm('');
     setTipo('');
     setEstadoFiltro('todos');
     setCurrentPage(1);
+    setIsFiltered(false);
     obtenerPersonal();
   };
-
+  
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNuevoUsuario({ ...nuevoUsuario, [name]: value });
-  };
-
-  const handleEstadoChange = (e) => {
-    setEstadoFiltro(e.target.value);
-    setCurrentPage(1); // Resetear a la primera página cuando cambia el filtro
   };
 
   const handleSubmit = async (e) => {
@@ -324,8 +326,11 @@ const Usuarios = () => {
         />
 
        {/* Mostrar el botón de limpiar solo si hay filtros aplicados */}
-        {hayFiltrosAplicados() && (
-          <button className="usuarios__btn usuarios__btn--secondary" onClick={handleClearSearch}>
+       {isFiltered && (
+          <button 
+            className="usuarios__btn usuarios__btn--secondary" 
+            onClick={handleClearSearch}
+          >
             <i className="fas fa-eraser"></i> Limpiar
           </button>
         )}

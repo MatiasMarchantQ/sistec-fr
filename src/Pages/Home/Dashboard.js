@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Chart, registerables } from 'chart.js';
-import { Bar, Pie, Doughnut } from 'react-chartjs-2';
+import { Bar, Pie, Doughnut, Line } from 'react-chartjs-2';
 import 'chart.js/auto';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
-
 Chart.register(...registerables);
 
 // Componente de gráfico de barras optimizado
@@ -284,7 +283,7 @@ const Dashboard = () => {
       fichas: {
         totalFichas: 0,
         totalPacientes: 0,
-        fichesIniciales: 0,
+        fichasIniciales: 0,
         totalReevaluaciones: 0,
         pacientesReevaluados: 0
       }
@@ -294,7 +293,7 @@ const Dashboard = () => {
       fichas: {
         totalFichas: 0,
         totalPacientes: 0,
-        fichesIniciales: 0,
+        fichasIniciales: 0,
         totalReevaluaciones: 0,
         pacientesReevaluados: 0
       }
@@ -317,6 +316,15 @@ const Dashboard = () => {
 
   const [tiposInstituciones, setTiposInstituciones] = useState([]);
   const [instituciones, setInstituciones] = useState([]);
+
+  const [tendencias, setTendencias] = useState({
+    evolucionPacientes: [],
+    evolucionDiagnosticos: {
+      adultos: [],
+      infantiles: []
+    },
+    evolucionReevaluaciones: []
+  });
 
   // Cargar tipos de instituciones con useCallback
   const cargarTiposInstituciones = useCallback(async () => {
@@ -383,13 +391,14 @@ const Dashboard = () => {
         }
       });
       setDashboardData(response.data);
+      setTendencias(response.data.tendencias); // Agregar tendencias al estado
     } catch (error) {
       console.error('Error al cargar dashboard', error);
       toast.error('No se pudo cargar el dashboard');
     } finally {
       setLoading(false);
     }
-  }, [token, filters]);
+}, [token, filters]);
 
   // Efectos para cargar datos
   useEffect(() => {
@@ -442,6 +451,77 @@ const Dashboard = () => {
       paleta[index % paleta.length]
     );
   };
+
+  // Componente de resumen cuando no están todos los años
+  const ResumenEvolucionPacientes = ({ tendencias, filters }) => {
+    // Función para determinar si es primer semestre (infantil) o segundo semestre (adulto)
+    const esPrimerSemestre = ['primero', 'primer'].includes(filters.semestre);
+    
+    // Encontrar los datos del año específico
+    const datosAno = tendencias.evolucionPacientes.find(item => item.year === filters.year);
+  
+    // Seleccionar datos según el semestre
+    const datosSemestre = esPrimerSemestre 
+      ? (datosAno?.infantiles || {})
+      : (datosAno?.adultos || {});
+  
+    return (
+      <div className="row">
+        <div className="col-md-12">
+          <div className="card card-info">
+            <div className="card-header">
+              <h3 className="card-title">
+                Resumen {esPrimerSemestre ? 'Pacientes Infantiles' : 'Pacientes Adultos'} ({filters.year} - {esPrimerSemestre ? 'Primer Semestre' : 'Segundo Semestre'})
+              </h3>
+            </div>
+            <div className="card-body">
+              <div className="row">
+                <div className="col-md-4">
+                  <div className="info-box">
+                    <span className="info-box-icon bg-info">
+                      <i className={`fas ${esPrimerSemestre ? 'fa-child' : 'fa-users'}`}></i>
+                    </span>
+                    <div className="info-box-content">
+                      <span className="info-box-text">Total Pacientes</span>
+                      <span className="info-box-number">
+                        {datosSemestre.totalPacientes || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div className="info-box">
+                    <span className="info-box-icon bg-success">
+                      <i className="fas fa-file-medical"></i>
+                    </span>
+                    <div className="info-box-content">
+                      <span className="info-box-text">Fichas Iniciales</span>
+                      <span className="info-box-number">
+                        {datosSemestre.fichasIniciales || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div className="info-box">
+                    <span className="info-box-icon bg-warning">
+                      <i className="fas fa-redo"></i>
+                    </span>
+                    <div className="info-box-content">
+                      <span className="info-box-text">Reevaluaciones</span>
+                      <span className="info-box-number">
+                        {datosSemestre.totalReevaluaciones || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
   
   // Estado de carga
   if (loading) {
@@ -453,6 +533,7 @@ const Dashboard = () => {
       </div>
     );
   }
+  
 
   return (
     <div className="content">
@@ -470,10 +551,11 @@ const Dashboard = () => {
                   onChange={(e) => handleFilterChange('year', Number(e.target.value))} 
                   className="form-control mr-2"
                 >
-                  {[...Array(5)].map((_, index) => {
-                    const yearOption = currentYear - index;
-                    return <option key={yearOption} value={yearOption}>{yearOption}</option>;
+                  {[...Array(6)].map((_, index) => {
+                      const yearOption = currentYear - index;
+                      return <option key={yearOption} value={yearOption}>{yearOption}</option>;
                   })}
+                  <option value={0}>Todos los Años</option>
                 </select>
 
                 {/* Selector de Semestre */}
@@ -553,159 +635,147 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Gráficos de Tendencias */}
+           <div className="container-fluid"> 
+              <div className="row">
+                {/* Gráfico de Evolución de Pacientes Ingresados */}
+                <div className="col-md-12 mb-3">
+                  <div className="card card-info">
+                    <div className="card-header">
+                      <h3 className="card-title">Evolución de Pacientes Ingresados por Año</h3>
+                    </div>
+                    <div className="card-body">
+                        {(filters.year !== 0 && filters.semestre !== 'ambos') ? (
+                          <ResumenEvolucionPacientes 
+                            tendencias={tendencias} 
+                            filters={filters}
+                          />
+                        ) : (
+                          <Line
+                          data={{
+                            labels: tendencias.evolucionPacientes.map(item => item.year),
+                            datasets: [
+                              {
+                                label: 'Pacientes Adultos',
+                                data: tendencias.evolucionPacientes.map(item => 
+                                  item.adultos?.totalPacientes || 0
+                                ),
+                                backgroundColor: 'rgba(60,141,188,0.6)',
+                                borderColor: 'rgba(60,141,188,1)',
+                                borderWidth: 1,
+                                fill: true
+                              },
+                              {
+                                label: 'Pacientes Infantiles',
+                                data: tendencias.evolucionPacientes.map(item => 
+                                  item.infantiles?.totalPacientes || 0
+                                ),
+                                backgroundColor: 'rgba(255,99,132,0.6)',
+                                borderColor: 'rgba(255,99,132,1)',
+                                borderWidth: 1,
+                                fill: true
+                              }
+                            ]
+                          }}
+                          options={{
+                            responsive: true,
+                            plugins: {
+                              legend: {
+                                position: 'top',
+                              },
+                              title: {
+                                display: true,
+                                text: 'Evolución de Pacientes Ingresados'
+                              }
+                            },
+                            scales: {
+                              x: {
+                                title: {
+                                  display: true,
+                                  text: 'Año'
+                                }
+                              },
+                              y: {
+                                title: {
+                                  display: true,
+                                  text: 'Cantidad de Pacientes'
+                                },
+                                beginAtZero: true
+                              }
+                            }
+                          }}
+                        />
+                        )}
+                    </div>
+                  </div>
+                </div>
+          
           {/* Gráficos de Diagnósticos */}
           <div className="row">
             {/* Diagnósticos de Pacientes Adultos */}
-{(filters.semestre === '' || filters.semestre === 'segundo') && 
-  dashboardData.pacientesAdultos.diagnosticos.length > 0 && (
-    <div className={`${filters.semestre === '' ? 'col-md-6' : 'col-md-12'} mb-3`}>
-      <div className="card card-primary">
-        <div className="card-header">
-          <h3 className="card-title">Diagnósticos de Pacientes Adultos</h3>
-        </div>
-        <div className="card-body">
-          <DiagnosticosChart 
-            diagnosticos={dashboardData.pacientesAdultos.diagnosticos} 
-            tipo="pie"
-            title="Diagnósticos Adultos"
-          />
-        </div>
+            {(filters.semestre === '' || filters.semestre === 'segundo') && 
+              dashboardData.pacientesAdultos.diagnosticos.length > 0 && (
+                <div className={`${filters.semestre === '' ? 'col-md-6' : 'col-md-12'} mb-3`}>
+                  <div className="card card-primary">
+                    <div className="card-header">
+                      <h3 className="card-title">Diagnósticos de Pacientes Adultos</h3>
+                    </div>
+                    <div className="card-body">
+                      <DiagnosticosChart 
+                        diagnosticos={dashboardData.pacientesAdultos.diagnosticos} 
+                        tipo="pie"
+                        title="Diagnósticos Adultos"
+                      />
+                    </div>
+                  </div>
+                </div>
+            )}
+
+            {(filters.semestre === '' || filters.semestre === 'primero') && 
+                    dashboardData.pacientesInfantiles.diagnosticos.length > 0 && (
+                    <div className={`${filters.semestre === '' ? 'col-md-6' : 'col-md-12'} mb-3`}>
+                      <div className="card card-success">
+                        <div className="card-header">
+                          <h3 className="card-title">Diagnósticos de Pacientes Infantiles</h3>
+                        </div>
+                        <div className="card-body">
+                          <DiagnosticosChart 
+                            diagnosticos={dashboardData.pacientesInfantiles.diagnosticos} 
+                            tipo="doughnut"
+                            title="Diagnósticos Infantiles"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Estadísticas por institución */}
+                {dashboardData.estadisticasPorInstitucion.length > 0 && (
+                  <div className="row">
+                    <div className="col-12">
+                      <div className="card card-warning">
+                        <div className="card-header">
+                          <h3 className="card-title">Distribución de Fichas por Institución</h3>
+                        </div>
+                        <div className="card-body">
+                          <InstitucionesChart 
+                            estadisticasPorInstitucion={dashboardData.estadisticasPorInstitucion}
+                            semestre={filters.semestre}
+                            tipoInstitucion={filters.tipoInstitucion}
+                            institucionId={filters.institucionId}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
-    </div>
-)}
-
-{(filters.semestre === '' || filters.semestre === 'primero') && 
-        dashboardData.pacientesInfantiles.diagnosticos.length > 0 && (
-        <div className={`${filters.semestre === '' ? 'col-md-6' : 'col-md-12'} mb-3`}>
-          <div className="card card-success">
-            <div className="card-header">
-              <h3 className="card-title">Diagnósticos de Pacientes Infantiles</h3>
-            </div>
-            <div className="card-body">
-              <DiagnosticosChart 
-                diagnosticos={dashboardData.pacientesInfantiles.diagnosticos} 
-                tipo="doughnut"
-                title="Diagnósticos Infantiles"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-
-          {/* Resumen de Fichas */}
-          <div className="row">
-            {/* Resumen Fichas Adultos */}
-            <div className="col-md-6">
-              <div className="card card-info">
-                <div className="card-header">
-                  <h3 className="card-title">Resumen Fichas Adultos</h3>
-                </div>
-                <div className="card-body">
-                  <ul className="list-group">
-                    <li className="list-group-item d-flex justify-content-between align-items-center">
-                      Total Fichas
-                      <span className="badge bg-primary rounded-pill">
-                        {dashboardData.pacientesAdultos.fichas.totalFichas}
-                      </span>
-                    </li>
-                    <li className="list-group-item d-flex justify-content-between align-items-center">
-                      Total Pacientes
-                      <span className="badge bg-success rounded-pill">
-                        {dashboardData.pacientesAdultos.fichas.totalPacientes}
-                      </span>
-                    </li>
-                    <li className="list-group-item d-flex justify-content-between align-items-center">
-                      Fichas Iniciales
-                      <span className="badge bg-warning rounded-pill">
-                        {dashboardData.pacientesAdultos.fichas.fichesIniciales}
-                      </span>
-                    </li>
-                    <li className="list-group-item d-flex justify-content-between align-items-center">
-                      Reevaluaciones
-                      <span className="badge bg-danger rounded-pill">
-                        {dashboardData.pacientesAdultos.fichas.totalReevaluaciones}
-                      </span>
-                    </li>
-                    <li className="list-group-item d-flex justify-content-between align-items-center">
-                      Pacientes Reevaluados
-                      <span className="badge bg-info rounded-pill">
-                        {dashboardData.pacientesAdultos.fichas.pacientesReevaluados}
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Resumen Fichas Infantiles */}
-            <div className="col-md-6">
-              <div className="card card-danger">
-                <div className="card-header">
-                  <h3 className="card-title">Resumen Fichas Infantiles</h3>
-                </div>
-                <div className="card-body">
-                  <ul className="list-group">
-                    <li className="list-group-item d-flex justify-content-between align-items-center">
-                      Total Fichas
-                      <span className="badge bg-primary rounded-pill">
-                        {dashboardData.pacientesInfantiles.fichas.totalFichas}
-                      </span>
-                    </li>
-                    <li className="list-group-item d-flex justify-content-between align-items-center">
-                      Total Pacientes
-                      <span className="badge bg-success rounded-pill">
-                        {dashboardData.pacientesInfantiles.fichas.totalPacientes}
-                      </span>
-                    </li>
-                    <li className="list-group-item d-flex justify-content-between align-items-center">
-                      Fichas Iniciales
-                      <span className="badge bg-warning rounded-pill">
-                        {dashboardData.pacientesInfantiles.fichas.fichesIniciales}
-                      </span>
-                    </li>
-                    <li className="list-group-item d-flex justify-content-between align-items-center">
-                      Reevaluaciones
-                      <span className="badge bg-danger rounded-pill">
-                        {dashboardData.pacientesInfantiles.fichas.totalReevaluaciones}
-                      </span>
-                    </li>
-                    <li className="list-group-item d-flex justify-content-between align-items-center">
-                      Pacientes Reevaluados
-                      <span className="badge bg-info rounded-pill">
-                        {dashboardData.pacientesInfantiles.fichas.pacientesReevaluados}
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Estadísticas por institución */}
-          {dashboardData.estadisticasPorInstitucion.length > 0 && (
-            <div className="row">
-              <div className="col-12">
-                <div className="card card-warning">
-                  <div className="card-header">
-                    <h3 className="card-title">Distribución de Fichas por Institución</h3>
-                  </div>
-                  <div className="card-body">
-                    <InstitucionesChart 
-                      estadisticasPorInstitucion={dashboardData.estadisticasPorInstitucion}
-                      semestre={filters.semestre}
-                      tipoInstitucion={filters.tipoInstitucion}
-                      institucionId={filters.institucionId}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
-  );
-};
+    );
+  };
 
 export default Dashboard;

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, InputGroup, FormControl, Card, Alert, Col, Row } from 'react-bootstrap';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Table, Button, Modal, Form, Tooltip, InputGroup, FormControl, Card, Alert, Col, Row,OverlayTrigger, Popover, Badge } from 'react-bootstrap';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { ToastContainer, toast } from 'react-toastify'; // Importa toast
@@ -16,9 +16,10 @@ const AsignarEstudiantes = () => {
   const [showAsignarModal, setShowAsignarModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEstudiantes, setSelectedEstudiantes] = useState([]);
-  const [estadoFiltro, setEstadoFiltro] = useState('activos');
-  const [isSelecting, setIsSelecting] = useState(null);
+  const [filtroEstado, setFiltroEstado] = useState('todos'); // Definir filtroEstado
+  const [isSelecting, setIsSelecting] = useState(false);
   const [startEstudiante, setStartEstudiante] = useState(null);
+  const [selectionMode, setSelectionMode] = useState(null);
   const [tipoInstitucionSeleccionado, setTipoInstitucionSeleccionado] = useState(null);
   const [institucionSeleccionada, setInstitucionSeleccionada] = useState(null);
   const [receptorSeleccionado, setReceptorSeleccionado] = useState(null);
@@ -31,8 +32,40 @@ const AsignarEstudiantes = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const [anoSeleccionado, setAnoSeleccionado] = useState('2024');
+  const [filtroJustificacion, setFiltroJustificacion] = useState(false);
   const limit = 10;
-  const totalPages = Math.ceil(totalElements / limit);
+  const [totalPages, setTotalPages] = useState(0);
+  const [estadoFiltro, setEstadoFiltro] = useState('todos');
+  const [showJustificacionModal, setShowJustificacionModal] = useState(false);
+  const [justificaciones, setJustificaciones] = useState({});
+  const [conflictoAsignaciones, setConflictoAsignaciones] = useState(null);
+  const [tempAsignacionData, setTempAsignacionData] = useState(null);
+  const [justificacionEditable, setJustificacionEditable] = useState('');
+
+  // Función para formatear fecha
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  // Filtrar estudiantes basado en el estado y término de búsqueda
+  const estudiantesFiltrados = useMemo(() => {
+    return estudiantes.filter(estudiante => {
+      const matchesSearch = 
+        estudiante.nombres.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        estudiante.apellidos.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesEstado = 
+        filtroEstado === 'todos' || 
+        (filtroEstado === 'activos' && estudiante.estado === true) || 
+        (filtroEstado === 'inactivos' && estudiante.estado === false);
+      
+      return matchesSearch && matchesEstado;
+    });
+  }, [estudiantes, searchTerm, filtroEstado]);
 
   const getAniosOptions = () => {
     const currentYear = new Date().getFullYear();
@@ -47,9 +80,10 @@ const AsignarEstudiantes = () => {
 
   useEffect(() => {
     fetchData(currentPage);
-  }, [currentPage, searchTerm, anoSeleccionado, asignaciones.length]);
-  
+  }, [currentPage, searchTerm, anoSeleccionado, estadoFiltro, filtroJustificacion]); // Agregar filtroJustificacion
+
   useEffect(() => {
+    // Cargar tipos de instituciones
     const fetchTiposInstituciones = async () => {
       try {
         const token = getToken();
@@ -57,261 +91,745 @@ const AsignarEstudiantes = () => {
         const response = await axios.get(`${apiUrl}/obtener/tipos-instituciones`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setTiposInstituciones(response.data || []);
+        setTiposInstituciones(response.data);
       } catch (error) {
         console.error("Error al obtener tipos de instituciones:", error);
-        setErrorMessage("Error al obtener tipos de instituciones.");
-        toast.error("Error al obtener tipos de instituciones.");
+        toast.error("Error al cargar tipos de instituciones");
       }
     };
   
     fetchTiposInstituciones();
-  }, []); // Solo se ejecuta una vez al montar el componente
+  }, []); // Solo se ejecuta al montar el componente
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Los meses en JS son 0-11
-    const year = date.getUTCFullYear();
-    return `${day}-${month}-${year}`;
-  };
-
-  const fetchData = async (page = currentPage) => {
-    try {
-      const token = getToken();
-      const apiUrl = process.env.REACT_APP_API_URL;
-  
-      const estudiantesRes = await axios.get(`${apiUrl}/estudiantes`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: {
-          page: page,
-          limit: limit,
-          search: searchTerm,
-          ano: anoSeleccionado,
-          estado: estadoFiltro
-        }
-      });
-      const estudiantes = estudiantesRes.data.estudiantes || [];
-      setEstudiantes(estudiantes);
-      setTotalElements(estudiantesRes.data.total);
-      setCurrentPage(page);
-  
-      // Obtener asignaciones solo para los estudiantes en la página actual
-      const estudianteIds = estudiantes.map(est => est.id);
-      const asignacionesRes = await axios.get(`${apiUrl}/asignaciones`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: {
-          estudiante_id: estudianteIds.join(','), // Pasar múltiples IDs si es necesario
-          page: 1, // O la página que deseas para las asignaciones
-          limit: 100 // O un número que consideres adecuado para obtener todas las asignaciones
-        }
-      });
-      setAsignaciones(asignacionesRes.data.asignaciones || []);
-      setTotalAsignaciones(asignacionesRes.data.total);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setErrorMessage("Error al cargar los datos. Por favor, intente de nuevo.");
-    }
-  };
-
-  const handleTipoInstitucionChange = async (event) => {
-    const tipoId = event.target.value;
-    setTipoInstitucionSeleccionado(tipoId);
-    setInstitucionSeleccionada(null);
-    setReceptorSeleccionado(null);
-  
-    try {
-      const token = getToken();
-      const apiUrl = process.env.REACT_APP_API_URL;
-      const response = await axios.get(`${apiUrl}/obtener/instituciones?tipoId=${tipoId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      // Cambio principal: usa directamente response.data
-      setInstituciones(response.data);
-    } catch (error) {
-      console.error("Error al obtener instituciones:", error);
-      setErrorMessage("Error al obtener instituciones.");
-      toast.error("Error al obtener instituciones.");
-    }
-  };
-
-  const handleInstitucionChange = async (event) => {
-    const institucionId = event.target.value;
-    setInstitucionSeleccionada(institucionId);
-    setReceptorSeleccionado(null);
-
-    try {
-      const token = getToken();
-      const apiUrl = process.env.REACT_APP_API_URL;
-      const response = await axios.get(`${apiUrl}/obtener/receptores?institucionId=${institucionId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setReceptores(response.data || []);
-    } catch (error) {
-      console.error("Error al obtener receptores:", error);
-      setErrorMessage("Error al obtener receptores.");
-      toast.error("Error al obtener receptores.");
-    }
-  };
-
-  const handleAsignarCentro = async () => {
-    try {
-      const token = getToken();
-      const apiUrl = process.env.REACT_APP_API_URL;
-      
-      // Primero, verificar si hay conflictos
-      const asignacionesExistentes = asignaciones.filter(asig => 
-        asig.receptor_id === parseInt(receptorSeleccionado) &&
-        ((new Date(asig.fecha_inicio) <= new Date(fechaFin) && 
-          new Date(asig.fecha_fin) >= new Date(fechaInicio)))
-      );
-  
-      if (asignacionesExistentes.length > 0) {
-        // Mostrar modal de confirmación para asignación excepcional
-        const confirmar = window.confirm(
-          `Ya existen asignaciones para este receptor en este periodo. ¿Desea realizar una asignación excepcional?\n\n` +
-          asignacionesExistentes.map(asig => 
-            `- ${formatDate(asig.fecha_inicio)} a ${formatDate(asig.fecha_fin)}`
-          ).join('\n')
-        );
-  
-        if (!confirmar) return;
-  
-        const justificacion = window.prompt('Ingrese la justificación para la asignación excepcional:');
-        
-        if (!justificacion) {
-          toast.error('Debe proporcionar una justificación para la asignación excepcional');
-          return;
-        }
-  
-        // Enviar con bandera de asignación excepcional
-        await Promise.all(selectedEstudiantes.map(async (estudiante) => {
-          await axios.post(`${apiUrl}/asignaciones`, {
-            estudiante_id: estudiante.id,
-            institucion_id: parseInt(institucionSeleccionada),
-            receptor_id: parseInt(receptorSeleccionado),
-            fecha_inicio: fechaInicio,
-            fecha_fin: fechaFin,
-            es_asignacion_excepcional: true,
-            justificacion_excepcional: justificacion
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-        }));
-      } else {
-        // Proceso normal de asignación
-        await Promise.all(selectedEstudiantes.map(async (estudiante) => {
-          await axios.post(`${apiUrl}/asignaciones`, {
-            estudiante_id: estudiante.id,
-            institucion_id: parseInt(institucionSeleccionada),
-            receptor_id: parseInt(receptorSeleccionado),
-            fecha_inicio: fechaInicio,
-            fecha_fin: fechaFin
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-        }));
+useEffect(() => {
+  // Cargar todas las instituciones cuando se selecciona un tipo
+  const fetchInstituciones = async () => {
+    if (tipoInstitucionSeleccionado) {
+      try {
+        const token = getToken();
+        const apiUrl = process.env.REACT_APP_API_URL;
+        const response = await axios.get(`${apiUrl}/obtener/instituciones`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { tipoId: tipoInstitucionSeleccionado }
+        });
+        setInstituciones(response.data);
+      } catch (error) {
+        console.error("Error al obtener instituciones:", error);
+        toast.error("Error al cargar instituciones");
       }
-  
+    }
+  };
+
+  fetchInstituciones();
+}, [tipoInstitucionSeleccionado]);
+
+useEffect(() => {
+  // Cargar receptores cuando se selecciona una institución
+  const fetchReceptores = async () => {
+    if (institucionSeleccionada) {
+      try {
+        const token = getToken();
+        const apiUrl = process.env.REACT_APP_API_URL;
+        const response = await axios.get(`${apiUrl}/obtener/receptores`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { institucionId: institucionSeleccionada }
+        });
+        setReceptores(response.data || []);
+      } catch (error) {
+        console.error("Error al obtener receptores:", error);
+        toast.error("Error al cargar receptores");
+      }
+    }
+  };
+
+  fetchReceptores();
+}, [institucionSeleccionada]);
+
+const fetchData = async (page = currentPage) => {
+  try {
+    const token = getToken();
+    const apiUrl = process.env.REACT_APP_API_URL;
+
+    const response = await axios.get(`${apiUrl}/asignaciones`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: {
+        page: page,
+        limit: limit,
+        search: searchTerm,
+        year: anoSeleccionado, // Asegúrate de que esto esté aquí
+        estado: estadoFiltro,
+        tieneJustificacion: filtroJustificacion.toString() // Convertir a string
+      }
+    });
+
+    setEstudiantes(response.data.estudiantes || []);
+    setTotalElements(response.data.total || 0);
+    setTotalPages(response.data.totalPages || 0);
+    setCurrentPage(page);
+    
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    setErrorMessage("Error al cargar los datos. Por favor, intente de nuevo.");
+    setEstudiantes([]);
+  }
+};
+
+const handleTipoInstitucionChange = async (event) => {
+  const tipoId = event.target.value;
+  setTipoInstitucionSeleccionado(tipoId);
+  setInstitucionSeleccionada(null);
+  setReceptorSeleccionado(null);
+  setInstituciones([]); // Limpiar instituciones anteriores
+  setReceptores([]); // Limpiar receptores anteriores
+
+  if (!tipoId) return;
+
+  try {
+    const token = getToken();
+    const apiUrl = process.env.REACT_APP_API_URL;
+    const response = await axios.get(`${apiUrl}/obtener/instituciones`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { tipoId: tipoId }
+    });
+    
+    // Verificar si response.data existe y no está vacío
+    if (response.data && response.data.length > 0) {
+      setInstituciones(response.data);
+    } else {
+      toast.info('No se encontraron instituciones para este tipo');
+      setInstituciones([]);
+    }
+  } catch (error) {
+    console.error("Error al obtener instituciones:", error);
+    setErrorMessage("Error al obtener instituciones.");
+    toast.error("Error al obtener instituciones.");
+    setInstituciones([]);
+  }
+};
+
+const handleInstitucionChange = async (event) => {
+  const institucionId = event.target.value;
+  setInstitucionSeleccionada(institucionId);
+  setReceptorSeleccionado(null);
+  setReceptores([]); // Limpiar receptores anteriores
+
+  if (!institucionId) return;
+
+  try {
+    const token = getToken();
+    const apiUrl = process.env.REACT_APP_API_URL;
+    const response = await axios.get(`${apiUrl}/obtener/receptores`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { institucionId: institucionId }
+    });
+    
+    // Verificar si response.data existe y no está vacío
+    if (response.data && response.data.length > 0) {
+      setReceptores(response.data);
+    } else {
+      toast.info('No se encontraron receptores para esta institución');
+      setReceptores([]);
+    }
+  } catch (error) {
+    console.error("Error al obtener receptores:", error);
+    setErrorMessage("Error al obtener receptores.");
+    toast.error("Error al obtener receptores.");
+    setReceptores([]);
+  }
+};
+
+const handleCloseAsignarModal = () => {
+  setShowAsignarModal(false);
+  setSelectedEstudiantes([]);
+  resetAsignarModal();
+};
+
+const resetAsignarModal = () => {
+  setTipoInstitucionSeleccionado(null);
+  setInstitucionSeleccionada(null);
+  setReceptorSeleccionado(null);
+  setFechaInicio('');
+  setFechaFin('');
+  setErrorMessage('');
+  setInstituciones([]);
+  setReceptores([]);
+};
+
+const handleCloseEditarModal = () => {
+  setShowEditarModal(false);
+  setSelectedEstudiantes([]);
+  resetEditarModal();
+};
+
+const resetEditarModal = () => {
+  setTipoInstitucionSeleccionado(null);
+  setInstitucionSeleccionada(null);
+  setReceptorSeleccionado(null);
+  setFechaInicio('');
+  setFechaFin('');
+  setErrorMessage('');
+  setInstituciones([]);
+  setReceptores([]);
+  setJustificacionEditable('');
+  setAsignacionParaEditar(null);
+};
+
+const handleAsignarCentro = async () => {
+  try {
+    const token = getToken();
+    const apiUrl = process.env.REACT_APP_API_URL;
+    
+    // Verificar que todos los campos necesarios estén completos
+    if (!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin) {
+      toast.error('Por favor complete todos los campos');
+      return;
+    }
+    
+    // Convertir a enteros para evitar problemas de tipo
+    const institucionId = parseInt(institucionSeleccionada);
+    const receptorId = parseInt(receptorSeleccionado);
+
+    try {
+      // Intentar crear las asignaciones
+      await Promise.all(selectedEstudiantes.map(async (estudiante) => {
+        await axios.post(`${apiUrl}/asignaciones`, {
+          estudiante_id: estudiante.id,
+          institucion_id: institucionId,
+          receptor_id: receptorId,
+          fecha_inicio: fechaInicio,
+          fecha_fin: fechaFin
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }));
+
+      // Si tiene éxito, proceder normalmente
       await fetchData(currentPage);
       setShowAsignarModal(false);
       resetearFormulario();
       setSelectedEstudiantes([]);
       toast.success('Asignaciones creadas exitosamente!');
+
+    } catch (error) {
+      // Destructurar error y respuesta
+      const { response } = error;
+      
+      // Priorizar mensajes del servidor
+      if (response && response.data) {
+        // Mensajes específicos de diferentes escenarios
+        if (response.data.message) {
+          toast.error(response.data.message);
+        } else if (response.data.error) {
+          toast.error(response.data.error);
+        }
+
+        // Manejar caso de asignaciones existentes
+        if (response.data.asignaciones && response.data.permitirExcepcional) {
+          // Agrupar asignaciones por periodo
+          const asignacionesPorPeriodo = response.data.asignaciones.reduce((grupos, asig) => {
+            const key = `${formatDate(asig.fecha_inicio)} - ${formatDate(asig.fecha_fin)}`;
+            if (!grupos[key]) {
+              grupos[key] = [];
+            }
+            
+            const estudianteExistente = estudiantes.find(
+              est => est.id === (asig.estudiante || asig.estudiante_id)
+            );
+            
+            grupos[key].push(
+              estudianteExistente 
+                ? `${estudianteExistente.nombres} ${estudianteExistente.apellidos}` 
+                : `Estudiante ID: ${asig.estudiante || asig.estudiante_id}`
+            );
+            
+            return grupos;
+          }, {});
+
+          // Construir mensaje detallado
+          const mensaje = Object.entries(asignacionesPorPeriodo)
+            .map(([periodo, estudiantes]) => 
+              `Periodo: ${periodo}\nEstudiantes: ${estudiantes.join(', ')}`
+            )
+            .join('\n\n');
+
+          // Guardar datos temporales para la asignación
+          setTempAsignacionData({
+            institucionId,
+            receptorId,
+            fechaInicio,
+            fechaFin
+          });
+
+          // Guardar detalles del conflicto
+          setConflictoAsignaciones({
+            mensaje,
+            asignaciones: response.data.asignaciones,
+            permitirExcepcional: true
+          });
+
+          // Inicializar justificaciones
+          const justificacionesIniciales = {};
+          selectedEstudiantes.forEach(estudiante => {
+            justificacionesIniciales[estudiante.id] = '';
+          });
+          setJustificaciones(justificacionesIniciales);
+
+          // Mostrar modal de justificaciones
+          setShowJustificacionModal(true);
+        }
+
+      } else {
+        // Mensaje de error genérico si no hay respuesta específica
+        toast.error('Error al crear las asignaciones');
+      }
+    }
+  } catch (error) {
+    console.error("Error al crear asignaciones:", error);
+    
+    // Última línea de defensa para mostrar mensaje de error
+    const errorMessage = 
+      error.response?.data?.message || 
+      error.response?.data?.error || 
+      error.message || 
+      "Error al crear las asignaciones";
+    
+    toast.error(errorMessage);
+  }
+};
+
+// Componente Modal de Justificaciones
+const JustificacionModal = () => {
+  // Crear un estado local para manejar las justificaciones
+  const [localJustificaciones, setLocalJustificaciones] = useState(() => {
+    // Inicializar con las justificaciones existentes o crear un objeto vacío
+    const inicial = {};
+    selectedEstudiantes.forEach(estudiante => {
+      inicial[estudiante.id] = '';
+    });
+    return inicial;
+  });
+
+  const handleJustificacionChange = (estudianteId, value) => {
+    // Usar setState con función de callback para evitar problemas de asincronía
+    setLocalJustificaciones(prev => ({
+      ...prev,
+      [estudianteId]: value
+    }));
+  };
+
+  const handleConfirmar = async () => {
+    // Validar que todas las justificaciones estén completas
+    const todasJustificaciones = selectedEstudiantes.map(est => 
+      localJustificaciones[est.id]?.trim()
+    );
+
+    if (todasJustificaciones.some(j => !j)) {
+      toast.error('Debe proporcionar justificación para todos los estudiantes');
+      return;
+    }
+
+    try {
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const { institucionId, receptorId, fechaInicio, fechaFin } = tempAsignacionData;
+
+      // Intentar crear asignaciones con justificación excepcional
+      await Promise.all(selectedEstudiantes.map(async (estudiante) => {
+        await axios.post(`${apiUrl}/asignaciones`, {
+          estudiante_id: estudiante.id,
+          institucion_id: institucionId,
+          receptor_id: receptorId,
+          fecha_inicio: fechaInicio,
+          fecha_fin: fechaFin,
+          es_asignacion_excepcional: true,
+          justificacion_excepcional: localJustificaciones[estudiante.id]
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }));
+
+      // Actualizar datos y limpiar
+      await fetchData(currentPage);
+      setShowJustificacionModal(false);
+      setShowAsignarModal(false);
+      resetearFormulario();
+      setSelectedEstudiantes([]);
+      
+      // Limpiar estados de conflicto
+      setConflictoAsignaciones(null);
+      setTempAsignacionData(null);
+      
+      toast.success('Asignaciones excepcionales creadas exitosamente!');
+
     } catch (error) {
       console.error("Error al crear asignaciones:", error);
       const errorMsg = error.response?.data?.error || "Error al crear las asignaciones. Por favor, intente de nuevo.";
-      setErrorMessage(errorMsg);
       toast.error(errorMsg);
     }
   };
 
-  const handleEditarAsignacion = (asignacion) => {
-  setAsignacionParaEditar(asignacion);
-  setInstitucionSeleccionada(asignacion.institucion_id);
-  setReceptorSeleccionado(asignacion.receptor_id);
-  setFechaInicio(asignacion.fecha_inicio.split('T')[0]);
-  setFechaFin(asignacion.fecha_fin.split('T')[0]);
-  setShowEditarModal(true);
+  return (
+    <Modal 
+      show={showJustificacionModal} 
+      onHide={() => {
+        setShowJustificacionModal(false);
+        setConflictoAsignaciones(null);
+        setTempAsignacionData(null);
+      }}
+      size="lg"
+    >
+      <Modal.Header closeButton className="bg-warning">
+        <Modal.Title>
+          <i className="fas fa-exclamation-triangle mr-2"></i>
+          Asignaciones Existentes
+        </Modal.Title>
+      </Modal.Header>
+      
+      <Modal.Body>
+        <Alert variant="warning">
+          <Alert.Heading>
+            <i className="icon fas fa-info-circle"></i> Conflicto de Asignaciones
+          </Alert.Heading>
+          <p>Ya existen asignaciones para este receptor en el periodo:</p>
+          <pre>{conflictoAsignaciones?.mensaje || 'Sin detalles de conflicto'}</pre>
+        </Alert>
+
+        <Form>
+          {selectedEstudiantes.map((estudiante) => (
+            <Form.Group key={estudiante.id} className="mb-3">
+              <Form.Label>
+                Justificación para {estudiante.nombres} {estudiante.apellidos}
+              </Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={localJustificaciones[estudiante.id] || ''}
+                onChange={(e) => handleJustificacionChange(estudiante.id, e.target.value)}
+                placeholder="Ingrese la justificación para la asignación excepcional"
+                required
+              />
+            </Form.Group>
+          ))}
+        </Form>
+      </Modal.Body>
+      
+      <Modal.Footer>
+        <Button variant="secondary" onClick={() => {
+          setShowJustificacionModal(false);
+          setConflictoAsignaciones(null);
+          setTempAsignacionData(null);
+        }}> 
+          Cancelar
+        </Button>
+        <Button variant="primary" onClick={handleConfirmar}>
+          Confirmar Asignaciones
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+};
+
+const handleEditarAsignacion = async (asignacion) => {
+  try {
+    console.log('Asignación completa para editar:', asignacion);
+    
+    // Establecer explícitamente el estado de asignación excepcional
+    const esAsignacionExcepcional = !!(asignacion.justificacion_excepcional);
+    
+    console.log('Es asignación excepcional:', esAsignacionExcepcional);
+    console.log('Justificación excepcional:', asignacion.justificacion_excepcional);
+    
+    const token = getToken();
+    const apiUrl = process.env.REACT_APP_API_URL;
+
+    // Verificar y obtener el ID de la institución
+    const institucionId = asignacion.institucion_id || 
+                          (asignacion.institucion && asignacion.institucion.id) || 
+                          null;
+
+    // Verificar y obtener el ID del receptor
+    const receptorId = asignacion.receptor_id || 
+                       (asignacion.receptor && asignacion.receptor.id) || 
+                       null;
+
+    // Depuración de justificación
+    console.log('Justificación excepcional:', asignacion.justificacion_excepcional);
+    console.log('Es asignación excepcional:', asignacion.es_asignacion_excepcional);
+
+    if (!institucionId) {
+      toast.error("No se pudo identificar la institución");
+      return;
+    }
+
+    // Agregar verificación para receptor
+    if (!receptorId) {
+      toast.error("No se pudo identificar el receptor");
+      return;
+    }
+
+    // Cargar tipos de instituciones
+    const tiposInstitucionesResponse = await axios.get(`${apiUrl}/obtener/tipos-instituciones`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    // Intentar obtener el tipo de institución de manera más robusta
+    let tipoInstitucionId = null;
+
+    // Primero intentar desde la institución directamente
+    if (asignacion.institucion && asignacion.institucion.tipo_id) {
+      tipoInstitucionId = asignacion.institucion.tipo_id;
+    } 
+    // Si no, buscar en la lista de tipos de instituciones
+    else {
+      // Buscar en la lista de tipos de instituciones basado en el ID de la institución
+      const institucionResponse = await axios.get(`${apiUrl}/instituciones/${institucionId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      tipoInstitucionId = institucionResponse.data.tipo_id;
+    }
+
+    // Si aún no se encuentra el tipo de institución, mostrar error
+    if (!tipoInstitucionId) {
+      toast.error("No se pudo determinar el tipo de institución");
+      return;
+    }
+
+    // Cargar instituciones de ese tipo
+    const institucionesResponse = await axios.get(`${apiUrl}/obtener/instituciones`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { tipoId: tipoInstitucionId }
+    });
+
+    // Cargar receptores de la institución
+    const receptoresResponse = await axios.get(`${apiUrl}/obtener/receptores`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { institucionId: institucionId }
+    });
+
+    // Cargar detalles del receptor específico
+    const receptorResponse = await axios.get(`${apiUrl}/instituciones/receptor/${receptorId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    // Establecer los estados
+    setTipoInstitucionSeleccionado(tipoInstitucionId);
+    setInstituciones(institucionesResponse.data);
+    
+    // Agregar el receptor a la lista si no existe
+    setReceptores(prevReceptores => {
+      const receptorExiste = prevReceptores.some(r => r.id === receptorResponse.data.id);
+      return receptorExiste 
+        ? prevReceptores 
+        : [...prevReceptores, receptorResponse.data];
+    });
+
+    // Establecer los valores seleccionados
+    setAsignacionParaEditar(asignacion);
+    setInstitucionSeleccionada(institucionId);
+    setReceptorSeleccionado(receptorId);
+    
+    // Formatear fechas de manera segura
+    setFechaInicio(asignacion.fecha_inicio ? asignacion.fecha_inicio.split('T')[0] : '');
+    setFechaFin(asignacion.fecha_fin ? asignacion.fecha_fin.split('T')[0] : '');
+
+    // Establecer la justificación si existe
+    const justificacion = asignacion.justificacion_excepcional || '';
+
+    console.log('Justificación a establecer:', justificacion);
+    
+    setJustificacionEditable(justificacion);
+
+    // Mostrar modal de edición
+    setShowEditarModal(true);
+
+  } catch (error) {
+    console.error("Error al cargar datos para edición:", error);
+    
+    // Manejo de errores más específico
+    if (error.response) {
+      // El servidor respondió con un código de estado fuera del rango 2xx
+      toast.error(error.response.data.error || "Error al cargar los datos de la asignación");
+    } else if (error.request) {
+      // La solicitud fue hecha pero no se recibió respuesta
+      toast.error("No se pudo conectar con el servidor");
+    } else {
+      // Algo sucedió al configurar la solicitud
+      toast.error("Error inesperado al cargar los datos");
+    }
+  }
 };
 
 const handleGuardarEdicion = async () => {
   if (!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin) {
-    setErrorMessage('Por favor, completa todos los campos.');
-    toast.error('Por favor, completa todos los campos.');
-    return;
+      setErrorMessage('Por favor, completa todos los campos.');
+      toast.error('Por favor, completa todos los campos.');
+      return;
   }
 
   try {
-    const token = getToken();
-    const apiUrl = process.env.REACT_APP_API_URL;
-    const response = await axios.put(`${apiUrl}/asignaciones/${asignacionParaEditar.id}`, {
-      institucion_id: parseInt(institucionSeleccionada),
-      receptor_id: parseInt(receptorSeleccionado),
-      fecha_inicio: fechaInicio,
-      fecha_fin: fechaFin
-    }, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
+      
+      // Depuración: imprimir el estado actual de la asignación
+      console.log('Asignación para editar:', asignacionParaEditar);
+      console.log('Justificación actual:', asignacionParaEditar.justificacion_excepcional);
+      console.log('Justificación editable:', justificacionEditable);
 
-    // Actualizar el estado local inmediatamente con los datos del servidor
-    setAsignaciones(prevAsignaciones => 
-      prevAsignaciones.map(a => 
-        a.id === asignacionParaEditar.id ? response.data : a
-      )
-    );
+      // Preparar datos para actualizar
+      const datosActualizacion = {
+          institucion_id: parseInt(institucionSeleccionada),
+          receptor_id: parseInt(receptorSeleccionado),
+          fecha_inicio: fechaInicio,
+          fecha_fin: fechaFin,
+          // Establecer explícitamente el estado de asignación excepcional
+          es_asignacion_excepcional: justificacionEditable ? true : false
+      };
 
-    // Cerrar el modal y limpiar el formulario
-    await fetchData(currentPage);
-    setShowEditarModal(false);
-    resetearFormulario();
-    toast.success('Asignación actualizada exitosamente!');
+      // Manejar la justificación de manera más robusta
+      if (justificacionEditable) {
+          datosActualizacion.justificacion_excepcional = justificacionEditable;
+      } else {
+          // Si no hay justificación, establecer como null
+          datosActualizacion.justificacion_excepcional = null;
+      }
+
+      console.log('Datos a enviar:', datosActualizacion);
+
+      const response = await axios.put(`${apiUrl}/asignaciones/${asignacionParaEditar.id}`, 
+          datosActualizacion, 
+          {
+              headers: { Authorization: `Bearer ${token}` }
+          }
+      );
+
+      // Actualizar la lista de asignaciones
+      await fetchData(currentPage);
+      
+      setShowEditarModal(false);
+      resetearFormulario();
+      toast.success('Asignación actualizada exitosamente!');
   } catch (error) {
-    console.error("Error al actualizar asignación:", error);
-    setErrorMessage("Error al actualizar la asignación. Por favor, intente de nuevo.");
-    toast.error("Error al actualizar la asignación. Por favor, intente de nuevo.");
+      console.error("Error al actualizar asignación:", error);
+      
+      // Mostrar detalles específicos del error
+      if (error.response) {
+          console.error('Detalles del error:', error.response.data);
+          setErrorMessage(error.response.data.error || "Error al actualizar la asignación");
+          toast.error(error.response.data.error || "Error al actualizar la asignación");
+      } else {
+          setErrorMessage("Error al actualizar la asignación. Por favor, intente de nuevo.");
+          toast.error("Error al actualizar la asignación. Por favor, intente de nuevo.");
+      }
   }
 };
 
 const handleEliminarAsignacion = async (asignacionId) => {
-  try {
-    const token = getToken();
-    const apiUrl = process.env.REACT_APP_API_URL;
-    await axios.delete(`${apiUrl}/asignaciones/${asignacionId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    await fetchData(currentPage); // Agregar esta línea después de eliminar
-    toast.success("Asignación eliminada exitosamente!");
-  } catch (error) {
-    console.error("Error al eliminar asignación:", error);
-    setErrorMessage("Error al eliminar la asignación. Por favor, intente de nuevo.");
-    toast.error("Error al eliminar la asignación. Por favor, intente de nuevo.");
-  }
+    try {
+        const token = getToken();
+        const apiUrl = process.env.REACT_APP_API_URL;
+        await axios.delete(`${apiUrl}/asignaciones/${asignacionId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        await fetchData(currentPage);
+        toast.success("Asignación eliminada exitosamente!");
+    } catch (error) {
+        console.error("Error al eliminar asignación:", error);
+        setErrorMessage("Error al eliminar la asignación. Por favor, intente de nuevo.");
+        toast.error("Error al eliminar la asignación. Por favor, intente de nuevo.");
+    }
 };
 
+const toggleEstudianteSelection = (estudiante, event) => {
+  // Prevenir la selección de texto y propagación
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
 
-  const toggleEstudianteSelection = (estudiante) => {
-    if (selectedEstudiantes.includes(estudiante)) {
-      setSelectedEstudiantes(selectedEstudiantes.filter(e => e !== estudiante));
+  setSelectedEstudiantes(prev => {
+    const isCurrentlySelected = prev.some(e => e.correo === estudiante.correo);
+    
+    if (isCurrentlySelected) {
+      // Deseleccionar
+      return prev.filter(e => e.correo !== estudiante.correo);
     } else {
-      setSelectedEstudiantes([...selectedEstudiantes, estudiante]);
+      // Seleccionar
+      return [...prev, estudiante];
     }
-  };
+  });
+};
 
-  const handleMouseDown = (estudiante) => {
-    setIsSelecting(true);
-    setStartEstudiante(estudiante);
-    const isInitiallySelected = selectedEstudiantes.includes(estudiante);
-    if (isInitiallySelected) {
-      setSelectedEstudiantes(prev => prev.filter(e => e.correo !== estudiante.correo));
+const handleRowClick = (estudiante, event) => {
+  // Verificar que el click no sea en elementos interactivos
+  const isInteractiveElement = 
+    event.target.closest('button') || 
+    event.target.closest('.popover') || 
+    event.target.closest('.badge') ||
+    event.target.closest('.form-check');
+
+  if (isInteractiveElement) {
+    return;
+  }
+
+  // Prevenir la selección de texto
+  event.preventDefault();
+  event.stopPropagation();
+
+  setSelectedEstudiantes(prev => {
+    const isCurrentlySelected = prev.some(e => e.correo === estudiante.correo);
+    
+    if (isCurrentlySelected) {
+      // Deseleccionar
+      return prev.filter(e => e.correo !== estudiante.correo);
     } else {
-      setSelectedEstudiantes(prev => [...prev, estudiante]);
+      // Seleccionar
+      return [...prev, estudiante];
     }
-    setIsSelecting(isInitiallySelected ? 'deselecting' : 'selecting');
-  };
+  });
+};
+
+const handleMouseDown = (estudiante, event) => {
+  // Prevenir selección en elementos interactivos
+  if (event && (
+    event.target.closest('button') || 
+    event.target.closest('.popover') || 
+    event.target.closest('.badge') ||
+    event.target.closest('.form-check')
+  )) {
+    return;
+  }
+
+  setIsSelecting(true);
+  setStartEstudiante(estudiante);
   
-  const handleMouseEnter = (estudiante) => {
+  const isSelected = selectedEstudiantes.some(e => e.correo === estudiante.correo);
+  
+  // Determinar el modo de selección
+  setSelectionMode(isSelected ? 'deselect' : 'select');
+  
+  if (isSelected) {
+    setSelectedEstudiantes(prev => 
+      prev.filter(e => e.correo !== estudiante.correo)
+    );
+  } else {
+    setSelectedEstudiantes(prev => [...prev, estudiante]);
+  }
+};
+  
+  // Modificar handleMouseEnter similarmente
+  const handleMouseEnter = (estudiante, event) => {
+    // Prevenir selección en elementos interactivos
+    if (event && (
+      event.target.closest('button') || 
+      event.target.closest('.popover') || 
+      event.target.closest('.badge') ||
+      event.target.closest('.form-check')
+    )) {
+      return;
+    }
+  
+    // Lógica de selección múltiple
     if (isSelecting && startEstudiante) {
       const startIndex = estudiantes.findIndex(e => e.correo === startEstudiante.correo);
       const currentIndex = estudiantes.findIndex(e => e.correo === estudiante.correo);
@@ -319,27 +837,30 @@ const handleEliminarAsignacion = async (asignacionId) => {
       const end = Math.max(startIndex, currentIndex);
       const rangeSelection = estudiantes.slice(start, end + 1);
       
-      if (isSelecting === 'deselecting') {
-        setSelectedEstudiantes(prev => 
-          prev.filter(e => !rangeSelection.some(rs => rs.correo === e.correo))
+      setSelectedEstudiantes(prev => {
+        // Filtrar estudiantes que no están en el rango actual
+        const filteredPrev = prev.filter(e => 
+          !rangeSelection.some(rs => rs.correo === e.correo)
         );
-      } else {
-        setSelectedEstudiantes(prev => {
-          const currentSelection = prev.filter(e => 
-            !rangeSelection.some(rs => rs.correo === e.correo)
-          );
-          return [...currentSelection, ...rangeSelection];
-        });
-      }
+        
+        // Si estamos deseleccionando, devolver los estudiantes filtrados
+        if (selectionMode === 'deselect') {
+          return filteredPrev;
+        }
+        
+        // Si estamos seleccionando, agregar los nuevos estudiantes
+        return [...filteredPrev, ...rangeSelection];
+      });
     }
   };
 
   const handleMouseUp = () => {
-    setIsSelecting(null);
+    setIsSelecting(false);
     setStartEstudiante(null);
+    setSelectionMode(null);
   };
 
-  const resetearFormulario = () => {
+const resetearFormulario = () => {
     setTipoInstitucionSeleccionado(null);
     setInstitucionSeleccionada(null);
     setReceptorSeleccionado(null);
@@ -347,45 +868,95 @@ const handleEliminarAsignacion = async (asignacionId) => {
     setFechaFin('');
     setErrorMessage('');
     setAsignacionParaEditar(null);
-  };
+};
 
-  return (
+return (
     <div className="asignar-estudiantes" onMouseUp={handleMouseUp}>
-    <ToastContainer />
-      <h2>Asignación de Estudiantes</h2>
-      <Row className="mb-3 align-items-end">
-        <Col xs={4} md={3}>
-          <Form.Group>
-            <Form.Label>Año Cursado</Form.Label>
-            <Form.Select onChange={(e) => setAnoSeleccionado(e.target.value)} value={anoSeleccionado}>
-              <option value="">Seleccione un año</option>
-              {aniosOptions.map((year) => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-        </Col>
+        <ToastContainer />
+        <h2>Asignación de Estudiantes</h2>
+        <Row className="mb-3 align-items-end">
+            <Col xs={4} md={3}>
+                <Form.Group>
+                    < Form.Label>Año Cursado</Form.Label>
+                    <Form.Select 
+                        onChange={(e) => setAnoSeleccionado(e.target.value)} 
+                        value={anoSeleccionado}
+                    >
+                        <option value="">Seleccione un año</option>
+                        {aniosOptions.map((year) => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
+                    </Form.Select>
+                </Form.Group>
+            </Col>
 
-        <Col xs={8} md={9}>
-          <InputGroup>
-            <FormControl
-              placeholder="Buscar estudiante"
-              aria-label="Buscar estudiante"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </InputGroup>
-        </Col>
-      </Row>
+            <Col xs={8} md={9}>
+                <Row className="g-2">
+                    <Col xs={12} md={4}>
+                        <Form.Select 
+                            value={filtroEstado} 
+                            onChange={(e) => setFiltroEstado(e.target.value)}
+                        >
+                            <option value="todos">Todos los Estados</option>
+                            <option value="activos">Activos</option>
+                            <option value="inactivos">Inactivos</option>
+                        </Form.Select>
+                    </Col>
 
-      <Card>
-        <Card.Header>
-          <Card.Title>Estudiantes y sus Asignaciones</Card.Title>
+                    <Col xs={12} md={4}>
+                        <Form.Check 
+                            type="checkbox"
+                            label="Con Justificación"
+                            checked={filtroJustificacion}
+                            onChange={(e) => setFiltroJustificacion(e.target.checked)}
+                        />
+                    </Col>
+
+                    <Col xs={12} md={4}>
+                        <InputGroup>
+                            <FormControl
+                                placeholder="Buscar estudiante"
+                                aria-label="Buscar estudiante"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </InputGroup>
+                    </Col>
+                </Row>
+            </Col>
+            
+        </Row>
+        
+
+        <Card>
+        <Card.Header className="position-relative">
+          <Card.Title className="mb-0">Estudiantes y sus Asignaciones</Card.Title>
+          <Button 
+            variant="primary" 
+            className="position-absolute top-50 end-0 translate-middle-y"
+            onClick={() => setShowAsignarModal(true)}
+            disabled={selectedEstudiantes.length === 0}
+            style={{ 'width': 150 }}
+            >
+            Asignar ({selectedEstudiantes.length})
+          </Button>
         </Card.Header>
-        <Table striped bordered hover>
+        <Table striped bordered hover onMouseUp={handleMouseUp} style={{ userSelect: 'none' }}>
           <thead>
             <tr>
-              <th>Seleccionar</th>
+              <th>
+                <Form.Check 
+                  type="checkbox"
+                  checked={selectedEstudiantes.length === estudiantesFiltrados.length}
+                  onChange={() => {
+                    setSelectedEstudiantes(prev => 
+                      prev.length === estudiantesFiltrados.length 
+                        ? [] 
+                        : [...estudiantesFiltrados]
+                    );
+                  }}
+                />
+              </th>
               <th>Nombre</th>
               <th>Apellidos</th>
               <th>Correo</th>
@@ -395,82 +966,163 @@ const handleEliminarAsignacion = async (asignacionId) => {
             </tr>
           </thead>
           <tbody>
-            {estudiantes.filter(est => 
-              est.nombres.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              est.apellidos.toLowerCase().includes(searchTerm.toLowerCase())
-            ).map((estudiante, index) => (
-              <tr key={index}
-                  onMouseDown={() => handleMouseDown(estudiante)}
-                  onMouseEnter={() => handleMouseEnter(estudiante)}
-                  className={selectedEstudiantes.includes(estudiante) ? 'selected' : ''}
-              >
+          {estudiantesFiltrados.map((estudiante, index) => (
+            <tr 
+              key={index}
+              onMouseDown={(e) => handleMouseDown(estudiante, e)}
+              onMouseEnter={(e) => handleMouseEnter(estudiante, e)}
+              onMouseUp={handleMouseUp}
+              className={`
+                ${selectedEstudiantes.some(e => e.correo === estudiante.correo) ? 'selected' : ''}
+                ${filtroEstado === 'todos' && !estudiante.estado ? 'text-muted' : ''}
+              `}
+              style={{ 
+                userSelect: 'none',
+                cursor: 'pointer',
+                backgroundColor: selectedEstudiantes.some(e => e.correo === estudiante.correo) 
+                  ? 'rgba(0, 123, 255, 0.1)' 
+                  : 'transparent'
+              }}
+            >
+              <td onClick={(e) => {
+                const checkbox = e.currentTarget.querySelector('input[type="checkbox"]');
+                if (checkbox && e.target !== checkbox) {
+                  checkbox.click();
+                }
+              }}>
+                <Form.Check 
+                  type="checkbox"
+                  checked={selectedEstudiantes.some(e => e.correo === estudiante.correo)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    toggleEstudianteSelection(estudiante, e);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                />
+              </td>
+              <td>
+                <div className="d-flex align-items-center">
+                  {filtroEstado === 'todos' && !estudiante.estado && (
+                    <OverlayTrigger
+                      placement="right"
+                      overlay={
+                        <Tooltip>
+                          Estudiante Inactivo
+                        </Tooltip>
+                      }
+                    >
+                      <span 
+                        className="mr-2" 
+                        style={{ 
+                          width: '10px', 
+                          height: '10px', 
+                          borderRadius: '50%', 
+                          backgroundColor: 'red', 
+                          display: 'inline-block', 
+                          marginRight: '8px' 
+                        }}
+                      ></span>
+                    </OverlayTrigger>
+                  )}
+                  {estudiante.nombres}
+                </div>
+              </td>
+              <td>{estudiante.apellidos}</td>
+              <td>{estudiante.correo}</td>
                 <td>
-                  <Form.Check 
-                    type="checkbox"
-                    checked={selectedEstudiantes.includes(estudiante)}
-                    onChange={() => toggleEstudianteSelection(estudiante)}
-                  />
+                  {estudiante.asignaciones && estudiante.asignaciones.length > 0 ? (
+                    estudiante.asignaciones.map((asignacion, idx) => (
+                      <div key={idx} className="asignacion-item">
+                        <div>
+                          {asignacion.institucion?.nombre || 'Institución no especificada'} - 
+                          {asignacion.receptor?.nombre || 'Receptor no especificado'} <br/>
+                          {formatDate(asignacion.fecha_inicio)} a {formatDate(asignacion.fecha_fin)}<br/>
+                          {asignacion.justificacion_excepcional && (
+                            <OverlayTrigger
+                              trigger="click"
+                              placement="bottom"
+                              overlay={
+                                <Popover>
+                                  <Popover.Header as="h3">Justificación Excepcional</Popover.Header>
+                                  <Popover.Body>
+                                    {asignacion.justificacion_excepcional}
+                                  </Popover.Body>
+                                </Popover>
+                              }
+                            >
+                              <Badge bg="warning" role="button">
+                                Justificado
+                              </Badge>
+                            </OverlayTrigger>
+                          )}
+                        </div>
+                        <div>
+                          <Button 
+                            variant="outline-primary" 
+                            size="sm" 
+                            onClick={() => handleEditarAsignacion(asignacion)}
+                            className="me-2"
+                          >
+                            <i className="fas fa-edit"></i>
+                          </Button>
+                          <Button 
+                            variant="outline-danger" 
+                            size="sm" 
+                            onClick={() => handleEliminarAsignacion(asignacion.id)}
+                          >
+                            <i className="fas fa-trash"></i>
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div>Sin asignaciones</div>
+                  )}
                 </td>
-                <td>{estudiante.nombres}</td>
-                <td>{estudiante.apellidos}</td>
-                <td>{estudiante.correo}</td>
-                <td>
-  {asignaciones.filter(asig => asig.estudiante_id === estudiante.id).map((asignacion, idx) => (
-    <div key={idx} className="asignacion-item">
-      <div>
-        {asignacion.Institucion?.nombre || 'Institución no especificada'} - 
-        {asignacion.Receptor?.nombre || 'Receptor no especificado'} <br/>
-        {formatDate(asignacion.fecha_inicio)} a {formatDate(asignacion.fecha_fin)}
-      </div>
-      <div>
-        <Button 
-          variant="outline-primary" 
-          size="sm" 
-          onClick={() => handleEditarAsignacion(asignacion)}
-          className="me-2"
-        >
-          <i className="fas fa-edit"></i>
-        </Button>
-        <Button 
-          variant="outline-danger" 
-          size="sm" 
-          onClick={() => handleEliminarAsignacion(asignacion.id)}
-        >
-          <i className="fas fa-trash"></i>
-        </Button>
-      </div>
-    </div>
-  ))}
-</td>
-                  <td>{estudiante.anos_cursados}</td>
+                <td>{estudiante.anos_cursados}</td>
                 <td>
                   <Button 
                     variant="success" 
                     size="sm" 
-                    onClick={() => setShowAsignarModal(true)}
+                    onClick={() => {
+                      setSelectedEstudiantes([]);
+                      setSelectedEstudiantes([estudiante]);
+                      setShowAsignarModal(true);
+                    }}
                   >
                     Agregar Asignación
                   </Button>
                 </td>
               </tr>
             ))}
+            <style jsx>{`
+              .text-muted {
+                color: #6c757d !important;
+              }
+              
+              .asignacion-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                padding: 5px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+              }
+              .asignacion-item:last-child {
+                margin-bottom: 0;
+              }
+            `}</style>
           </tbody>
         </Table>
       </Card>
 
-      <Button 
-        variant="primary" 
-        onClick={() => setShowAsignarModal(true)}
-        disabled={selectedEstudiantes.length === 0}
-      >
-        Asignar Institución y Receptor a Seleccionados ({selectedEstudiantes.length})
-      </Button>
-
-      {/* Paginación */}
-      <div className="asignar-estudiantes__pagination d-flex justify-content-between align-items-center mb-3">
+        {/* Paginación */}
+        <div className="asignar-estudiantes__pagination d-flex justify-content-between align-items-center mb-3">
         <nav aria-label="Page navigation">
           <ul className="pagination pagination-sm">
-            {/* Botón de página anterior */}
             <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
               <button 
                 className="page-link" 
@@ -479,8 +1131,6 @@ const handleEliminarAsignacion = async (asignacionId) => {
                 Anterior
               </button>
             </li>
-
-            {/* Páginas */}
             {[...Array(totalPages)].map((_, index) => (
               <li 
                 key={index} 
@@ -494,8 +1144,6 @@ const handleEliminarAsignacion = async (asignacionId) => {
                 </button>
               </li>
             ))}
-
-            {/* Botón de página siguiente */}
             <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
               <button 
                 className="page-link" 
@@ -508,223 +1156,244 @@ const handleEliminarAsignacion = async (asignacionId) => {
         </nav>
       </div>
 
-      <Modal show={showAsignarModal} onHide={() => setShowAsignarModal(false)} size="lg">
-        <Modal.Header closeButton className="bg-light">
-          <Modal.Title>
-            <i className="fas fa-user-plus mr-2"></i>
-            Asignar Institución y Receptor
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Row>
-            <Col md={8}>
-              <Form>
-                <Form.Group className="mb-3">
-                  <Form.Label>Tipo de Institución</Form.Label>
-                  <Form.Select onChange={handleTipoInstitucionChange} required>
-                    <option value="">Seleccione un tipo de institución</option>
-                    {tiposInstituciones.map(tipo => (
-                      <option key={tipo.id} value={tipo.id}>{tipo.tipo}</option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
+      <JustificacionModal />
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Institución</Form.Label>
-                  <Form.Select onChange={handleInstitucionChange} required>
-                    <option value="">Seleccione una institución</option>
-                    {instituciones.map(institucion => (
-                      <option key={institucion.id} value={institucion.id}>{institucion.nombre}</option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Receptor</Form.Label>
-                  <Form.Select onChange={(e) => setReceptorSeleccionado(e.target.value)} required>
-                    <option value="">Seleccione un receptor</option>
-                    {receptores.map(receptor => (
-                      <option key={receptor.id} value={receptor.id}>{receptor.nombre}</option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-
+        <Modal show={showAsignarModal} onHide={handleCloseAsignarModal}  size="lg">
+            <Modal.Header closeButton className="bg-light">
+                <Modal.Title>
+                    <i className="fas fa-user-plus mr-2"></i>
+                    Asignar Institución y Receptor
+                </Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
                 <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Fecha Inicio</Form.Label>
-                      <Form.Control
-                        type="date"
-                        value={fechaInicio}
-                        onChange={(e) => setFechaInicio(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Fecha Fin</Form.Label>
-                      <Form.Control
-                        type="date"
-                        value={fechaFin}
-                        onChange={(e) => {
-                          const newFechaFin = e.target.value;
-                          if (!fechaInicio || newFechaFin >= fechaInicio) {
-                            setFechaFin(newFechaFin);
-                          } else {
-                            toast.error('La fecha fin debe ser posterior o igual a la fecha de inicio');
-                          }
-                        }}
-                        min={fechaInicio || new Date().toISOString().split('T')[0]}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
+                    <Col md={8}>
+                        <Form>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Tipo de Institución</Form.Label>
+                                <Form.Select onChange={handleTipoInstitucionChange} required>
+                                    <option value="">Seleccione un tipo de institución</option>
+                                    {tiposInstituciones.map(tipo => (
+                                        <option key={tipo.id} value={tipo.id}>{tipo.tipo}</option>
+                                    ))}
+                                </Form.Select>
+                            </Form.Group>
+
+                            <Form.Group className="mb-3">
+                                <Form.Label>Institución</Form.Label>
+                                <Form.Select onChange={handleInstitucionChange} required>
+                                    <option value="">Seleccione una institución</option>
+                                    {instituciones.map(institucion => (
+                                        <option key={institucion.id} value={institucion.id}>{institucion.nombre}</option>
+                                    ))}
+                                </Form.Select>
+                            </Form.Group>
+
+                            <Form.Group className="mb-3">
+                                <Form.Label>Receptor</Form.Label>
+                                <Form.Select onChange={(e) => setReceptorSeleccionado(e.target.value)} required>
+                                    <option value="">Seleccione un receptor</option>
+                                    {receptores.map(receptor => (
+                                        <option key={receptor.id} value={receptor.id}>{receptor.nombre}</option>
+                                    ))}
+                                </Form.Select>
+                            </Form.Group>
+
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Fecha Inicio</Form.Label>
+                                        <Form.Control
+                                            type="date"
+                                            value={fechaInicio}
+                                            onChange={(e) => setFechaInicio(e.target.value)}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            required
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Fecha Fin</Form.Label>
+                                        <Form.Control
+                                            type="date"
+                                            value={fechaFin}
+                                            onChange={(e) => {
+                                                const newFechaFin = e.target.value;
+                                                if (!fechaInicio || newFechaFin >= fechaInicio) {
+                                                    setFechaFin(newFechaFin);
+                                                } else {
+                                                    toast.error('La fecha fin debe ser posterior o igual a la fecha de inicio');
+                                                }
+                                            }}
+                                            min={fechaInicio || new Date().toISOString().split('T')[0]}
+                                            required
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                        </Form>
+                    </Col>
+                    
+                    <Col md={4}>
+                        <div className="card card-info">
+                            <div className="card-header">
+                                <h3 className="card-title">
+                                    <i className="fas fa-users mr-2"></i>
+                                    Estudiantes Seleccionados
+                                </h3>
+                            </div>
+                            <div className="card-body p-0" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                <ul className="list-group list-group-flush">
+                                    {selectedEstudiantes.map((estudiante, index) => (
+                                        <li key={index } className="list-group-item">
+                                            <i className="fas fa-user mr-2"></i>
+                                            {estudiante.nombres} {estudiante.apellidos}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div className="card-footer bg-light">
+                                <small>Total: {selectedEstudiantes.length} estudiante(s)</small>
+                            </div>
+                        </div>
+                    </Col>
                 </Row>
-              </Form>
-            </Col>
-            
-            <Col md={4}>
-              <div className="card card-info">
-                <div className="card-header">
-                  <h3 className="card-title">
-                    <i className="fas fa-users mr-2"></i>
-                    Estudiantes Seleccionados
-                  </h3>
-                </div>
-                <div className="card-body p-0" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  <ul className="list-group list-group-flush">
-                    {selectedEstudiantes.map((estudiante, index) => (
-                      <li key={index} className="list-group-item">
-                        <i className="fas fa-user mr-2"></i>
-                        {estudiante.nombres} {estudiante.apellidos}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="card-footer bg-light">
-                  <small>Total: {selectedEstudiantes.length} estudiante(s)</small>
-                </div>
-              </div>
-            </Col>
-          </Row>
 
-          {errorMessage && (
-            <Alert variant="danger" className="mt-3">
-              <i className="fas fa-exclamation-triangle mr-2"></i>
-              <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{errorMessage}</pre>
-            </Alert>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAsignarModal(false)}>
-            <i className="fas fa-times mr-2"></i>
-            Cancelar
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleAsignarCentro}
-            disabled={!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin}
-          >
-            <i className="fas fa-save mr-2"></i>
-            Asignar
-          </Button>
-        </Modal.Footer>
-      </Modal>
+                {errorMessage && (
+                    <Alert variant="danger" className="mt-3">
+                        <i className="fas fa-exclamation-triangle mr-2"></i>
+                        <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{errorMessage}</pre>
+                    </Alert>
+                )}
+            </Modal.Body>
+            <Modal.Footer>
+                <Button variant="secondary" onClick={() => {
+                      setShowAsignarModal(false);
+                      setSelectedEstudiantes([]); // Limpiar estudiantes seleccionados
+                    }}>
+                    <i className="fas fa-times mr-2"></i>
+                    Cancelar
+                </Button>
+                <Button 
+                    variant="primary" 
+                    onClick={handleAsignarCentro}
+                    disabled={!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin}
+                >
+                    <i className="fas fa-save mr-2"></i>
+                    Asignar
+                </Button>
+            </Modal.Footer>
+        </Modal>
 
-      {/* Modal de Edición */}
-      <Modal show={showEditarModal} onHide={() => setShowEditarModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Editar Asignación</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Tipo de Institución</Form.Label>
-              <Form.Select 
-                onChange={handleTipoInstitucionChange} 
-                value={tipoInstitucionSeleccionado || ''}
-              >
-                <option value="">Seleccione un tipo de institución</option>
-                {tiposInstituciones.map(tipo => (
-                  <option key={tipo.id} value={tipo.id}>{tipo.tipo}</option>
-                ))}
-              </Form.Select>
-            </Form.Group>
+        {/* Modal de Edición */}
+        <Modal show={showEditarModal} onHide={handleCloseEditarModal}>
+            <Modal.Header closeButton>
+                <Modal.Title>Editar Asignación</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <Form>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Tipo de Institución</Form.Label>
+                        <Form.Select 
+                            onChange={handleTipoInstitucionChange} 
+                            value={tipoInstitucionSeleccionado || ''}
+                        >
+                            <option value="">Seleccione un tipo de institución</option>
+                            {tiposInstituciones.map(tipo => (
+                                <option key={tipo.id} value={tipo.id}>{tipo.tipo}</option>
+                            ))}
+                        </Form.Select>
+                    </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Institución</Form.Label>
-              <Form.Select 
-                onChange={handleInstitucionChange} 
-                value={institucionSeleccionada || ''}
-              >
-                <option value="">Seleccione una institución</option>
-                {instituciones.map(institucion => (
-                  <option key={institucion.id} value={institucion.id}>{institucion.nombre}</option>
-                ))}
-              </Form.Select>
-            </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Institución</Form.Label>
+                        <Form.Select 
+                            onChange={handleInstitucionChange} 
+                            value={institucionSeleccionada || ''}
+                        >
+                            <option value="">Seleccione una institución</option>
+                            {instituciones.map(institucion => (
+                                <option key={institucion.id} value={institucion.id}>{institucion.nombre}</option>
+                            ))}
+                        </Form.Select>
+                    </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Receptor</Form.Label>
-              <Form.Select 
-                onChange={(e) => setReceptorSeleccionado(e.target.value)} 
-                value={receptorSeleccionado || ''}
-              >
-                <option value="">Seleccione un receptor</option>
-                {receptores.map(receptor => (
-                  <option key={receptor.id} value={receptor.id}>{receptor.nombre}</option>
-                ))}
-              </Form.Select>
-            </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Receptor</Form.Label>
+                        <Form.Select 
+                            onChange={(e) => setReceptorSeleccionado(e.target.value)} 
+                            value={receptorSeleccionado || ''}
+                        >
+                            <option value="">Seleccione un receptor</option>
+                            {receptores.map(receptor => (
+                                <option key={receptor.id} value={receptor.id}>{receptor.nombre}</option>
+                            ))}
+                        </Form.Select>
+                    </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Fecha Inicio</Form.Label>
-              <Form.Control
-                type="date"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-              />
-            </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Fecha Inicio</Form.Label>
+                        <Form.Control
+                            type="date"
+                            value={fechaInicio}
+                            onChange={(e) => setFechaInicio(e.target.value)}
+                        />
+                    </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Fecha Fin</Form.Label>
-              <Form.Control
-                type="date"
-                value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)}
-              />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowEditarModal(false)}>
-            <i className="fas fa-times"></i> Cancelar
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={() => handleGuardarEdicion()}
-          >
-            <i className="fas fa-save"></i> Guardar Cambios
-          </Button>
-        </Modal.Footer>
-      </Modal>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Fecha Fin</Form.Label>
+                        <Form.Control
+                            type="date"
+                            value={fechaFin}
+                            onChange={(e) => setFechaFin(e.target.value)}
+                        />
+                    </Form.Group>
+                    {(asignacionParaEditar?.es_asignacion_excepcional || 
+                      asignacionParaEditar?.justificacion_excepcional) && (
+                        <Form.Group className="mb-3">
+                          <Form.Label htmlFor="justificacionExcepcional">Justificación Excepcional</Form.Label>
+                          <Form.Control
+                              id="justificacionExcepcional"
+                              as="textarea"
+                              rows={3}
+                              value={justificacionEditable}
+                              onChange={(e) => setJustificacionEditable(e.target.value)}
+                              placeholder="Ingrese la justificación para la asignación excepcional"
+                          />
+                      </Form.Group>
+                    )}
+                </Form>
+            </Modal.Body>
+            <Modal.Footer>
+                <Button variant="secondary" onClick={() => setShowEditarModal(false)}>
+                    <i className="fas fa-times"></i> Cancelar
+                </Button>
+                <Button 
+                    variant="primary" 
+                    onClick={() => handleGuardarEdicion()}
+                >
+                    <i className="fas fa-save"></i> Guardar Cambios
+                </Button>
+            </Modal.Footer>
+        </Modal>
 
-      <style jsx>{`
-        .asignacion-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 10px;
-          padding: 5px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-        }
-        .asignacion-item:last-child {
-          margin-bottom: 0;
-        }
-      `}</style>
+        <style jsx>{`
+            .asignacion-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                padding: 5px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+            }
+            .asignacion-item:last-child {
+                margin-bottom: 0;
+            }
+        `}</style>
+        {/* Renderizar el modal solo si hay conflicto de asignaciones */}
+      {showJustificacionModal && <JustificacionModal />}
     </div>
   );
 };

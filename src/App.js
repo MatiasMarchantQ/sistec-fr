@@ -8,6 +8,7 @@ import Home from './Pages/Home/Home';
 import FichaClinica from './Pages/Home/FichaClinica';
 import CambiarContrasena from './components/CambiarContrasena';
 import RestablecerContrasena from './components/RestablecerContrasena';
+import Recursos from './components/Recursos';
 
 // Componente para proteger rutas
 const ProtectedRoute = ({ children }) => {
@@ -26,6 +27,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/recursos" element={<Recursos />} />
           <Route path="/cambiar-contrasena" element={<CambiarContrasena />} />
           <Route 
             path="/restablecer-contrasena" 

@@ -1,6 +1,38 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'admin-lte/dist/css/adminlte.min.css';
+import '@fortawesome/fontawesome-free/css/all.min.css';
+
+const PasswordValidationMessage = ({ password }) => {
+  const hasMinLength = password.length >= 8 && password.length <= 20;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+
+  return (
+    <div className="password-validation-message mb-3">
+      <small>
+        <span style={{ color: hasMinLength ? 'green' : 'red' }}>
+          {hasMinLength ? '✓' : '✗'} Entre 8 y 20 caracteres
+        </span>
+        <br />
+        <span style={{ color: hasUppercase ? 'green' : 'red' }}>
+          {hasUppercase ? '✓' : '✗'} Al menos una letra mayúscula
+        </span>
+        <br />
+        <span style={{ color: hasLowercase ? 'green' : 'red' }}>
+          {hasLowercase ? '✓' : '✗'} Al menos una letra minúscula
+        </span>
+        <br />
+        <span style={{ color: hasNumber ? 'green' : 'red' }}>
+          {hasNumber ? '✓' : '✗'} Al menos un número
+        </span>
+      </small>
+    </div>
+  );
+};
 
 const CambiarContrasena = () => {
   const [contrasenaActual, setContrasenaActual] = useState('');
@@ -16,12 +48,25 @@ const CambiarContrasena = () => {
 
   const navigate = useNavigate();
 
+  // Validación de contraseña: 
+  // Al menos una minúscula, una mayúscula, un número y longitud entre 8 y 20
+  const validarContrasena = (contrasena) => {
+    const regexContrasena = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,20}$/;
+    return regexContrasena.test(contrasena);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
   
     if (nuevaContrasena !== confirmarContrasena) {
       setError('Las contraseñas no coinciden');
+      return;
+    }
+
+    // Validar nueva contraseña
+    if (!validarContrasena(nuevaContrasena)) {
+      setError('La nueva contraseña debe contener al menos una letra mayúscula, una letra minúscula, un número y tener entre 8 y 20 caracteres.');
       return;
     }
   
@@ -74,9 +119,28 @@ const CambiarContrasena = () => {
   };
 
   return (
-    <div className="hold-transition login-page">
+    <div 
+      className="hold-transition login-page" 
+      style={{ 
+        backgroundImage: `
+          linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
+          url(/facsa.jpg)
+        `,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        position: 'relative',
+        height: '100vh',
+        paddingTop: '60px',
+      }}
+    >
       <div className="login-box">
-        <div className="card">
+        <div className="login-logo">
+          <p className="brand-link">
+            <img src="/Logo UCM - Horizontal.jpg" alt="Logo UCM" style={{height: 100}}/>
+          </p>
+        </div>
+
+        <div className="card" style={{ boxShadow: 'none', transform: 'none', transition: 'none' }}>
           <div className="card-body login-card-body">
             <p className="login-box-msg">Cambiar Contraseña</p>
 
@@ -100,6 +164,7 @@ const CambiarContrasena = () => {
                 <div className="input-group-append">
                   <div 
                     className="input-group-text cursor-pointer" 
+                    style={{ cursor: 'pointer' }}
                     onClick={() => togglePasswordVisibility(setShowContrasenaActual)}
                   >
                     <span className={`fas ${showContrasenaActual ? 'fa-eye-slash' : 'fa-eye'}`} />
@@ -120,12 +185,17 @@ const CambiarContrasena = () => {
                 <div className="input-group-append">
                   <div 
                     className="input-group-text cursor-pointer" 
+                    style={{ cursor: 'pointer' }}
                     onClick={() => togglePasswordVisibility(setShowNuevaContrasena)}
                   >
-                    <span className={`fas ${showNuevaContrasena ? 'fa-eye-slash' : 'fa-eye'}`} />
+                    <span className={`fas ${showNuevaContrasena ? 'fa -eye-slash' : 'fa-eye'}`} />
                   </div>
                 </div>
               </div>
+
+              {nuevaContrasena && (
+                <PasswordValidationMessage password={nuevaContrasena} />
+              )}
 
               <div className="input-group mb-3">
                 <input
@@ -140,6 +210,7 @@ const CambiarContrasena = () => {
                 <div className="input-group-append">
                   <div 
                     className="input-group-text cursor-pointer" 
+                    style={{ cursor: 'pointer' }}
                     onClick={() => togglePasswordVisibility(setShowConfirmarContrasena)}
                   >
                     <span className={`fas ${showConfirmarContrasena ? 'fa-eye-slash' : 'fa-eye'}`} />
@@ -160,6 +231,21 @@ const CambiarContrasena = () => {
                   'Cambiar Contraseña'
                 )}
               </button>
+              <div className="text-center">
+                <Link 
+                  to="/" 
+                  className="text-muted" 
+                  style={{
+                    textDecoration: 'none', 
+                    display: 'inline-flex', 
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <i className="fas fa-arrow-left mr-2"></i>
+                  Ya recuerdo mi contraseña
+                </Link>
+              </div>
             </form>
           </div>
         </div>

@@ -199,13 +199,15 @@ const FichaClinicaInfantil = ({ fichaClinica }) => {
           )}
         </div>
         <div className="col-md-6">
-          <h6>Tipo de Familia:</h6>
-          {fichaClinica.informacionFamiliar?.tiposFamilia && fichaClinica.informacionFamiliar.tiposFamilia.length > 0 ? (
+        <h6>Tipo de Familia:</h6>
+        {fichaClinica.informacionFamiliar?.tiposFamilia && fichaClinica.informacionFamiliar.tiposFamilia.length > 0 ? (
             fichaClinica.informacionFamiliar.tiposFamilia.map((tipo, index) => (
-              <p key={tipo.id || index}>{tipo.nombre || tipo.tipoFamiliaOtro}</p>
+              <p key={tipo.id || index} className="mb-1">
+                {tipo.nombre || tipo.tipoFamiliaOtro || 'N/A'}
+              </p>
             ))
           ) : (
-            <p></p>
+            <p className="mb-1">No hay tipos de familia registrados</p>
           )}
           <h6>Ciclo Vital Familiar:</h6>
           <p>{fichaClinica.informacionFamiliar?.cicloVitalFamiliar?.ciclo || 'No especificado'}</p>
@@ -368,7 +370,7 @@ const formatearFichaInfantil = (fichaClinica) => {
       conQuienVive: fichaClinica.informacionFamiliar?.conQuienVive || 'N/A',
       tiposFamilia: (fichaClinica.informacionFamiliar?.tiposFamilia || []).map(tipo => ({
         id: tipo.id || null,
-        tipoFamilia: tipo.nombre || null,
+        nombre: tipo.nombre || null,
         tipoFamiliaOtro: tipo.tipoFamiliaOtro || null
       })),
       cicloVitalFamiliar: {
@@ -895,6 +897,9 @@ useEffect(() => {
                               <div className="row">
                                 <div className="col-md-6">
                                   <h6 className="border-bottom pb-2">Información Personal</h6>
+                                  <p><strong>Rut:</strong> {reevaluacion.paciente?.rut || 'N/A'}</p>
+                                  <p><strong>Edad:</strong> {reevaluacion.paciente?.edad || 'N/A'}</p>
+                                  <p><strong>Teléfono Principal:</strong> {reevaluacion.paciente?.telefonoPrincipal || 'N/A'}</p>
                                   <p>
                                     <strong>Diagnóstico:</strong> {
                                       (reevaluacion.diagnostico?.nombre || 
@@ -1021,12 +1026,12 @@ useEffect(() => {
                           )}
                           
                           {/* Sección común para ambos tipos */}
-                          <div className="row m-1">
+                          {/* <div className="row m-1">
                             <div className="col-12">
                               <h6 className="border-bottom pb-2">Observaciones</h6>
                               <p>{reevaluacion.observaciones || 'Sin observaciones'}</p>
                             </div>
-                          </div>
+                          </div> */}
                           <div className="row m-1">
                             <div className="col-md-6">
                               <h6 className="border-bottom pb-2">

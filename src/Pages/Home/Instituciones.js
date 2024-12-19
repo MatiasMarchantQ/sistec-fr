@@ -26,9 +26,18 @@ const Instituciones = () => {
   const [estadoFiltro, setEstadoFiltro] = useState('activas');
   const limit = 10;
   const totalPages = Math.ceil(totalElements / limit);
+  const [isFiltered, setIsFiltered] = useState(false);
 
   const handleModalOpen = () => setModalOpen(true);
-  const handleModalClose = () => setModalOpen(false);
+  const handleModalClose = () => {
+    setModalOpen(false);
+    // Limpiar campos del modal
+    setNuevaInstitucion({
+      nombre: '',
+      tipo_id: '',
+      receptores: [{ nombre: '', cargo: '' }]
+    });
+  };
   const goToPage = (page) => setCurrentPage(page);
   const isFirstPage = currentPage === 1;
   const isLastPage = currentPage === totalPages;
@@ -75,29 +84,36 @@ const Instituciones = () => {
   };
 
   const handleTipoChange = (e) => {
-    setTipo(e.target.value);
+    const newTipo = e.target.value;
+    setTipo(newTipo);
     setCurrentPage(1);
+    setIsFiltered(newTipo !== '');
   };
-
+  
   const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
+    const newSearchTerm = e.target.value;
+    setSearchTerm(newSearchTerm);
+    setIsFiltered(newSearchTerm !== '');
   };
-
+  
+  const handleEstadoChange = (e) => {
+    const newEstadoFiltro = e.target.value;
+    setEstadoFiltro(newEstadoFiltro);
+    setCurrentPage(1);
+    setIsFiltered(newEstadoFiltro !== 'todas');
+  };
+  
   const handleClearSearch = () => {
     setSearchTerm('');
     setTipo('');
     setEstadoFiltro('todas');
     setCurrentPage(1);
+    setIsFiltered(false);
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNuevaInstitucion(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleEstadoChange = (e) => {
-    setEstadoFiltro(e.target.value);
-    setCurrentPage(1);
   };
 
   const handleSubmit = async (e) => {
@@ -153,7 +169,9 @@ const Instituciones = () => {
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setEditedFields({});
+    setEditedFields({
+      receptores: []
+    });
   };
 
   const handleFieldChange = (institucionId, field, value) => {
@@ -383,7 +401,7 @@ const handleSaveChanges = async (institucionId) => {
         />
 
         {/* Mostrar el botón solo cuando hay algún filtro activo */}
-        {(searchTerm || tipo || estadoFiltro !== 'todas') && (
+        {isFiltered && (
           <button 
             className="instituciones__btn instituciones__btn--secondary" 
             onClick={handleClearSearch}

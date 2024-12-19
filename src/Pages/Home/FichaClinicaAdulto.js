@@ -319,7 +319,9 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
         ...datosAdulto,
         diagnostico_id: diagnosticoSeleccionado !== 'otro' ? diagnosticoSeleccionado : null,
         diagnostico_otro: diagnosticoSeleccionado === 'otro' ? diagnosticoOtro : null,
-        tiposFamilia: tiposFamiliaSeleccionados.includes('Otras') ? null : parseInt(tiposFamiliaSeleccionados[0]),
+        tiposFamilia: tiposFamiliaSeleccionados.includes('Otras') 
+        ? [] 
+        : tiposFamiliaSeleccionados.map(id => parseInt(id)),
         tipoFamiliaOtro: tiposFamiliaSeleccionados.includes('Otras') ? tipoFamiliaOtro : null,
         ciclo_vital_familiar_id: cicloVitalSeleccionado,
         factoresRiesgo,
@@ -391,11 +393,11 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
     if (!validarFormulario()) {
       return;
     }
-  
+
     setIsSubmitting(true);
     setSubmitError('');
     setSuccessMessage('');
-  
+
     // Crear el objeto de datos que se va a enviar
     const datosParaEnviar = {
       ...datosAdulto,
@@ -408,20 +410,24 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
       estudiante_id: user.estudiante_id,
       usuario_id: user.id,
       institucion_id: institucionId,
-      isReevaluacion: datosIniciales ? true : false
+      // Modificar la lógica de isReevaluacion
+      isReevaluacion: !!datosIniciales // Convertir a booleano
     };
-  
+
     try {
       const token = getToken();
-      const url = datosIniciales.id 
+      
+      // Usar una lógica más segura para determinar la URL y el método
+      const url = datosIniciales?.id 
         ? `${process.env.REACT_APP_API_URL}/fichas-clinicas/adulto/${datosIniciales.id}` 
         : `${process.env.REACT_APP_API_URL}/fichas-clinicas/adulto`;
-  
-      const method = datosIniciales.id ? 'put' : 'post';
+
+      const method = datosIniciales?.id ? 'put' : 'post';
+      
       const response = await axios[method](url, datosParaEnviar, {
         headers: { Authorization: `Bearer ${token}` }
       });
-  
+
       if (response.data.success) {
         toast.success('Ficha clínica actualizada exitosamente');
         onIngresar(response.data.data); // Refresh the data
@@ -432,6 +438,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
     } catch (error) {
       console.error('Error completo:', error);
       toast.error(error.response?.data?.message || 'Error al actualizar la ficha clínica');
+      setSubmitError(error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -576,6 +583,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                     type="text"
                     className={`form-control mt-2 ${errores.diagnosticoOtro ? 'is-invalid' : ''}`}
                     value={diagnosticoOtro}
+                    name="diagnosticoOtro"
                     onChange={(e) => setDiagnosticoOtro(e.target.value)}
                     placeholder="Especifique el diagnóstico"
                   />
@@ -679,6 +687,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                     }
                   }}
                 >
+                  <option value="">Seleccione...</option>
                   {tiposFamilia.map((tipo, index) => (
                     <option 
                       key={`${tipo.id}-${index}`}
@@ -694,6 +703,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                     type="text"
                     className="form-control mt-2"
                     value={tipoFamiliaOtro}
+                    name="tipoFamiliaOtro"
                     onChange={(e) => setTipoFamiliaOtro(e.target.value)}
                     placeholder="Especifique otro tipo de familia"
                   />
@@ -817,6 +827,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   type="checkbox" 
                   className="form-check-input" 
                   id="alcoholDrogas"
+                  name="alcoholDrogas"
                   checked={factoresRiesgo.alcoholDrogas}
                   onChange={(e) => setFactoresRiesgo({...factoresRiesgo, alcoholDrogas: e.target.checked})}
               />
@@ -827,6 +838,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   type="checkbox" 
                   className="form-check-input"
                   id="tabaquismo"
+                  name="tabaquismo"
                   checked={factoresRiesgo.tabaquismo}
                   onChange={(e) => setFactoresRiesgo({...factoresRiesgo, tabaquismo: e.target.checked})}
               />
@@ -838,6 +850,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   type="text"
                   className="form-control"
                   value={factoresRiesgo.otros}
+                  name="Especifique"
                   onChange={(e) => setFactoresRiesgo({...factoresRiesgo, otros: e.target.value})}
                   placeholder="Ejemplo: cerveza, marihuana, cigarrillo, etc."
               />

@@ -152,7 +152,7 @@ const fetchAsignaciones = async () => {
             year: year
         };
 
-        const response = await axios.get(`${apiUrl}/asignaciones`, {
+        const response = await axios.get(`${apiUrl}/asignaciones/agenda`, {
             headers: { Authorization: `Bearer ${token}` },
             params
         });

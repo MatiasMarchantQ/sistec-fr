@@ -43,16 +43,71 @@ const Estudiantes = () => {
     semestre: '',
     estado: ''
   });
+  const [isFiltered, setIsFiltered] = useState(false);
   const [estudiantesSeleccionados, setEstudiantesSeleccionados] = useState([]);
   const [seleccionarTodos, setSeleccionarTodos] = useState(false);
   const symbols = '!#$%&*+?';
 
+  // Función centralizada para manejar cambios de filtros
+  const handleFilterChange = (filterName, value) => {
+    switch(filterName) {
+      case 'ano':
+        setAno(value);
+        setIsFiltered(value !== getCurrentYear().toString());
+        break;
+      case 'semestre':
+        setSemestre(value);
+        setIsFiltered(value !== '');
+        break;
+      case 'estadoFiltro':
+        setEstadoFiltro(value);
+        setIsFiltered(value !== 'activos');
+        break;
+      case 'searchTerm':
+        setSearchTerm(value);
+        setIsFiltered(value !== '');
+        break;
+    }
+    setCurrentPage(1);
+  };
+  
+  // Función de limpieza de filtros
   const limpiarFiltros = () => {
     setAno(getCurrentYear().toString());
     setSemestre('');
     setEstadoFiltro('activos');
     setSearchTerm('');
+    setIsFiltered(false);
+    setCurrentPage(1);
+    obtenerEstudiantes();
   };
+
+const handleCloseNuevoEstudianteModal = () => {
+  setModalOpen(false);
+  // Resetear el formulario de nuevo estudiante
+  setNuevoEstudiante({
+    nombres: '',
+    apellidos: '',
+    rut: '',
+    correo: '',
+    contrasena: '',
+    anos_cursados: getCurrentYear().toString(),
+    semestre: '1'
+  });
+};
+
+const handleCloseCambioContrasenaModal = () => {
+  setCambioContrasenaModal(false);
+  setNuevaContrasena('');
+  setSelectedEstudiante(null);
+};
+
+const handleCloseEditarMasivoModal = () => {
+  setEditarMasivoModal(false);
+  setEdicionMasiva({ semestre: '', estado: '' });
+};
+
+
 
   useEffect(() => {
     obtenerEstudiantes();
@@ -265,14 +320,15 @@ const Estudiantes = () => {
   };
 
   // Función para determinar si hay filtros aplicados
-  const hayFiltrosAplicados = () => {
-    return (
-      ano !== getCurrentYear().toString() || // Verifica si el año es diferente al actual
-      semestre !== '' || // Verifica si el semestre no está vacío
-      estadoFiltro !== 'activos' || // Verifica si el estado no es "activos"
-      searchTerm !== '' // Verifica si hay un término de búsqueda
-    );
-  };
+  // Función para determinar si hay filtros aplicados
+const hayFiltrosAplicados = () => {
+  return (
+    ano !== getCurrentYear().toString() || // Verifica si el año es diferente al actual
+    (semestre !== '') || // Verifica si el semestre no está vacío
+    (estadoFiltro !== 'activos') || // Verifica si el estado no es "activos"
+    (searchTerm !== '') // Verifica si hay un término de búsqueda
+  );
+};
 
   // Nueva función para manejar el envío individual de credenciales
   const enviarCredencialIndividual = async (estudiante) => {
@@ -333,7 +389,7 @@ const Estudiantes = () => {
       <Col xs={2} style={{width: '9%'}}>
         <Form.Select
           value={ano}
-          onChange={(e) => setAno(e.target.value)}
+          onChange={(e) => handleFilterChange('ano', e.target.value)}
         >
           <option value="">Seleccione un año</option>
           <option value="2025">2025</option>
@@ -342,20 +398,10 @@ const Estudiantes = () => {
           ))}
         </Form.Select>
       </Col>
-      {/* <Col xs={3} style={{width: '20%'}}>
-        <Form.Select
-          value={semestre}
-          onChange={(e) => setSemestre(e.target.value)}
-        >
-          <option value="">Todos los semestres</option>
-          <option value="1">Primer semestre</option>
-          <option value="2">Segundo semestre</option>
-        </Form.Select>
-      </Col> */}
       <Col xs={2} style={{width: '17%'}}>
         <Form.Select
           value={estadoFiltro}
-          onChange={(e) => setEstadoFiltro(e.target.value)}
+          onChange={(e) => handleFilterChange('estadoFiltro', e.target.value)}
         >
           <option value="todos">Todos los estados</option>
           <option value="activos">Activos</option>
@@ -367,7 +413,7 @@ const Estudiantes = () => {
           type="text"
           placeholder="Buscar por nombre o RUT..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
         />
       </Col>
       {hayFiltrosAplicados() && (
@@ -582,7 +628,7 @@ const Estudiantes = () => {
     </Row>
   
     {/* Modal de edición masiva */}
-    <Modal show={editarMasivoModal} onHide={() => setEditarMasivoModal(false)}>
+    <Modal show={editarMasivoModal} onHide={handleCloseNuevoEstudianteModal}>
       <Modal.Header closeButton>
         <Modal.Title>Edición Masiva de Estudiantes</Modal.Title>
       </Modal.Header>
@@ -618,7 +664,7 @@ const Estudiantes = () => {
     </Modal>
 
     {/* Modal para añadir nuevo estudiante */}
-    <Modal show={modalOpen} onHide={() => setModalOpen(false)}>
+    <Modal show={modalOpen} onHide={handleCloseNuevoEstudianteModal}>
         <Modal.Header closeButton>
           <Modal.Title>Registrar Nuevo Estudiante</Modal.Title>
         </Modal.Header>
@@ -690,7 +736,7 @@ const Estudiantes = () => {
         </Modal.Body>
       </Modal>
 
-      <Modal show={cambioContrasenaModal} onHide={() => setCambioContrasenaModal(false)}>
+      <Modal show={cambioContrasenaModal} onHide={handleCloseNuevoEstudianteModal}>
         <Modal.Header closeButton>
           <Modal.Title>Cambiar Contraseña</Modal.Title>
         </Modal.Header>

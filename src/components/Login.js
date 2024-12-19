@@ -140,20 +140,33 @@ const Login = () => {
 
   return (
     <div className="wrapper login-page-wrapper">
-      <nav className="main-header navbar navbar-expand navbar-light custom-header">
+      {/* <nav className="main-header navbar navbar-expand navbar-light custom-header">
         <ul className="navbar-nav ml-auto">
           <li className="nav-item">
-            <Link to="#" className="nav-link text-white" onClick={() => setShowForgotPassword(true)}>
+            <Link to="/recursos" className="nav-link text-white" onClick={() => setShowForgotPassword(true)}>
               Ir a recursos
             </Link>
           </li>
         </ul>
-      </nav>
+      </nav> */}
+      <a 
+          href="/recursos" 
+          className="btn btn-outline-light position-absolute top-0 end-0 m-3 d-flex align-items-center" 
+          style={{ 
+              zIndex: 1000, 
+              position: 'fixed',
+              borderRadius: '20px',
+              padding: '8px 15px'
+          }}
+      >
+          <i className="fas fa-external-link-alt mr-2"></i>
+          Ir a Recursos
+      </a>
 
       <div className="hold-transition login-page" style={{ 
           backgroundImage: `
           linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
-          url(/banner.jpg)
+          url(/facsa.jpg)
         `,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -422,12 +435,12 @@ const Login = () => {
         </div>
       )}
 
-      <footer className="main-footer">
+      {/* <footer className="main-footer">
         <div className="float-right d-none d-sm-inline">
           Universidad Católica del Maule
         </div>
         <strong>Copyright © 2024 UCM.</strong> Todos los derechos reservados.
-      </footer>
+      </footer> */}
     </div>
   );
 };

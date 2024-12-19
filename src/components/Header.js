@@ -5,6 +5,35 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../contexts/AuthContext';
 import './Components.css';
 
+const PasswordValidationMessage = ({ password }) => {
+  const hasMinLength = password.length >= 8 && password.length <= 20;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+
+  return (
+    <div className="password-validation-message">
+      <small>
+        <span style={{ color: hasMinLength ? 'green' : 'red' }}>
+          ✓ Entre 8 y 20 caracteres
+        </span>
+        <br />
+        <span style={{ color: hasUppercase ? 'green' : 'red' }}>
+          ✓ Al menos una letra mayúscula
+        </span>
+        <br />
+        <span style={{ color: hasLowercase ? 'green' : 'red' }}>
+          ✓ Al menos una letra minúscula
+        </span>
+        <br />
+        <span style={{ color: hasNumber ? 'green' : 'red' }}>
+          ✓ Al menos un número
+        </span>
+      </small>
+    </div>
+  );
+};
+
 const Header = ({ toggleSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -16,6 +45,14 @@ const Header = ({ toggleSidebar }) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const isValidPassword = (password) => {
+    const regexContrasena = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,20}$/;
+    return regexContrasena.test(password);
+  };
 
   const getFirstName = (fullName) => {
     if (!fullName) return 'Usuario';
@@ -132,14 +169,19 @@ const Header = ({ toggleSidebar }) => {
   };
 
   const handleChangePassword = async () => {
+    // Validaciones de contraseña
     if (newPassword !== confirmPassword) {
       toast.error('Las contraseñas no coinciden', {
         position: "top-right",
         autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
+      });
+      return;
+    }
+
+    if (!isValidPassword(newPassword)) {
+      toast.error('La contraseña no cumple con los requisitos de seguridad', {
+        position: "top-right",
+        autoClose: 3000,
       });
       return;
     }
@@ -189,6 +231,22 @@ const Header = ({ toggleSidebar }) => {
     }
   };
 
+  const togglePasswordVisibility = (type) => {
+    switch(type) {
+      case 'current':
+        setShowCurrentPassword(!showCurrentPassword);
+        break;
+      case 'new':
+        setShowNewPassword(!showNewPassword);
+        break;
+      case 'confirm':
+        setShowConfirmPassword(!showConfirmPassword);
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <nav className="main-header navbar navbar-expand navbar-light custom-header">
         <button 
@@ -228,7 +286,7 @@ const Header = ({ toggleSidebar }) => {
               <Form.Control
                 type="text"
                 name="nombres"
-                value={updatedUser .nombres}
+                value={updatedUser.nombres}
                 onChange={handleUpdateInputChange}
                 required
               />
@@ -238,7 +296,7 @@ const Header = ({ toggleSidebar }) => {
               <Form.Control
                 type="text"
                 name="apellidos"
-                value={updatedUser .apellidos}
+                value={updatedUser.apellidos}
                 onChange={handleUpdateInputChange}
                 required
               />
@@ -248,7 +306,7 @@ const Header = ({ toggleSidebar }) => {
               <Form.Control
                 type="email"
                 name="correo"
-                value={updatedUser .correo}
+                value={updatedUser.correo}
                 onChange={handleUpdateInputChange}
                 required
               />
@@ -258,7 +316,7 @@ const Header = ({ toggleSidebar }) => {
               <Form.Control
                 type="text"
                 name="rut"
-                value={updatedUser .rut}
+                value={updatedUser.rut}
                 onChange={handleUpdateInputChange}
                 required
               />
@@ -277,52 +335,90 @@ const Header = ({ toggleSidebar }) => {
 
       {/* Modal para cambiar contraseña */}
       <Modal show={showChangePasswordModal} onHide={() => setShowChangePasswordModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Cambiar Contraseña</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group controlId="formCurrentPassword">
-              <Form.Label>Contraseña Actual</Form.Label>
+      <Modal.Header closeButton>
+        <Modal.Title>Cambiar Contraseña</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <Form>
+          <Form.Group controlId="formCurrentPassword" className="position-relative">
+            <Form.Label>Contraseña Actual</Form.Label>
+            <div className="input-group">
               <Form.Control
-                type="password"
+                type={showCurrentPassword ? "text" : "password"}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 required
               />
-            </Form.Group>
-            <Form.Group controlId="formNewPassword">
-              <Form.Label>Nueva Contraseña</Form.Label>
+              <div className="input-group-append">
+                <button 
+                  className="btn btn-outline-secondary" 
+                  type="button"
+                  onClick={() => togglePasswordVisibility('current')}
+                >
+                  <i className={`fas ${showCurrentPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
+                </button>
+              </div>
+            </div>
+          </Form.Group>
+
+          <Form.Group controlId="formNewPassword" className="position-relative">
+            <Form.Label>Nueva Contraseña</Form.Label>
+            <div className="input-group">
               <Form.Control
-                type="password"
+                type={showNewPassword ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
               />
-            </Form.Group>
-            <Form.Group controlId="formConfirmPassword">
-              <Form.Label>Confirmar Nueva Contraseña</Form.Label>
+              <div className="input-group-append">
+                <button 
+                  className="btn btn-outline-secondary" 
+                  type="button"
+                  onClick={() => togglePasswordVisibility('new')}
+                >
+                  <i className={`fas ${showNewPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
+                </button>
+              </div>
+            </div>
+            {newPassword && (
+              <PasswordValidationMessage password={newPassword} />
+            )}
+          </Form.Group>
+
+          <Form.Group controlId="formConfirmPassword" className="position-relative">
+            <Form.Label>Confirmar Nueva Contraseña</Form.Label>
+            <div className="input-group">
               <Form.Control
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
-            </Form.Group>
+              <div className="input-group-append">
+                <button 
+                  className="btn btn-outline-secondary" 
+                  type="button"
+                  onClick={() => togglePasswordVisibility('confirm')}
+                >
+                  <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
+                </button>
+              </div>
+            </div>
             {newPassword && confirmPassword && newPassword !== confirmPassword && (
               <div className="text-danger">Las contraseñas no coinciden.</div>
             )}
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowChangePasswordModal(false)}>
-            Cancelar
-          </Button>
-          <Button variant="primary" onClick={handleChangePassword}>
-            Cambiar Contraseña
-          </Button>
-        </Modal.Footer>
-      </Modal>
+          </Form.Group>
+        </Form>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={() => setShowChangePasswordModal(false)}>
+          Cancelar
+        </Button>
+        <Button variant="primary" onClick={handleChangePassword}>
+          Cambiar Contraseña
+        </Button>
+      </Modal.Footer>
+    </Modal>
     </nav>
   );
 };
