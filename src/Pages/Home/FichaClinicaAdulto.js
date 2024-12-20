@@ -5,7 +5,7 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciales, ultimaReevaluacion = null, reevaluacionSeleccionada = null }) => {
+const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciales, ultimaReevaluacion = null, reevaluacionSeleccionada = null, modoEdicion }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, getToken } = useAuth();
@@ -49,13 +49,17 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
   const handleVolver = () => {
     // Verificar el estado de navegación o usar una lógica predeterminada
     const estadoNavegacion = location.state;
-
+  
     if (estadoNavegacion && estadoNavegacion.origen) {
       // Si hay un estado de navegación específico, usar esa ruta
       switch(estadoNavegacion.origen) {
         case 'listado-fichas':
           navigate('?component=listado-fichas-clinicas', { 
-            state: { tipo: 'adulto' } 
+            state: { 
+              tipo: estadoNavegacion.tipo || 'adulto',
+              // Mantener cualquier otro estado relevante
+              ...estadoNavegacion 
+            } 
           });
           break;
         case 'dashboard':
@@ -63,7 +67,10 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
           break;
         case 'reevaluacion':
           navigate('?component=reevaluacion', { 
-            state: { tipo: 'adulto' } 
+            state: { 
+              tipo: estadoNavegacion.tipo || 'adulto',
+              ...estadoNavegacion 
+            } 
           });
           break;
         default:
@@ -866,27 +873,27 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
 
       {/* Botones */}
       <div className="d-flex justify-content-center mt-5 mb-5">
-        <button 
-          className="btn btn-primary px-4 mx-2" 
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? 'Ingresando...' : 'Ingresar Ficha Clínica'}
-        </button>
-        <button 
-          className="btn btn-secondary px-4 mx-2" 
-          onClick={onVolver}
-          disabled={isSubmitting}
-        >
+        {!modoEdicion && (
+          <button 
+            className="btn btn-primary px-4 mx-2" 
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Ingresando...' : 'Ingresar Ficha Clínica'}
+          </button>
+        )}
+        <button className="btn btn-secondary px-4 mx-2" onClick={onVolver}>
           Volver
         </button>
-        <button 
-          className="btn btn-warning px-4 mx-2" 
-          onClick={handleUpdate}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? 'Actualizando...' : 'Actualizar Ficha Clínica'}
-        </button>
+        {modoEdicion && (
+          <button 
+            className="btn btn-warning px-4 mx-2" 
+            onClick={handleUpdate}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Actualizando...' : 'Actualizar Ficha Clínica'}
+          </button>
+        )}
       </div>
       {successMessage && (
         <div className="alert alert-success alert-dismissible fade show" role="alert">

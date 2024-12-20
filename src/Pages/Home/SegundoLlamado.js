@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, Form, Button, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -30,6 +31,7 @@ const SegundoLlamado = ({
   guardarSeguimiento,
   paciente
 }) => {
+  const { user } = useAuth();
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -67,6 +69,28 @@ const SegundoLlamado = ({
     // Si pasa validaciones, llamar a la función de completar
     onComplete();
   };
+
+  const esEditable = useMemo(() => {
+    // Si es un estudiante
+    if (user.rol_id === 3) {
+      // Solo puede editar si el seguimiento fue ingresado por él mismo
+      return (
+        (seguimiento.estudiante_id === user.estudiante_id) ||
+        (seguimiento.estudiante?.id === user.estudiante_id)
+      );
+    }
+  
+    // Si es un usuario con rol de Director, Docente o Admin
+    if (user.rol_id === 1 || user.rol_id === 2) {
+      return true; // Puede editar cualquier seguimiento
+    }
+  
+    // Para usuarios normales, verificar el usuario_id
+    return (
+      (seguimiento.usuario_id === user.id) ||
+      (seguimiento.usuario?.id === user.id)
+    );
+  }, [seguimiento, user]);
 
   const exportarPDF = () => {
     const input = document.getElementById('exportable-content2');
@@ -416,15 +440,16 @@ return (
         {renderContent()}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
           <Button type="submit" disabled={disabled}>Guardar</Button>
-          <Button 
-            variant="success" 
-            onClick={() => {
-              console.log('Actualizando seguimiento con datos:', seguimiento); // Verifica los datos antes de actualizar
-              guardarSeguimiento(2, true); // true indica que es una actualización
-            }}
-          >
-            Actualizar
-          </Button>
+          {seguimiento.id && esEditable && (
+              <Button 
+                variant="success" 
+                onClick={() => {
+                  guardarSeguimiento(2, true);
+                }}
+              >
+                Actualizar
+              </Button>
+            )}
           {seguimiento.nutricion.comidasDia && (
             <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
           )}

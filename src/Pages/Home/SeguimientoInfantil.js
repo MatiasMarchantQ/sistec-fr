@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Container, Form, Button, Table, Card, 
-  Accordion, Modal, Alert, ButtonGroup
+  Modal, Alert, ButtonGroup
 } from 'react-bootstrap';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useAuth } from '../../contexts/AuthContext';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 // Importar datos completos de hitos de desarrollo
 const HITOS_DESARROLLO = {
@@ -207,9 +207,6 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
   const [seguimientoOriginal, setSeguimientoOriginal] = useState(null);
 
   const { getToken, user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-
   const [seguimiento, setSeguimiento] = useState({
     fecha: new Date().toISOString().split('T')[0],
     pacienteId: pacienteId,
@@ -233,7 +230,28 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
   const [selectedSeguimiento, setSelectedSeguimiento] = useState(null);
   const [showResponsableModal, setShowResponsableModal] = useState(false);
   const [responsableData, setResponsableData] = useState(null);
-  console.log('Selected Seguimiento:', selectedSeguimiento);
+
+  const esEditable = (seguimientoEspecifico) => {
+    // Si es un estudiante
+    if (user.rol_id === 3) {
+      // Solo puede editar si el seguimiento fue ingresado por él mismo
+      return (
+        (seguimientoEspecifico.estudiante_id === user.estudiante_id) ||
+        (seguimientoEspecifico.estudiante?.id === user.estudiante_id)
+      );
+    }
+  
+    // Si es un usuario con rol de Director, Docente o Admin
+    if (user.rol_id === 1 || user.rol_id === 2) {
+      return true; // Puede editar cualquier seguimiento
+    }
+  
+    // Para usuarios normales, verificar el usuario_id
+    return (
+      (seguimientoEspecifico.usuario_id === user.id) ||
+      (seguimientoEspecifico.usuario?.id === user.id)
+    );
+  };
 
   const calcularGrupoEdad = (fechaNacimiento) => {
     const fechaNac = new Date(fechaNacimiento);
@@ -314,12 +332,23 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
   };
 
   const handleShowResponsable = (seguimiento) => {
-    if (seguimiento.usuario) {
-      setResponsableData(seguimiento.usuario);
-    } else if (seguimiento.estudiante) {
-      setResponsableData(seguimiento.estudiante);
+    // Priorizar usuario, luego estudiante
+    const responsable = seguimiento.usuario || seguimiento.estudiante;
+    
+    if (responsable) {
+      setResponsableData({
+        id: responsable.id,
+        nombres: responsable.nombres,
+        apellidos: responsable.apellidos,
+        rut: responsable.rut,
+        correo: responsable.correo,
+        tipo: seguimiento.usuario ? 'Usuario' : 'Estudiante'
+      });
+      setShowResponsableModal(true);
+    } else {
+      // Mostrar mensaje si no hay información de responsable
+      alert('No se encontró información del responsable');
     }
-    setShowResponsableModal(true);
   };
 
   const generarRecomendaciones = (grupoEdad) => {
@@ -873,7 +902,8 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
                     </td>
                     <td>{seguimiento.grupo_edad || 'N/D'}</td>
                     <td>
-                      <Button 
+                      <Button
+                        className='mr-2' 
                         variant="info" 
                         onClick={() => {
                           setSelectedSeguimiento(seguimiento);
@@ -881,30 +911,39 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
                       >
                         Ver Detalles
                       </Button>
-                      <Button 
-                        variant="warning" 
-                        onClick={() => {
-                          // Directamente iniciar la edición desde la tabla
-                          iniciarEdicion(seguimiento);
-                          
-                          // Desplazar automáticamente hacia arriba para mostrar el formulario de edición
-                          window.scrollTo({
-                            top: 0,
-                            behavior: 'smooth'
-                          });
-                        }}
-                        style={{ marginLeft: '10px' }}
-                      >
-                        <i className="fas fa-edit"></i> Editar
-                      </Button>
+                      
+                      {/* Botón de edición con lógica de permisos */}
+                      {(esEditable(seguimiento) || user.rol_id === 1 || user.rol_id === 2) && (
+                        <Button 
+                          className='mr-2'
+                          variant="warning" 
+                          onClick={() => {
+                            // Solo permitir edición si es editable
+                            if (esEditable(seguimiento)) {
+                              iniciarEdicion(seguimiento);
+                              
+                              window.scrollTo({
+                                top: 0,
+                                behavior: 'smooth'
+                              });
+                            } else {
+                              // Mostrar un mensaje si no es editable
+                              toast.error('No tienes permiso para editar este seguimiento');
+                            }
+                          }}
+                          disabled={!esEditable(seguimiento)}
+                        >
+                          <i className="fas fa-edit"></i> Editar
+                        </Button>
+                      )}
+                      
                       <Button 
                         variant="secondary" 
                         onClick={() => handleShowResponsable(seguimiento)}
-                        style={{ marginLeft: '10px' }}
                       >
                         Responsable de la llamada
                       </Button>
-                    </td>
+                  </td>
                   </tr>
                 ))
               ) : (
@@ -923,15 +962,17 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
       <Modal 
         show={showResponsableModal} 
         onHide={() => setShowResponsableModal(false)}
-        size ="lg"
+        size="lg"
       >
         <Modal.Header closeButton>
-          <Modal.Title>Información del Responsable</Modal.Title>
+          <Modal.Title>Información del Responsable de la Llamada</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {responsableData ? (
             <Card>
-              <Card.Header>Datos del Responsable</Card.Header>
+              <Card.Header>
+                <strong>{responsableData.tipo}</strong>
+              </Card.Header>
               <Card.Body>
                 <p><strong>Nombres:</strong> {responsableData.nombres}</p>
                 <p><strong>Apellidos:</strong> {responsableData.apellidos}</p>
@@ -958,75 +999,75 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body id="detallesSeguimiento">
-    {selectedSeguimiento && (
-        <div>
-            <p><strong>Edad:</strong> {selectedSeguimiento.grupo_edad}</p>
-            <h5>Hitos de Desarrollo</h5>
-            {Object.entries(selectedSeguimiento.areaDPM || {}).map(([area, cumplido]) => {
-                // Solo mostrar áreas con valor booleano
-                if (cumplido === null || cumplido === undefined) return null;
+        {selectedSeguimiento && (
+            <div>
+                <p><strong>Edad:</strong> {selectedSeguimiento.grupo_edad}</p>
+                <h5>Hitos de Desarrollo</h5>
+                {Object.entries(selectedSeguimiento.areaDPM || {}).map(([area, cumplido]) => {
+                    // Solo mostrar áreas con valor booleano
+                    if (cumplido === null || cumplido === undefined) return null;
 
-                const areaFormateada = area === 'motorGrueso' ? 'Motor Grueso' : 
-                area === 'motorFino' ? 'Motor Fino' : 
-                area.charAt(0).toUpperCase() + area.slice(1);
-                
-                // Verificar si existen hitos para el área
-                const hitosArea = HITOS_DESARROLLO[selectedSeguimiento.grupoEdad]?.[area];
-                if (!hitosArea) {
+                    const areaFormateada = area === 'motorGrueso' ? 'Motor Grueso' : 
+                    area === 'motorFino' ? 'Motor Fino' : 
+                    area.charAt(0).toUpperCase() + area.slice(1);
+                    
+                    // Verificar si existen hitos para el área
+                    const hitosArea = HITOS_DESARROLLO[selectedSeguimiento.grupoEdad]?.[area];
+                    if (!hitosArea) {
+                        return (
+                            <Card key={area} className="mb-3">
+                                <Card.Header>
+                                    <strong>{areaFormateada}</strong>
+                                </Card.Header>
+                                <Card.Body>
+                                    <p>No hay hitos disponibles para esta área.</p>
+                                </Card.Body>
+                            </Card>
+                        );
+                    }
+
                     return (
                         <Card key={area} className="mb-3">
                             <Card.Header>
                                 <strong>{areaFormateada}</strong>
                             </Card.Header>
                             <Card.Body>
-                                <p>No hay hitos disponibles para esta área.</p>
+                                {hitosArea.map((hito, index) => (
+                                    <div key={index} className="mb-3">
+                                        <p>{hito.descripcion}</p>
+                                        <Alert 
+                                            variant={cumplido ? "success" : "danger"}
+                                            className="p-2"
+                                        >
+                                            Respuesta: {cumplido ? "Sí" : "No"}
+                                        </Alert>
+                                    </div>
+                                ))}
                             </Card.Body>
                         </Card>
                     );
-                }
+                })}
 
-                return (
-                    <Card key={area} className="mb-3">
-                        <Card.Header>
-                            <strong>{areaFormateada}</strong>
-                        </Card.Header>
-                        <Card.Body>
-                            {hitosArea.map((hito, index) => (
-                                <div key={index} className="mb-3">
-                                    <p>{hito.descripcion}</p>
-                                    <Alert 
-                                        variant={cumplido ? "success" : "danger"}
-                                        className="p-2"
-                                    >
-                                        Respuesta: {cumplido ? "Sí" : "No"}
-                                    </Alert>
-                                </div>
-                            ))}
-                        </Card.Body>
-                    </Card>
-                );
-            })}
-
-            <h5>Recomendaciones</h5>
-            {[
-                { label: 'Área Motora', key: 'areaMotora' },
-                { label: 'Área de Lenguaje', key: 'areaLenguaje' },
-                { label: 'Área Socioemocional', key: 'areaSocioemocional' },
-                { label: 'Área Cognitiva', key: 'areaCognitiva' }
-            ].map(({ label, key }) => (
-                <div key={key} className="mb-3">
-                    <strong>{label}:</strong>
-                    <Card>
-                        <Card.Body>
-                            {selectedSeguimiento.recomendaciones?.[key] || 
-                            <span className="text-muted">No hay recomendaciones específicas</span>}
-                        </Card.Body>
-                    </Card>
-                </div>
-            ))}
-        </div>
-    )}
-    </Modal.Body>
+                <h5>Recomendaciones</h5>
+                {[
+                    { label: 'Área Motora', key: 'areaMotora' },
+                    { label: 'Área de Lenguaje', key: 'areaLenguaje' },
+                    { label: 'Área Socioemocional', key: 'areaSocioemocional' },
+                    { label: 'Área Cognitiva', key: 'areaCognitiva' }
+                ].map(({ label, key }) => (
+                    <div key={key} className="mb-3">
+                        <strong>{label}:</strong>
+                        <Card>
+                            <Card.Body>
+                                {selectedSeguimiento.recomendaciones?.[key] || 
+                                <span className="text-muted">No hay recomendaciones específicas</span>}
+                            </Card.Body>
+                        </Card>
+                    </div>
+                ))}
+            </div>
+        )}
+        </Modal.Body>
         <Modal.Footer>
           <Button variant="primary" onClick={() => exportarDetallesPDF(selectedSeguimiento)}>
             Exportar a PDF

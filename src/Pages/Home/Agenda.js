@@ -84,10 +84,10 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
     }
   };
 
-    const agruparAsignacionesPorPeriodo = (asignaciones) => {
-        if (!Array.isArray(asignaciones)) {
-            return [];
-        }
+  const agruparAsignacionesPorPeriodo = (asignaciones) => {
+    if (!Array.isArray(asignaciones)) {
+        return [];
+    }
     const grupos = {};
     
     asignaciones.forEach(asignacion => {
@@ -109,6 +109,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
             grupos[periodo].instituciones[institucionId] = {
                 id: institucionId,
                 nombre: asignacion.Institucion?.nombre || 'Institución sin nombre',
+                tipo: asignacion.Institucion?.tipoInstitucion?.tipo || 'Sin tipo', // Añadir tipo
                 receptora: asignacion.Receptor ? 
                     `${asignacion.Receptor.cargo} ${asignacion.Receptor.nombre}` : 
                     'Sin receptor',
@@ -491,6 +492,7 @@ const handlePaginationClick = (page) => {
                                 <div className="institucion-info">
                                     <div className="institucion-nombre">
                                         <i className="fas fa-hospital mr-2"></i>
+                                        {institucion.tipo}{' '}
                                         {institucion.nombre}
                                     </div>
                                     <div className="institucion-receptor text-muted">

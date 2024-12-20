@@ -19,8 +19,9 @@ const Reevaluacion = () => {
   const [tipoFicha, setTipoFicha] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cambiosDetectados, setCambiosDetectados] = useState({});
-  const [reevaluaciones, setReevaluaciones] = useState([]); // Para almacenar las reevaluaciones
-  const [reevaluacionSeleccionada, setReevaluacionSeleccionada] = useState(null); // Para la reevaluación seleccionada
+  const [reevaluaciones, setReevaluaciones] = useState([]);
+  const [reevaluacionSeleccionada, setReevaluacionSeleccionada] = useState(null);
+  const [modoEdicion, setModoEdicion] = useState(false);
 
   const handleVolver = () => {
     navigate(-1);
@@ -59,6 +60,9 @@ const Reevaluacion = () => {
     };
     
     const formatearFichaInfantil = (fichaClinica) => {
+      const edadPaciente = fichaClinica.paciente?.edad || fichaClinica.edad || '';
+      console.log('Datos para parsear edad:', edadPaciente); // Agregar log aquí
+
       return {
         nombres: fichaClinica.paciente?.nombres || fichaClinica.nombres || '',
         apellidos: fichaClinica.paciente?.apellidos || fichaClinica.apellidos || '',
@@ -143,9 +147,13 @@ const Reevaluacion = () => {
       };
     }
   
-    const edadRegex = /(\d+)\s*años?,\s*(\d+)\s*meses?,\s*(\d+)\s*días?/;
-    const match = edadString.match(edadRegex);
+    // Diferentes patrones de formato de edad
+    const patronCompleto = /(\d+)\s*años?(?:,\s*(\d+)\s*meses?)?(?:,\s*(\d+)\s*días?)?/i;
+    const patronSoloMeses = /(\d+)\s*meses?(?:,\s*(\d+)\s*días?)?/i;
+    const patronSoloDias = /(\d+)\s*días?/i;
   
+    // Intentar primero el patrón completo (años, meses, días)
+    let match = edadString.match(patronCompleto);
     if (match) {
       return {
         edadAnios: match[1] || '',
@@ -154,7 +162,32 @@ const Reevaluacion = () => {
       };
     }
   
-    // Intentar parsear directamente si ya son números
+    // Intentar patrón de solo meses y días
+    match = edadString.match(patronSoloMeses);
+    if (match) {
+      // Convertir meses a años si son más de 12
+      const meses = parseInt(match[1]);
+      const anios = Math.floor(meses / 12);
+      const mesesRestantes = meses % 12;
+  
+      return {
+        edadAnios: anios > 0 ? anios.toString() : '',
+        edadMeses: mesesRestantes > 0 ? mesesRestantes.toString() : match[1],
+        edadDias: match[2] || ''
+      };
+    }
+  
+    // Intentar patrón de solo días
+    match = edadString.match(patronSoloDias);
+    if (match) {
+      return {
+        edadAnios: '',
+        edadMeses: '',
+        edadDias: match[1] || ''
+      };
+    }
+  
+    // Si es solo un número, asumir que son años
     if (/^\d+$/.test(edadString)) {
       return {
         edadAnios: edadString,
@@ -221,6 +254,12 @@ const Reevaluacion = () => {
       toast.error('No se proporcionó un ID de ficha válido');
       navigate(-1);
       return;
+    }
+
+    if (reevaluacionId) {
+      setModoEdicion(true);
+    } else {
+      setModoEdicion(false);
     }
   
     const fetchDatosReevaluacion = async () => {
@@ -535,6 +574,7 @@ const Reevaluacion = () => {
           cambiosDetectados={cambiosDetectados}
           ultimaReevaluacion={ultimaReevaluacion}
           reevaluacionSeleccionada={reevaluacionSeleccionada}
+          modoEdicion={modoEdicion}
         />
       ) : (
         <FichaClinicaInfantil
@@ -547,6 +587,7 @@ const Reevaluacion = () => {
           cambiosDetectados={cambiosDetectados}
           ultimaReevaluacion={ultimaReevaluacion}
           reevaluacionSeleccionada={reevaluacionSeleccionada}
+          modoEdicion={modoEdicion}
         />
       )}
     </div>

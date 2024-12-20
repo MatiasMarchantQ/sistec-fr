@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosIniciales, ultimaReevaluacion = null, reevaluacionSeleccionada = null }) => {
+const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosIniciales, ultimaReevaluacion = null, reevaluacionSeleccionada = null, modoEdicion }) => {
     const [datosNino, setDatosNino] = useState({
         fechaNacimiento: '',
         nombres: '',
@@ -49,78 +49,88 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
     const [errores, setErrores] = useState({});
 
     const parseEdad = useMemo(() => (edadString) => {
-      // Si no hay valor o es null, devolver objeto vacío
+      // Si no hay valor o es null, devolver objeto con null
       if (!edadString) {
         return {
-          edadAnios: '',
-          edadMeses: '',
-          edadDias: ''
+          edadAnios: null,
+          edadMeses: null,
+          edadDias: null
         };
       }
     
-      // Si ya es un objeto con años, meses y días, devolverlo directamente
-      if (
-        edadString.edadAnios !== undefined && 
-        edadString.edadMeses !== undefined && 
-        edadString.edadDias !== undefined
-      ) {
-        return {
-          edadAnios: String(edadString.edadAnios || ''),
-          edadMeses: String(edadString.edadMeses || ''),
-          edadDias: String(edadString.edadDias || '')
-        };
-      }
+      // Convertir a string y limpiar espacios
+      edadString = String(edadString).trim();
     
-      // Regex para parsear cadenas como "5 meses", "4 años", "3 años, 5 meses"
-      const edadRegex = /^(\d+)\s*(año|años|mes|meses|día|días)$/;
-      const match = edadString.match(edadRegex);
+      // Regex para manejar formatos específicos
+      const regexPatterns = [
+        // "1 años, 10 días"
+        /^(\d+)\s*años?,?\s*(\d+)\s*días?$/i,
+        
+        // "23 meses, 1 días"
+        /^(\d+)\s*meses?,?\s*(\d+)?\s*días?$/i,
+        
+        // "1 años, 1 meses" 
+        /^(\d+)\s*años?,\s*(\d+)\s*meses?$/i,
+        
+        // "1 años, 1 meses, 10 días"
+        /^(\d+)\s*años?,\s*(\d+)\s*meses?,\s*(\d+)\s*días?$/i
+      ];
     
-      if (match) {
-        const valor = match[1];
-        const unidad = match[2];
+      // Probar cada patrón de regex
+      for (let regex of regexPatterns) {
+        const match = edadString.match(regex);
+        
+        if (match) {
+          console.log('[parseEdad] Matched regex:', match);
+          
+          const result = {
+            edadAnios: null,
+            edadMeses: null,
+            edadDias: null
+          };
     
-        switch(unidad) {
-          case 'año':
-          case 'años':
-            return {
-              edadAnios: valor,
-              edadMeses: '',
-              edadDias: ''
-            };
-          case 'mes':
-          case 'meses':
-            return {
-              edadAnios: '',
-              edadMeses: valor,
-              edadDias: ''
-            };
-          case 'día':
-          case 'días':
-            return {
-              edadAnios: '',
-              edadMeses: '',
-              edadDias: valor
-            };
+          // Manejar casos con años y días
+          if (regex.source.includes('años') && regex.source.includes('días')) {
+            result.edadAnios = match[1];
+            result.edadDias = match[2];
+          }
+          // Manejar caso de meses y días
+          else if (regex.source.includes('meses')) {
+            result.edadMeses = match[1];
+            if (match[2]) {
+              result.edadDias = match[2];
+            }
+          } 
+          // Manejar casos con años y meses
+          else if (regex.source.includes('años') && regex.source.includes('meses')) {
+            result.edadAnios = match[1];
+            result.edadMeses = match[2];
+            if (match[3]) {
+              result.edadDias = match[3];
+            }
+          }
+    
+          return result;
         }
       }
     
-      // Regex para cadenas más complejas como "4 años, 5 meses, 4 días"
-      const edadComplejaRegex = /(\d+)\s*años?,\s*(\d+)\s*meses?,\s*(\d+)\s*días?/;
-      const matchCompleja = edadString.match(edadComplejaRegex);
-    
-      if (matchCompleja) {
+      // Último intento: extraer números de la cadena
+      const numeros = edadString.match(/\d+/g);
+      if (numeros) {
         return {
-          edadAnios: matchCompleja[1] || '',
-          edadMeses: matchCompleja[2] || '',
-          edadDias: matchCompleja[3] || ''
+          edadAnios: numeros[0] || null,
+          edadMeses: numeros[1] || null,
+          edadDias: numeros[2] || null
         };
       }
     
+      // Si no se puede parsear
       console.warn('Formato de edad no reconocido:', edadString);
+      
       return {
-        edadAnios: '',
-        edadMeses: '',
-        edadDias: ''
+        edadAnios: null,
+        edadMeses: null,
+        edadDias: null
       };
     }, []);
 
@@ -130,24 +140,38 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
     
       if (datosBase) {
         // Datos personales del niño
-        setDatosNino(prev => ({
-          ...prev,
-          nombres: datosBase.nombres || datosBase.paciente?.nombres || '',
-          apellidos: datosBase.apellidos || datosBase.paciente?.apellidos || '',
-          rut: datosBase.rut || datosBase.paciente?.rut || '',
-          telefonoPrincipal: datosBase.telefonoPrincipal || datosBase.paciente?.telefonoPrincipal || '',
-          telefonoSecundario: datosBase.telefonoSecundario || datosBase.paciente?.telefonoSecundario || '',
-          fechaNacimiento: datosBase.fechaNacimiento || datosBase.paciente?.fechaNacimiento || '',
-          
-          // Manejo de edad con múltiples formatos
-          ...parseEdad(
+        setDatosNino(prev => {
+          // Depuración adicional
+          console.log('Datos base para edad:', {
+            edad: datosBase.edad,
+            pacienteEdad: datosBase.paciente?.edad,
+            edadAnios: datosBase.edadAnios,
+            edadMeses: datosBase.edadMeses,
+            edadDias: datosBase.edadDias
+          });
+    
+          // Parsear edad con múltiples estrategias
+          const edadParseada = parseEdad(
             datosBase.edad || 
             datosBase.paciente?.edad || 
             (datosBase.edadAnios && datosBase.edadMeses && datosBase.edadDias 
               ? `${datosBase.edadAnios} años, ${datosBase.edadMeses} meses, ${datosBase.edadDias} días`
               : '')
-          )
-        }));
+          );
+    
+          console.log('Edad parseada:', edadParseada);
+    
+          return {
+            ...prev,
+            ...edadParseada,
+            nombres: datosBase.nombres || datosBase.paciente?.nombres || '',
+            apellidos: datosBase.apellidos || datosBase.paciente?.apellidos || '',
+            rut: datosBase.rut || datosBase.paciente?.rut || '',
+            telefonoPrincipal: datosBase.telefonoPrincipal || datosBase.paciente?.telefonoPrincipal || '',
+            telefonoSecundario: datosBase.telefonoSecundario || datosBase.paciente?.telefonoSecundario || '',
+            fechaNacimiento: datosBase.fechaNacimiento || datosBase.paciente?.fechaNacimiento || ''
+          };
+        });
     
         // Evaluación psicomotora
         setPuntajeDPM(
@@ -744,7 +768,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
                         type="number"
                         name="edadMeses"
                         className={`form-control ${
-                          datosNino.edadMeses > 12 ? 'is-invalid' : ''
+                          datosNino.edadMeses > 23 ? 'is-invalid' : ''
                         }`}
                         placeholder="Meses"
                         value={datosNino.edadMeses || ''}
@@ -754,15 +778,15 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
                           // Permite escribir y valida
                           setDatosNino({
                             ...datosNino,
-                            edadMeses: valor > 12 ? 12 : valor
+                            edadMeses: valor > 23 ? 23 : valor
                           });
                         }}
                         min="0"
-                        max="12"
+                        max="23"
                       />
-                      {datosNino.edadMeses > 12 && (
+                      {datosNino.edadMeses > 23 && (
                         <div className="invalid-feedback">
-                          Los meses no pueden superar 12
+                          Los meses no pueden superar 23
                         </div>
                       )}
                     </div>
@@ -1103,25 +1127,29 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
           </div>
         </div>
 
-      <div className="d-flex justify-content-center mt-5 mb-5">
-        <button 
-          className="btn btn-primary px-4 mx-2" 
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? 'Ingresando...' : 'Ingresar Ficha Clínica'}
-        </button>
-        <button className="btn btn-secondary px-4 mx-2" onClick={onVolver}>
-          Volver
-        </button>
-        <button 
-          className="btn btn-warning px-4 mx-2" 
-          onClick={handleUpdate}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? 'Actualizando...' : 'Actualizar Reevaluación'}
-        </button>
-      </div>
+        <div className="d-flex justify-content-center mt-5 mb-5">
+          {!modoEdicion && (
+            <button 
+              className="btn btn-primary px-4 mx-2" 
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Ingresando...' : 'Ingresar Ficha Clínica'}
+            </button>
+          )}
+          <button className="btn btn-secondary px-4 mx-2" onClick={onVolver}>
+            Volver
+          </button>
+          {modoEdicion && (
+            <button 
+              className="btn btn-warning px-4 mx-2" 
+              onClick={handleUpdate}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Actualizando...' : 'Actualizar Reevaluación'}
+            </button>
+          )}
+        </div>
       {submitError && (
         <div className="alert alert-danger alert-dismissible fade show" role="alert">
           <strong><i className="icon fas fa-ban"></i> Error:</strong> {submitError}

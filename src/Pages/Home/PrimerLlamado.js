@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Card, Form, Button, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../../contexts/AuthContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -33,38 +34,6 @@ const PrimerLlamado = ({
   paciente
 }) => {  
   const { user } = useAuth();
-  const [mostrarBotonActualizar, setMostrarBotonActualizar] = useState(false);
-  const [tiempoRestante, setTiempoRestante] = useState(0);
-
-  // Efecto para manejar la visibilidad del botón de actualizar
-  useEffect(() => {
-    let temporizador;
-
-    // Solo para usuarios con rol_id === 3 (estudiantes)
-    if (user.rol_id === 3) {
-      // Mostrar el botón de actualizar por 1 minuto después de guardar
-      if (mostrarBotonActualizar) {
-        setTiempoRestante(60); // 60 segundos = 1 minuto
-
-        temporizador = setInterval(() => {
-          setTiempoRestante((prevTiempo) => {
-            if (prevTiempo <= 1) {
-              setMostrarBotonActualizar(false);
-              return 0;
-            }
-            return prevTiempo - 1;
-          });
-        }, 1000);
-      }
-    }
-
-    // Limpiar el temporizador
-    return () => {
-      if (temporizador) {
-        clearInterval(temporizador);
-      }
-    };
-  }, [mostrarBotonActualizar, user.rol_id]);
 
   const preguntasAutoeficacia = [
     { 
@@ -100,6 +69,29 @@ const PrimerLlamado = ({
       key: "controlarDiabetes" 
     }
   ];
+
+  // Lógica para determinar si se puede editar el seguimiento
+  const esEditable = useMemo(() => {
+    // Si es un estudiante
+    if (user.rol_id === 3) {
+      // Solo puede editar si el seguimiento fue ingresado por él mismo
+      return (
+        (seguimiento.estudiante_id === user.estudiante_id) ||
+        (seguimiento.estudiante?.id === user.estudiante_id)
+      );
+    }
+  
+    // Si es un usuario con rol de Director, Docente o Admin
+    if (user.rol_id === 1 || user.rol_id === 2) {
+      return true; // Puede editar cualquier seguimiento
+    }
+  
+    // Para usuarios normales, verificar el usuario_id
+    return (
+      (seguimiento.usuario_id === user.id) ||
+      (seguimiento.usuario?.id === user.id)
+    );
+  }, [seguimiento, user]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -151,11 +143,6 @@ const PrimerLlamado = ({
 
     // Si pasa validaciones, llamar a la función de completar
     onComplete(dataToSubmit);
-
-    // Mostrar el botón de actualizar solo para estudiantes
-    if (user.rol_id === 3) {
-      setMostrarBotonActualizar(true);
-    }
   };
 
   const renderContent = () => {
@@ -1068,20 +1055,21 @@ return (
         {renderContent()}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
           <Button type="submit" disabled={disabled}>Guardar</Button>
-          {/* Botón de Actualizar con tiempo restante */}
-          {mostrarBotonActualizar && user.rol_id === 3 && (
+          {/* Botón de Actualizar con lógica de editabilidad */}
+          {seguimiento.id && esEditable && (
               <Button 
                 variant="success" 
                 onClick={() => {
                   guardarSeguimiento(1, true);
                 }}
               >
-                Actualizar {tiempoRestante > 0 ? `(${tiempoRestante}s)` : ''}
+                Actualizar
               </Button>
             )}
-          {seguimiento.riesgoInfeccion.herida || seguimiento.efectosSecundarios.malestar  ? (
+            
+            {seguimiento.riesgoInfeccion.herida || seguimiento.efectosSecundarios.malestar  ? (
               <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
-          ) : null}
+            ) : null}
         </div>
       </Form>
     </Card.Body>

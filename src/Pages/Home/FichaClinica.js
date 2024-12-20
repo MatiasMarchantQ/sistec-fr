@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Tabs, Tab, Container, Button } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import _ from 'lodash';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -9,14 +11,13 @@ import './FichaClinica.css';
 
 import SeguimientoInfantil from './SeguimientoInfantil';
 import SeguimientoAdulto from './SeguimientoAdulto';
-import Reevaluacion from './Reevaluacion';
 import ModalEditarFichaAdulto from './ModalEditarFichaAdulto'; // Ajusta la ruta según tu estructura
 import ModalEditarFichaInfantil from './ModalEditarFichaInfantil'; // Ajusta la ruta según tu estructura
 
 const FichaClinicaAdulto = ({ fichaClinica }) => {
   const navigate = useNavigate();
   const [valorHbA1c, setValorHbA1c] = useState(fichaClinica.factoresRiesgo?.valorHbac1 || '');
-
+  
   return (
     <>
       <div className="row mb-4">
@@ -440,6 +441,24 @@ const FichaClinica = () => {
   const [totalPaginas, setTotalPaginas] = useState(0);
   const reevaluacionesPorPagina = 5;
 
+  const esEditable = 
+  fichaClinica && (
+    // Si la ficha fue ingresada por el mismo estudiante
+    (fichaClinica.estudiante?.id === user.estudiante_id) || 
+    
+    // Si no tiene estudiante asignado y fue ingresada por un usuario con rol de Director o Docente
+    (!fichaClinica.estudiante?.id && 
+     (user.rol_id === 1 || user.rol_id === 2)) ||
+    
+    // Si fue ingresada por un usuario y el usuario actual tiene rol de Director o Docente
+    (fichaClinica.usuario?.id && 
+     (user.rol_id === 1 || user.rol_id === 2)) ||
+    
+    // Permite a usuarios con rol de Director o Docente editar fichas con estudiante asignado
+    (fichaClinica.estudiante?.id && 
+     (user.rol_id === 1 || user.rol_id === 2))
+  );
+
   const handleActualizarFicha = () => {
     // Recargar la ficha clínica después de la actualización
     fetchFichaClinica();
@@ -481,7 +500,39 @@ const FichaClinica = () => {
 
   // Función para volver al listado de fichas clínicas
   const handleVolver = () => {
-    navigate(-1);
+    // Obtener el estado de navegación original
+    const estadoNavegacion = location.state;
+
+    if (estadoNavegacion && estadoNavegacion.origen) {
+      switch(estadoNavegacion.origen) {
+        case 'listado-fichas':
+          navigate('?component=listado-fichas-clinicas', { 
+            state: { 
+              tipo: tipo || 'adulto',
+              // Preservar cualquier otro estado relevante
+              ...estadoNavegacion
+            } 
+          });
+          break;
+        case 'dashboard':
+          navigate('/home?component=dashboard');
+          break;
+        default:
+          // Volver al listado de fichas por defecto
+          navigate('?component=listado-fichas-clinicas', {
+            state: { 
+              tipo: tipo || 'adulto'
+            }
+          });
+      }
+    } else {
+      // Si no hay origen específico, volver al listado de fichas
+      navigate('?component=agenda', {
+        state: { 
+          tipo: tipo || 'adulto'
+        }
+      });
+    }
   };
   
   const fetchReevaluaciones = async (pagina = 1, fechaInicio = '', fechaFin = '') => {
@@ -752,13 +803,15 @@ useEffect(() => {
               <i className="fas fa-user-circle me-2"></i>Información del Paciente
             </div>
             <div className="card-body">
-              <Button 
-                variant="outline-primary" 
-                onClick={() => setMostrarModalEdicion(true)}
-                className="mb-3"
-              >
-                <i className="fas fa-edit me-2"></i>Editar Ficha
-              </Button>
+              {fichaClinica && esEditable && (
+                <Button 
+                  variant="outline-primary" 
+                  onClick={() => setMostrarModalEdicion(true)}
+                  className="mb-3"
+                >
+                  <i className="fas fa-edit me-2"></i>Editar Ficha
+                </Button>
+              )}
               {tipo === 'adulto' ? (
                   <FichaClinicaAdulto fichaClinica={fichaClinica} />
                 ) : (
@@ -801,7 +854,7 @@ useEffect(() => {
                     }
                   })}
                 >
-                  Iniciar Nueva Reevaluación
+                  Nueva Reevaluación
                 </button>
               </div>
 
@@ -879,21 +932,32 @@ useEffect(() => {
                           {tipo === 'adulto' ? (
                             // Contenido para reevaluación de adulto
                             <div className="card-body">
-                              <button 
-                                className="btn btn-primary" 
-                                onClick={() => {
-                                  navigate('?component=reevaluacion', { 
-                                    state: { 
-                                      fichaId: fichaClinica.id, 
-                                      tipo: tipo,
-                                      reevaluacionId: reevaluacion.id,
-                                      modoEdicion: true
-                                    }
-                                  });
-                                }}
-                              >
-                                <i className="fas fa-edit me-2"></i>Editar Reevaluación
-                              </button>
+                              {fichaClinica && (
+                                // Si es un estudiante, solo puede editar su propia reevaluación
+                                (user.estudiante_id ? 
+                                  (reevaluacion.estudiante?.id === user.estudiante_id) :
+                                  // Si es un usuario con rol de Director o Docente, puede editar cualquier reevaluación
+                                  (user.rol_id === 1 || user.rol_id === 2) || 
+                                  // Si es un usuario normal, puede editar sus propias reevaluaciones
+                                  (reevaluacion.usuario?.id === user.id)
+                                ) && (
+                                  <button 
+                                    className="btn btn-primary" 
+                                    onClick={() => {
+                                      navigate('?component=reevaluacion', { 
+                                        state: { 
+                                          fichaId: fichaClinica.id, 
+                                          tipo: tipo,
+                                          reevaluacionId: reevaluacion.id,
+                                          modoEdicion: true
+                                        }
+                                      });
+                                    }}
+                                  >
+                                    <i className="fas fa-edit me-2"></i>Editar
+                                  </button>
+                                )
+                              )}
                               <div className="row">
                                 <div className="col-md-6">
                                   <h6 className="border-bottom pb-2">Información Personal</h6>
@@ -953,21 +1017,32 @@ useEffect(() => {
                             <>
                               <div className="row m-1  mt-3">
                                 <div className="col-md-6">
-                                  <button 
-                                    className="btn btn-primary" 
-                                    onClick={() => {
-                                      navigate('?component=reevaluacion', { 
-                                        state: { 
-                                          fichaId: fichaClinica.id, 
-                                          tipo: tipo,
-                                          reevaluacionId: reevaluacion.id,
-                                          modoEdicion: true
-                                        }
-                                      });
-                                    }}
-                                  >
-                                    <i className="fas fa-edit me-2"></i>Editar Reevaluación
-                                  </button>
+                                {fichaClinica && (
+                                  // Si es un estudiante, solo puede editar su propia reevaluación
+                                  (user.estudiante_id ? 
+                                    (reevaluacion.estudiante?.id === user.estudiante_id) :
+                                    // Si es un usuario con rol de Director o Docente, puede editar cualquier reevaluación
+                                    (user.rol_id === 1 || user.rol_id === 2) || 
+                                    // Si es un usuario normal, puede editar sus propias reevaluaciones
+                                    (reevaluacion.usuario?.id === user.id)
+                                  ) && (
+                                    <button 
+                                      className="btn btn-primary" 
+                                      onClick={() => {
+                                        navigate('?component=reevaluacion', { 
+                                          state: { 
+                                            fichaId: fichaClinica.id, 
+                                            tipo: tipo,
+                                            reevaluacionId: reevaluacion.id,
+                                            modoEdicion: true
+                                          }
+                                        });
+                                      }}
+                                    >
+                                      <i className="fas fa-edit me-2"></i>Editar
+                                    </button>
+                                  )
+                                )}
                                   <h6 className="border-bottom pb-2">Evaluación Psicomotora</h6>
                                   <p><strong>Puntaje DPM:</strong> {reevaluacion.evaluacionPsicomotora?.puntajeDPM || 'N/A'}</p>
                                   <p><strong>Diagnóstico DSM:</strong> {reevaluacion.evaluacionPsicomotora?.diagnosticoDSM || 'N/A'}</p>
@@ -1096,6 +1171,17 @@ useEffect(() => {
           </div>
         </Tab>
       </Tabs>
+      <ToastContainer 
+      position="top-right"
+      autoClose={3000}
+      hideProgressBar={false}
+      newestOnTop={false}
+      closeOnClick
+      rtl={false}
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+    />
     </Container>
   );
 };

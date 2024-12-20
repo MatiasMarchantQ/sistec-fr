@@ -17,12 +17,14 @@ const ListadoFichasClinicas = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   // Estados de filtros y paginación
-  const [filtros, setFiltros] = useState({
+  const estadoInicialFiltros = {
     tipoInstitucion: '',
     institucion: '',
     textoBusqueda: '',
     tipoFicha: ''
-  });
+  };
+  
+  const [filtros, setFiltros] = useState(estadoInicialFiltros);
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
 
@@ -48,17 +50,13 @@ const ListadoFichasClinicas = () => {
 
   // Efecto para filtrar instituciones cuando cambia el tipo
   useEffect(() => {
-    if (filtros.tipoInstitucion) {
+    if (!filtros.tipoInstitucion) {
+      setInstitucionesFiltradas(instituciones);
+    } else {
       const filtradas = instituciones.filter(
         inst => inst.tipo_id === parseInt(filtros.tipoInstitucion)
       );
       setInstitucionesFiltradas(filtradas);
-      // Limpiar la institución seleccionada si no está en las filtradas
-      if (filtros.institucion && !filtradas.some(inst => inst.id === parseInt(filtros.institucion))) {
-        setFiltros(prev => ({ ...prev, institucion: '' }));
-      }
-    } else {
-      setInstitucionesFiltradas(instituciones);
     }
   }, [filtros.tipoInstitucion, instituciones]);
 
@@ -82,22 +80,22 @@ const ListadoFichasClinicas = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setInstituciones(response.data?.instituciones || []);
+      setInstitucionesFiltradas(response.data?.instituciones || []);
     } catch (error) {
       console.error('Error al cargar instituciones:', error);
       setInstituciones([]);
+      setInstitucionesFiltradas([]);
       if (error.response?.status === 401) {
         navigate('/home');
       }
     }
   };
 
-  // Función para cambiar de página
   const cambiarPagina = async (nuevaPagina) => {
     if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas && !isLoading) {
       await buscarFichas(nuevaPagina);
     }
   };
-
 
   const buscarFichas = async (pagina = paginaActual) => {
     setIsLoading(true);
@@ -142,7 +140,6 @@ const ListadoFichasClinicas = () => {
     setFiltros(prev => {
       const newFiltros = { ...prev, [name]: value };
       
-      // Si cambia el tipo de institución, resetear la institución
       if (name === 'tipoInstitucion') {
         newFiltros.institucion = '';
       }
@@ -152,17 +149,42 @@ const ListadoFichasClinicas = () => {
   };
 
   const aplicarFiltros = async () => {
-    await buscarFichas(1); // Resetear a primera página al aplicar filtros
+    await buscarFichas(1);
   };
 
   const limpiarFiltros = async () => {
-    setFiltros({
-      tipoInstitucion: '',
-      institucion: '',
-      textoBusqueda: '',
-      tipoFicha: ''
-    });
-    await buscarFichas(1);
+    setIsLoading(true);
+    try {
+      // Resetear todos los estados a sus valores iniciales
+      setFiltros(estadoInicialFiltros);
+      setPaginaActual(1);
+      setInstitucionesFiltradas(instituciones);
+
+      // Recargar los datos iniciales
+      await Promise.all([
+        cargarTiposInstituciones(),
+        cargarInstituciones()
+      ]);
+      
+      // Buscar fichas sin filtros
+      const token = getToken();
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/fichas-clinicas`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        params: { pagina: '1', limite: '10' }
+      });
+
+      if (response.data.success) {
+        setFichas(response.data.fichas);
+        setTotalPaginas(Math.ceil(response.data.total / response.data.limite));
+      }
+    } catch (error) {
+      console.error('Error al limpiar filtros:', error);
+      if (error.response?.status === 401) {
+        navigate('/');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -177,7 +199,8 @@ const ListadoFichasClinicas = () => {
       state: {
         component: 'ficha-clinica',
         fichaId: id,
-        tipo: tipo
+        tipo: tipo,
+        origen: 'listado-fichas'
       }
     });
   };

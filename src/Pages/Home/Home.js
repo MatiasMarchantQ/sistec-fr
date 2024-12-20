@@ -32,15 +32,26 @@ const Home = () => {
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const componentFromURL = searchParams.get('component');
-
+  
     if (componentFromURL) {
+      // Priorizar el componente de la URL
       setActiveComponent(componentFromURL);
     } else if (location.state && location.state.component) {
-      setActiveComponent(location.state.component);
-    }
-
-    if (location.state && location.state.fichaId) {
-      setSelectedFichaId(location.state.fichaId);
+      // Si no hay componente en URL, usar el estado de navegación
+      const { component, fichaId, tipo } = location.state;
+  
+      // Validación flexible para ficha clínica
+      if (component === 'ficha-clinica') {
+        // Si falta fichaId o tipo, navegar al listado de fichas
+        if (!fichaId || !tipo) {
+          setActiveComponent('listado-fichas-clinicas');
+        } else {
+          setActiveComponent(component);
+          setSelectedFichaId(fichaId);
+        }
+      } else {
+        setActiveComponent(component);
+      }
     }
   }, [location]);
 

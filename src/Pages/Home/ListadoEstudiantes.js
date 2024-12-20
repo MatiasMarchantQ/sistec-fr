@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Form, Button, Card, Table, Modal, InputGroup, Pagination, Dropdown } from 'react-bootstrap';
 import axios from 'axios';
-import { toast } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import './Estudiantes.css';
 
@@ -45,8 +45,75 @@ const Estudiantes = () => {
   });
   const [isFiltered, setIsFiltered] = useState(false);
   const [estudiantesSeleccionados, setEstudiantesSeleccionados] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
   const [seleccionarTodos, setSeleccionarTodos] = useState(false);
   const symbols = '!#$%&*+?';
+
+  const PasswordValidationMessage = ({ password }) => {
+    const hasMinLength = password.length >= 8 && password.length <= 20;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+  
+    return (
+      <div className="password-validation-message mt-2">
+        <small>
+          <div className="d-flex align-items-center">
+            <span 
+              style={{ 
+                color: hasMinLength ? 'green' : 'red', 
+                marginRight: '10px' 
+              }}
+            >
+              {hasMinLength ? '✓' : '✗'}
+            </span>
+            <span style={{ color: hasMinLength ? 'green' : 'red' }}>
+              Entre 8 y 20 caracteres
+            </span>
+          </div>
+          <div className="d-flex align-items-center">
+            <span 
+              style={{ 
+                color: hasUppercase ? 'green' : 'red', 
+                marginRight: '10px' 
+              }}
+            >
+              {hasUppercase ? '✓' : '✗'}
+            </span>
+            <span style={{ color: hasUppercase ? 'green' : 'red' }}>
+              Al menos una letra mayúscula
+            </span>
+          </div>
+          <div className="d-flex align-items-center">
+            <span 
+              style={{ 
+                color: hasLowercase ? 'green' : 'red', 
+                marginRight: '10px' 
+              }}
+            >
+              {hasLowercase ? '✓' : '✗'}
+            </span>
+            <span style={{ color: hasLowercase ? 'green' : 'red' }}>
+              Al menos una letra minúscula
+            </span>
+          </div>
+          <div className="d-flex align-items-center">
+            <span 
+              style={{ 
+                color: hasNumber ? 'green' : 'red', 
+                marginRight: '10px' 
+              }}
+            >
+              {hasNumber ? '✓' : '✗'}
+            </span>
+            <span style={{ color: hasNumber ? 'green' : 'red' }}>
+              Al menos un número
+            </span>
+          </div>
+        </small>
+      </div>
+    );
+  };
 
   // Función centralizada para manejar cambios de filtros
   const handleFilterChange = (filterName, value) => {
@@ -142,15 +209,46 @@ const handleCloseEditarMasivoModal = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNuevoEstudiante(prev => ({ ...prev, [name]: value }));
-
-    if (name === 'rut') {
-      // Obtiene solo la parte del RUT antes del guion
-      const formattedRut = value.includes('-') ? 
-        value.split('-')[0].replace(/\./g, '') : 
-        value.replace(/\./g, '');
-      const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-      setNuevoEstudiante(prev => ({ ...prev, contrasena: `UCM${formattedRut}${randomSymbol}` }));
+    
+    // Validaciones específicas según el campo
+    switch(name) {
+      case 'rut':
+        // Eliminar puntos y guiones mientras se escribe
+        const cleanRut = value.replace(/[.-]/g, '');
+        
+        // Solo permitir números
+        const numericRut = cleanRut.replace(/[^\d]/g, '');
+        
+        // Generar contraseña basada en RUT
+        const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+        const contrasena = `UCM${numericRut}${randomSymbol}`;
+        
+        setNuevoEstudiante(prev => ({ 
+          ...prev, 
+          [name]: value,
+          contrasena 
+        }));
+        break;
+      
+      case 'nombres':
+      case 'apellidos':
+        // Solo letras y espacios, sin mostrar toast
+        const sanitizedValue = value.replace(/[^A-Za-zÁáÉéÍíÓóÚúÑñ\s]/g, '');
+        setNuevoEstudiante(prev => ({ 
+          ...prev, 
+          [name]: sanitizedValue 
+        }));
+        break;
+      
+      case 'correo':
+        setNuevoEstudiante(prev => ({ 
+          ...prev, 
+          [name]: value.toLowerCase() 
+        }));
+        break;
+      
+      default:
+        setNuevoEstudiante(prev => ({ ...prev, [name]: value }));
     }
   };
 
@@ -164,16 +262,82 @@ const handleCloseEditarMasivoModal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validaciones exhaustivas
+    const rutRegex = /^\d{7,8}$/;
+    const nombreRegex = /^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+$/;
+    const correoRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  
+    // Limpiar RUT: eliminar puntos y guión
+    const cleanRut = nuevoEstudiante.rut.replace(/[.-]/g, '');
+    
+    // Validaciones con mensajes específicos
+    const errors = [];
+  
+    // Validar RUT
+    if (!rutRegex.test(cleanRut)) {
+      errors.push('RUT debe contener entre 7 y 8 dígitos sin puntos ni guión');
+    }
+  
+    // Validar nombres
+    if (!nombreRegex.test(nuevoEstudiante.nombres.trim())) {
+      errors.push('Nombres solo pueden contener letras');
+    }
+  
+    // Validar apellidos
+    if (!nombreRegex.test(nuevoEstudiante.apellidos.trim())) {
+      errors.push('Apellidos solo pueden contener letras');
+    }
+  
+    // Validar correo
+    if (!correoRegex.test(nuevoEstudiante.correo)) {
+      errors.push('Correo electrónico no es válido');
+    }
+  
+    // Si hay errores, mostrar el primero y detener el proceso
+    if (errors.length > 0) {
+      toast.error(errors[0]);
+      return;
+    }
+  
     try {
       const token = getToken();
-      await axios.post(`${process.env.REACT_APP_API_URL}/estudiantes`, nuevoEstudiante, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/estudiantes`, 
+        {
+          ...nuevoEstudiante,
+          rut: cleanRut // Enviar RUT sin puntos ni guión
+        }, 
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         }
-      });
+      );
+  
+      // Éxito al crear estudiante
+      toast.success(`Estudiante ${nuevoEstudiante.nombres} ${nuevoEstudiante.apellidos} creado exitosamente`);
+      
+      // Actualizar lista de estudiantes
       obtenerEstudiantes();
-      setModalOpen(false);
+      
+      // Cerrar modal y resetear formulario
+      handleCloseNuevoEstudianteModal();
+  
     } catch (error) {
+      // Manejar errores específicos
+      if (error.response) {
+        // El servidor respondió con un error
+        const errorMessage = error.response.data.error || 'Error al crear estudiante';
+        toast.error(errorMessage);
+        console.error('Error detallado:', error.response.data);
+      } else if (error.request) {
+        // La solicitud fue hecha pero no hubo respuesta
+        toast.error('No se recibió respuesta del servidor');
+      } else {
+        // Algo sucedió al configurar la solicitud
+        toast.error('Error al procesar la solicitud');
+      }
       console.error('Error al crear estudiante:', error);
     }
   };
@@ -354,6 +518,20 @@ const hayFiltrosAplicados = () => {
 
   // Función para cambiar contraseña
   const handleCambioContrasena = async () => {
+    // Validar contraseña antes de enviar
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,20}$/;
+  
+    // Validaciones
+    if (!nuevaContrasena) {
+      toast.error('Debe ingresar una nueva contraseña');
+      return;
+    }
+  
+    if (!passwordRegex.test(nuevaContrasena)) {
+      toast.error('La contraseña debe contener al menos una letra mayúscula, una letra minúscula, un número y tener entre 8 y 20 caracteres');
+      return;
+    }
+  
     try {
       const token = getToken();
       const response = await axios.put(
@@ -366,18 +544,43 @@ const hayFiltrosAplicados = () => {
           }
         }
       );
-
+  
       toast.success('Contraseña cambiada exitosamente');
       setCambioContrasenaModal(false);
       setNuevaContrasena('');
+      setShowPassword(false);
+  
     } catch (error) {
+      // Manejar errores específicos
+      if (error.response) {
+        // El servidor respondió con un error
+        const errorMessage = error.response.data.error || 'Error al cambiar contraseña';
+        toast.error(errorMessage);
+        console.error('Error detallado:', error.response.data);
+      } else if (error.request) {
+        // La solicitud fue hecha pero no hubo respuesta
+        toast.error('No se recibió respuesta del servidor');
+      } else {
+        // Algo sucedió al configurar la solicitud
+        toast.error('Error al procesar la solicitud');
+      }
       console.error('Error al cambiar contraseña:', error);
-      toast.error('No se pudo cambiar la contraseña');
     }
   };
 
   return (
   <Container fluid className="estudiantes">
+    <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     <Row className="mb-4">
       <Col>
         <h2 className="text-center mb-4" style={{ color: 'color: #388DE2'}}>Gestión de Estudiantes</h2>
@@ -416,7 +619,7 @@ const hayFiltrosAplicados = () => {
           onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
         />
       </Col>
-      {hayFiltrosAplicados() && (
+      {isFiltered && (
         <Col xs={2}>
           <Button variant="secondary" onClick={limpiarFiltros}>
             <i className="fas fa-eraser"></i> Limpiar Filtros
@@ -512,54 +715,60 @@ const hayFiltrosAplicados = () => {
                   />
                 </td>
                 <td>
-                  <Dropdown>
-                    <Dropdown.Toggle variant="secondary" id={`dropdown-${estudiante.id}`}>
-                      Acciones
-                    </Dropdown.Toggle>
+                  {editingId === estudiante.id ? (
+                    <div className="d-flex">
+                      <Button 
+                        variant="success" 
+                        size="sm" 
+                        className="me-2"
+                        onClick={() => handleSaveChanges(estudiante.id)}
+                      >
+                        <i className="fas fa-save me-1"></i>Guardar
+                      </Button>
+                      <Button 
+                        variant="secondary" 
+                        size="sm"
+                        onClick={() => {
+                          setEditingId(null);
+                          setEditedFields({});
+                        }}
+                      >
+                        <i className="fas fa-times me-1"></i>Cancelar
+                      </Button>
+                    </div>
+                  ) : (
+                    <Dropdown>
+                      <Dropdown.Toggle variant="secondary" id={`dropdown-${estudiante.id}`}>
+                        Acciones
+                      </Dropdown.Toggle>
 
-                    <Dropdown.Menu>
-                      {editingId === estudiante.id ? (
-                        <>
-                          <Dropdown.Item 
-                            onClick={() => handleSaveChanges(estudiante.id)}
-                          >
-                            <i className="fas fa-save me-2"></i>Guardar Cambios
-                          </Dropdown.Item>
-                          <Dropdown.Item 
-                            onClick={() => setEditingId(null)}
-                          >
-                            <i className="fas fa-times me-2"></i>Cancelar
-                          </Dropdown.Item>
-                        </>
-                      ) : (
-                        <>
-                          <Dropdown.Item 
-                            onClick={() => handleEdit(estudiante.id)}
-                          >
-                            <i className="fas fa-edit me-2"></i>Editar
-                          </Dropdown.Item>
-                          <Dropdown.Item 
-                            onClick={() => {
-                              setSelectedEstudiante(estudiante);
-                              setCambioContrasenaModal(true);
-                            }}
-                          >
-                            <i className="fas fa-key me-2"></i>Cambiar Contraseña
-                          </Dropdown.Item>
-                          <Dropdown.Item 
-                            onClick={() => {
-                              const confirmar = window.confirm(`¿Está seguro de enviar credenciales a ${estudiante.nombres} ${estudiante.apellidos}?`);
-                              if (confirmar) {
-                                enviarCredencialIndividual(estudiante);
-                              }
-                            }}
-                          >
-                            <i className="fas fa-envelope me-2"></i>Enviar Credencial
-                          </Dropdown.Item>
-                        </>
-                      )}
-                    </Dropdown.Menu>
-                  </Dropdown>
+                      <Dropdown.Menu>
+                        <Dropdown.Item 
+                          onClick={() => handleEdit(estudiante.id)}
+                        >
+                          <i className="fas fa-edit me-2"></i>Editar
+                        </Dropdown.Item>
+                        <Dropdown.Item 
+                          onClick={() => {
+                            setSelectedEstudiante(estudiante);
+                            setCambioContrasenaModal(true);
+                          }}
+                        >
+                          <i className="fas fa-key me-2"></i>Cambiar Contraseña
+                        </Dropdown.Item>
+                        <Dropdown.Item 
+                          onClick={() => {
+                            const confirmar = window.confirm(`¿Está seguro de enviar credenciales a ${estudiante.nombres} ${estudiante.apellidos}?`);
+                            if (confirmar) {
+                              enviarCredencialIndividual(estudiante);
+                            }
+                          }}
+                        >
+                          <i className="fas fa-envelope me-2"></i>Enviar Credencial
+                        </Dropdown.Item>
+                      </Dropdown.Menu>
+                    </Dropdown>
+                  )}
                 </td>
                 {/* <td>
                   <Button 
@@ -672,28 +881,68 @@ const hayFiltrosAplicados = () => {
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
               <Form.Label>Nombres</Form.Label>
-              <Form.Control type="text" name="nombres" value={nuevoEstudiante.nombres} onChange={handleInputChange} required />
+              <Form.Control 
+                type="text" 
+                name="nombres" 
+                value={nuevoEstudiante.nombres} 
+                onChange={handleInputChange} 
+                required 
+                pattern="[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+"
+                placeholder="Ingrese nombres"
+              />
+              <Form.Text className="text-muted">
+                Solo se permiten letras y espacios
+              </Form.Text>
             </Form.Group>
+            
             <Form.Group className="mb-3">
               <Form.Label>Apellidos</Form.Label>
-              <Form.Control type="text" name="apellidos" value={nuevoEstudiante.apellidos} onChange={handleInputChange} required />
+              <Form.Control 
+                type="text" 
+                name="apellidos" 
+                value={nuevoEstudiante.apellidos} 
+                onChange={handleInputChange} 
+                required 
+                pattern="[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+"
+                placeholder="Ingrese apellidos"
+              />
+              <Form.Text className="text-muted">
+                Solo se permiten letras y espacios
+              </Form.Text>
             </Form.Group>
+            
             <Form.Group className="mb-3">
-              <Form.Label>RUT (sin puntos, con guión y dígito verificador)</Form.Label>
+              <Form.Label>RUT</Form.Label>
               <Form.Control 
                 type="text" 
                 name="rut" 
                 value={nuevoEstudiante.rut}
                 onChange={handleInputChange} 
                 required 
-                pattern="\d{1,2}\.\d{3}\.\d{3}[-][0-9kK]{1}"
                 placeholder="Ej: 12.345.678-9"
+                pattern="\d{1,2}\.\d{3}\.\d{3}[-][0-9kK]{1}"
               />
+              <Form.Text className="text-muted">
+                Ingrese RUT con formato: 12.345.678-9
+              </Form.Text>
             </Form.Group>
+            
             <Form.Group className="mb-3">
-              <Form.Label>Correo</Form.Label>
-              <Form.Control type="email" name="correo" value={nuevoEstudiante.correo} onChange={handleInputChange} required />
+              <Form.Label>Correo Electrónico</Form.Label>
+              <Form.Control 
+                type="email" 
+                name="correo" 
+                value={nuevoEstudiante.correo} 
+                onChange={handleInputChange} 
+                required 
+                placeholder="Ingrese correo electrónico"
+                pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+              />
+              <Form.Text className="text-muted">
+                Ingrese un correo electrónico válido
+              </Form.Text>
             </Form.Group>
+            
             <Form.Group className="mb-3">
               <Form.Label>Contraseña</Form.Label>
               <InputGroup>
@@ -703,12 +952,17 @@ const hayFiltrosAplicados = () => {
                   value={nuevoEstudiante.contrasena}
                   onChange={handleInputChange} 
                   required 
+                  readOnly
                 />
                 <Button variant="outline-secondary" onClick={generarContrasena}>
                   Generar
                 </Button>
               </InputGroup>
+              <Form.Text className="text-muted">
+                La contraseña se genera automáticamente basada en el RUT
+              </Form.Text>
             </Form.Group>
+            
             <Form.Group className="mb-3">
               <Form.Label>Año Cursado</Form.Label>
               <Form.Control 
@@ -717,58 +971,73 @@ const hayFiltrosAplicados = () => {
                 value={nuevoEstudiante.anos_cursados}
                 onChange={handleInputChange} 
                 required 
+                min={getCurrentYear() - 10}
+                max={getCurrentYear()}
               />
+              <Form.Text className="text-muted">
+                Ingrese un año entre {getCurrentYear() - 10} y {getCurrentYear()}
+              </Form.Text>
             </Form.Group>
-            {/* <Form.Group className="mb-3">
-              <Form.Label>Semestre</Form.Label>
-              <Form.Select
-                name="semestre"
-                value={nuevoEstudiante.semestre}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="1">Primer semestre</option>
-                <option value="2">Segundo semestre</option>
-              </Form.Select>
-            </Form.Group> */}
-            <Button type="submit" variant="primary" className="mt-3">Registrar</Button>
+            
+            <Button 
+              type="submit" 
+              variant="primary" 
+              className="mt-3 w-100"
+            >
+              Registrar Estudiante
+            </Button>
           </Form>
         </Modal.Body>
       </Modal>
 
       <Modal show={cambioContrasenaModal} onHide={handleCloseNuevoEstudianteModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Cambiar Contraseña</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedEstudiante && (
-            <div>
-              <p>Cambiando contraseña para: {selectedEstudiante.nombres} {selectedEstudiante.apellidos}</p>
-              <Form.Group>
-                <Form.Label>Nueva Contraseña</Form.Label>
-                <Form.Control
-                  type="password"
-                  value={nuevaContrasena}
-                  onChange={(e) => setNuevaContrasena(e.target.value)}
-                  placeholder="Ingrese nueva contraseña"
-                />
-              </Form.Group>
-            </div>
+  <Modal.Header closeButton>
+    <Modal.Title>Cambiar Contraseña</Modal.Title>
+  </Modal.Header>
+  <Modal.Body>
+    {selectedEstudiante && (
+      <div>
+        <p>Cambiando contraseña para: {selectedEstudiante.nombres} {selectedEstudiante.apellidos}</p>
+        <Form.Group>
+          <Form.Label>Nueva Contraseña</Form.Label>
+          <InputGroup>
+            <Form.Control
+              type={showPassword ? "text" : "password"}
+              value={nuevaContrasena}
+              onChange={(e) => setNuevaContrasena(e.target.value)}
+              placeholder="Ingrese nueva contraseña"
+              required
+            />
+            <InputGroup.Text 
+              onClick={() => setShowPassword(!showPassword)} 
+              style={{ cursor: 'pointer' }}
+            >
+              <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+            </InputGroup.Text>
+          </InputGroup>
+          {nuevaContrasena && (
+            <PasswordValidationMessage password={nuevaContrasena} />
           )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setCambioContrasenaModal(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleCambioContrasena}
-            disabled={!nuevaContrasena}
-          >
-            Cambiar Contraseña
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        </Form.Group>
+      </div>
+    )}
+  </Modal.Body>
+  <Modal.Footer>
+    <Button variant="secondary" onClick={() => {
+      setCambioContrasenaModal(false);
+      setShowPassword(false);
+    }}>
+      Cancelar
+    </Button>
+    <Button 
+      variant="primary" 
+      onClick={handleCambioContrasena}
+      disabled={!nuevaContrasena}
+    >
+      Cambiar Contraseña
+    </Button>
+  </Modal.Footer>
+</Modal>
   </Container>
 );
 };

@@ -369,73 +369,80 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
             { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        // Procesar los datos recibidos
-        const procesados = response.data.map(seguimiento => {
-            const procesado = procesarSeguimiento(seguimiento);
-            return {
-                id: procesado.id,
-                numeroLlamado: seguimiento.numero_llamado,
-                fecha: procesado.fecha,
-                riesgoInfeccion: procesado.riesgoInfeccion,
-                riesgoGlicemia: procesado.riesgoGlicemia,
-                riesgoHipertension: procesado.riesgoHipertension,
-                adherencia: procesado.adherencia,
-                adherenciaTratamiento: procesado.adherenciaTratamiento,
-                efectosSecundarios: procesado.efectosSecundarios,
-                nutricion: procesado.nutricion,
-                actividadFisica: procesado.actividadFisica,
-                eliminacion: procesado.eliminacion,
-                sintomasDepresivos: procesado.sintomasDepresivos,
-                autoeficacia: procesado.autoeficacia,
-                otrosSintomas: procesado.otrosSintomas,
-                manejoSintomas: procesado.manejoSintomas,
-                usuario: procesado.usuario,
-                estudiante: procesado.estudiante
-            };
-        });
+        // Verificar si hay datos
+        if (response.data && response.data.length > 0) {
+          // Procesar los datos recibidos
+          const procesados = response.data.map(seguimiento => {
+              const procesado = procesarSeguimiento(seguimiento);
+              return {
+                  id: procesado.id,
+                  numeroLlamado: seguimiento.numero_llamado,
+                  fecha: procesado.fecha,
+                  riesgoInfeccion: procesado.riesgoInfeccion,
+                  riesgoGlicemia: procesado.riesgoGlicemia,
+                  riesgoHipertension: procesado.riesgoHipertension,
+                  adherencia: procesado.adherencia,
+                  adherenciaTratamiento: procesado.adherenciaTratamiento,
+                  efectosSecundarios: procesado.efectosSecundarios,
+                  nutricion: procesado.nutricion,
+                  actividadFisica: procesado.actividadFisica,
+                  eliminacion: procesado.eliminacion,
+                  sintomasDepresivos: procesado.sintomasDepresivos,
+                  autoeficacia: procesado.autoeficacia,
+                  otrosSintomas: procesado.otrosSintomas,
+                  manejoSintomas: procesado.manejoSintomas,
+                  usuario: procesado.usuario,
+                  estudiante: procesado.estudiante
+              };
+          });
 
-        if (procesados.length === 0) {
-          toast.info('No se encontraron seguimientos anteriores para este paciente.');
-        }
+          setSeguimientosAnteriores(procesados);
 
-        setSeguimientosAnteriores(procesados); // Actualiza el estado con los datos procesados
+          // Actualiza el seguimiento combinado como antes
+          const seguimientoCombinado = {
+              pacienteId,
+              fichaId,
+              numeroLlamado: Math.max(...procesados.map(s => s.numeroLlamado)) || 1,
+              fecha: new Date().toISOString().split('T')[0],
+          };
 
-        // Actualiza el seguimiento combinado como antes
-        const seguimientoCombinado = {
-            pacienteId,
-            fichaId,
-            numeroLlamado: Math.max(...procesados.map(s => s.numeroLlamado)) || 1,
-            fecha: new Date().toISOString().split('T')[0],
-            // Agrega otros campos que necesites de los seguimientos
-        };
+          // Actualizar el estado del seguimiento con los datos combinados
+          setSeguimiento(prevSeguimiento => ({
+              ...prevSeguimiento,
+              ...seguimientoCombinado
+          }));
 
-        // Actualizar el estado del seguimiento con los datos combinados
-        setSeguimiento(prevSeguimiento => ({
-            ...prevSeguimiento,
-            ...seguimientoCombinado
-        }));
+          // Marcar pasos completados
+          const nuevosCompletedSteps = {
+              primerLlamado: procesados.some(s => s.numeroLlamado === 1),
+              segundoLlamado: procesados.some(s => s.numeroLlamado === 2),
+              tercerLlamado: procesados.some(s => s.numeroLlamado === 3)
+          };
 
-        // Marcar pasos completados
-        const nuevosCompletedSteps = {
-            primerLlamado: procesados.some(s => s.numeroLlamado === 1),
-            segundoLlamado: procesados.some(s => s.numeroLlamado === 2),
-            tercerLlamado: procesados.some(s => s.numeroLlamado === 3)
-        };
+          setCompletedSteps(nuevosCompletedSteps);
 
-        setCompletedSteps(nuevosCompletedSteps);
-
-        // Establecer el paso activo al último llamado no completado
-        if (!nuevosCompletedSteps.tercerLlamado) {
-            setActiveStep(nuevosCompletedSteps.segundoLlamado ? 2 : 
-                          nuevosCompletedSteps.primerLlamado ? 1 : 0);
-        }
-
-    } catch (error) {
-        console.error('Error al cargar seguimientos anteriores', error);
-        toast.error('Error al cargar los seguimientos anteriores');
-    } finally {
-        setLoading(false);
-    }
+          // Establecer el paso activo al último llamado no completado
+          if (!nuevosCompletedSteps.tercerLlamado) {
+              setActiveStep(nuevosCompletedSteps.segundoLlamado ? 2 : 
+                            nuevosCompletedSteps.primerLlamado ? 1 : 0);
+          }
+      } else {
+          // No hay seguimientos anteriores
+          setSeguimientosAnteriores([]);
+      }
+  } catch (error) {
+      console.error('Error al cargar seguimientos anteriores', error);
+      
+      // Verificar si es un error 404 específicamente
+      if (error.response && error.response.status === 404) {
+          setSeguimientosAnteriores([]);
+      } else {
+          // Otros tipos de errores
+          console.error('Error al cargar seguimientos', error);
+      }
+  } finally {
+      setLoading(false);
+  }
 };
 
   // Función para guardar seguimiento
@@ -600,6 +607,18 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         } 
+      });
+
+      // Añade un toast de éxito
+      toast.success(esActualizacion 
+        ? 'Seguimiento actualizado correctamente' 
+        : 'Seguimiento guardado correctamente', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true
       });
 
       console.log('Datos recibidos:', response.data);

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Dropdown, Modal, Form, Button } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../contexts/AuthContext';
 import './Components.css';
 
@@ -59,6 +60,17 @@ const Header = ({ toggleSidebar }) => {
     return fullName.split(' ')[0];
   };
 
+  const handleCloseChangePasswordModal = () => {
+    setShowChangePasswordModal(false);
+    // Limpiar todos los estados relacionados con contraseña
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -86,24 +98,38 @@ const Header = ({ toggleSidebar }) => {
 
   const handleUpdateInputChange = (e) => {
     const { name, value } = e.target;
-    setUpdatedUser ({ ...updatedUser , [name]: value });
+    
+    if (name === 'rut') {
+      // Eliminar cualquier punto, guión o letra
+      const cleanRut = value.replace(/[.-]/g, '').replace(/[^\d]/g, '');
+      setUpdatedUser({ ...updatedUser, [name]: cleanRut });
+    } else {
+      setUpdatedUser({ ...updatedUser, [name]: value });
+    }
   };
 
-  const handleUpdateUser  = async () => {
+  const handleUpdateUser = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/usuarios/${user.id}`, {
+      // Determinar la URL basada en el rol del usuario
+      const endpoint = user.rol_id === 3 
+        ? `${process.env.REACT_APP_API_URL}/auth/estudiantes/${user.estudiante_id}`
+        : `${process.env.REACT_APP_API_URL}/auth/usuarios/${user.id}`;
+    
+      const response = await fetch(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(updatedUser ),
+        body: JSON.stringify(updatedUser),
       });
-  
+    
       if (!response.ok) {
-        throw new Error('Error al actualizar datos');
+        // Intenta obtener el mensaje de error del servidor
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar datos');
       }
-  
+    
       const updatedData = await response.json();
       setShowUpdateModal(false);
       
@@ -116,9 +142,12 @@ const Header = ({ toggleSidebar }) => {
         draggable: true,
       });
       
+      // Actualizar los datos del usuario
+      await fetchUserData();
+      
     } catch (error) {
       console.error('Error al actualizar usuario:', error);
-      toast.error('No se pudieron actualizar los datos', {
+      toast.error(error.message || 'No se pudieron actualizar los datos', {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -127,7 +156,6 @@ const Header = ({ toggleSidebar }) => {
         draggable: true,
       });
     }
-    await fetchUserData();
   };
 
   const fetchUserData = async () => {
@@ -210,6 +238,8 @@ const Header = ({ toggleSidebar }) => {
       setConfirmPassword('');
       setCurrentPassword('');
       
+      handleCloseChangePasswordModal();
+
       toast.success('Contraseña cambiada exitosamente', {
         position: "top-right",
         autoClose: 3000,
@@ -248,14 +278,27 @@ const Header = ({ toggleSidebar }) => {
   };
 
   return (
+    <div>
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+    
     <nav className="main-header navbar navbar-expand navbar-light custom-header">
-        <button 
-          className="navbar-toggler d-block" 
-          type="button" 
-          onClick={toggleSidebar}
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
+      <button 
+        className="navbar-toggler d-block" 
+        type="button" 
+        onClick={toggleSidebar}
+      >
+        <span className="navbar-toggler-icon"></span>
+      </button>
       <h1 className="navbar-brand mb-0">FACSA - Programa de Telecuidado</h1>
 
       <ul className="navbar-nav ml-auto">
@@ -334,7 +377,7 @@ const Header = ({ toggleSidebar }) => {
       </Modal>
 
       {/* Modal para cambiar contraseña */}
-      <Modal show={showChangePasswordModal} onHide={() => setShowChangePasswordModal(false)}>
+      <Modal show={showChangePasswordModal}   onHide={handleCloseChangePasswordModal}>
       <Modal.Header closeButton>
         <Modal.Title>Cambiar Contraseña</Modal.Title>
       </Modal.Header>
@@ -420,6 +463,7 @@ const Header = ({ toggleSidebar }) => {
       </Modal.Footer>
     </Modal>
     </nav>
+    </div>
   );
 };
 

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, Form, Button, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -27,8 +28,10 @@ const TercerLlamado = ({
   setSeguimiento, 
   onComplete, 
   disabled,
+  guardarSeguimiento,
   paciente
 }) => {
+    const { user } = useAuth();
   const [puntajesDepresion, setPuntajesDepresion] = useState(Array(9).fill(0));
   const [nivelDificultad, setNivelDificultad] = useState(0);
 
@@ -186,6 +189,28 @@ const TercerLlamado = ({
         onComplete();
       }, 0);
     };
+
+    const esEditable = useMemo(() => {
+        // Si es un estudiante
+        if (user.rol_id === 3) {
+          // Solo puede editar si el seguimiento fue ingresado por él mismo
+          return (
+            (seguimiento.estudiante_id === user.estudiante_id) ||
+            (seguimiento.estudiante?.id === user.estudiante_id)
+          );
+        }
+      
+        // Si es un usuario con rol de Director, Docente o Admin
+        if (user.rol_id === 1 || user.rol_id === 2) {
+          return true; // Puede editar cualquier seguimiento
+        }
+      
+        // Para usuarios normales, verificar el usuario_id
+        return (
+          (seguimiento.usuario_id === user.id) ||
+          (seguimiento.usuario?.id === user.id)
+        );
+      }, [seguimiento, user]);
   
     const renderContent = () => {
       return (
@@ -463,6 +488,16 @@ const TercerLlamado = ({
           {renderContent()}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
             <Button type="submit" disabled={disabled}>Guardar</Button>
+            {seguimiento.id && esEditable && (
+              <Button 
+                variant="success" 
+                onClick={() => {
+                  guardarSeguimiento(3, true);
+                }}
+              >
+                Actualizar
+              </Button>
+            )}
             {puntajesDepresion && (
               <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
             )}

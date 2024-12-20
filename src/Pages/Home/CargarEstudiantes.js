@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Modal, Button, Form, Alert } from 'react-bootstrap'; 
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
 import './CargarEstudiantes.css';
@@ -204,19 +204,59 @@ const CargarEstudiantes = () => {
     reader.readAsArrayBuffer(file);
   };
 
+  const handleCloseModal = () => {
+    // Resetear el estado del nuevo estudiante
+    setNewStudent({
+      nombres: '',
+      apellidos: '',
+      rut: '',
+      correo: '',
+      contrasena: '',
+      estado: 'Activo',
+    });
+    
+    // Cerrar el modal
+    setShowModal(false);
+  };
+
   const handleClearStudents = () => {
     setStudents([]);
     toast.success('Tabla limpiada');
   };
 
   const handleAddStudent = () => {
+    // Validaciones adicionales
+    const rutRegex = /^\d{7,8}$/;
+    const nombreApellidoRegex = /^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+$/;
+    const correoRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  
+    if (!rutRegex.test(newStudent.rut)) {
+      toast.error('RUT debe contener solo 7 u 8 dígitos');
+      return;
+    }
+  
+    if (!nombreApellidoRegex.test(newStudent.nombres)) {
+      toast.error('Nombres solo pueden contener letras');
+      return;
+    }
+  
+    if (!nombreApellidoRegex.test(newStudent.apellidos)) {
+      toast.error('Apellidos solo pueden contener letras');
+      return;
+    }
+  
+    if (!correoRegex.test(newStudent.correo)) {
+      toast.error('Correo electrónico no es válido');
+      return;
+    }
+  
     if (newStudent.nombres && newStudent.apellidos && newStudent.rut && newStudent.correo) {
       const formattedRut = newStudent.rut;
-  
+    
       const symbols = '!#$%&*+?';
       const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
       const contrasena = `UCM${formattedRut}${randomSymbol}`;
-  
+    
       if (newStudent.id) {
         // Edición
         const updatedStudents = students.map(student =>
@@ -246,7 +286,7 @@ const CargarEstudiantes = () => {
         };
         setStudents([...students, updatedNewStudent]);
       }
-  
+    
       setNewStudent({
         nombres: '',
         apellidos: '',
@@ -286,6 +326,7 @@ const CargarEstudiantes = () => {
                 );
             }).flat();
 
+            toast.error('Se encontraron estudiantes duplicados');
             setAlertMessage(
                 <div>
                     <p className="text-danger">Se encontraron estudiantes duplicados:</p>
@@ -298,13 +339,11 @@ const CargarEstudiantes = () => {
                 </div>
             );
 
-            // Obtener los RUTs de los duplicados
             const rutsDuplicados = duplicadosInternos.map(key => key.split('-')[0]);
             setFailedStudents(new Set(rutsDuplicados));
             return;
         }
 
-        // Resto del código original permanece igual
         const response = await axios.post(
             `${process.env.REACT_APP_API_URL}/estudiantes/carga-masiva`,
             students,
@@ -337,15 +376,61 @@ const CargarEstudiantes = () => {
             resumen.errores.push(`${error.rut} (${estudiante?.nombres} ${estudiante?.apellidos})`);
         });
 
-        // Resto del código de renderizado de resumen permanece igual
+        // Mostrar toasts de resumen
+        if (resumen.nuevos.length > 0) {
+            toast.success(`Estudiantes nuevos (${resumen.nuevos.length}):
+                ${resumen.nuevos.join(', ')}`, 
+                { autoClose: false }
+            );
+        }
+
+        if (resumen.errores.length > 0) {
+            toast.error(`Errores al cargar estudiantes (${resumen.errores.length}):
+                ${resumen.errores.join(', ')}`, 
+                { autoClose: false }
+            );
+        }
+
+        // Configurar el mensaje de alerta
         setAlertMessage(
             <div>
                 <h4>Resumen de la carga:</h4>
-                {/* Código de renderizado de resumen */}
+                {resumen.nuevos.length > 0 && (
+                    <div>
+                        <p>Estudiantes nuevos ({resumen.nuevos.length}):</p>
+                        <ul>
+                            {resumen.nuevos.map((estudiante, index) => (
+                                <li key={index}>{estudiante}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                {resumen.actualizados.length > 0 && (
+                    <div>
+                        <p>Estudiantes actualizados ({resumen.actualizados.length}):</p>
+                        <ul>
+                            {resumen.actualizados.map((estudiante, index) => (
+                                <li key={index}>{estudiante}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                {resumen.errores.length > 0 && (
+                    <div className="text-danger">
+                        <p>Errores al cargar ({resumen.errores.length}):</p>
+                        <ul>
+                            {resumen.errores.map((estudiante, index) => (
+                                <li key={index}>{estudiante}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
             </div>
         );
 
+        // Limpiar o manejar estudiantes con errores
         if (resumen.errores.length === 0) {
+            toast.success('Todos los estudiantes fueron cargados exitosamente');
             setStudents([]);
             setFailedStudents(new Set());
         } else {
@@ -354,6 +439,11 @@ const CargarEstudiantes = () => {
 
     } catch (error) {
         console.error('Error al guardar estudiantes:', error);
+        
+        // Toast de error genérico
+        toast.error('Error al guardar los estudiantes');
+
+        // Mensaje de alerta detallado
         setAlertMessage(
             <div className="text-danger">
                 <p>❌ Error al guardar los estudiantes:</p>
@@ -389,6 +479,17 @@ const handleCancel = () => {
 
   return (
     <div className="cargar-estudiantes">
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
       <div className="container mt-4">
         <h2 className="mb-4">Cargar Estudiantes</h2>        
         <div className="card card-primary mb-4">
@@ -509,7 +610,7 @@ const handleCancel = () => {
           </div>
         )}
 
-        <Modal show={showModal} onHide={() => setShowModal(false)}>
+        <Modal show={showModal}     onHide={handleCloseModal}>
           <Modal.Header closeButton>
             <Modal.Title>Agregar Estudiante</Modal.Title>
           </Modal.Header>
@@ -519,10 +620,20 @@ const handleCancel = () => {
                 <Form.Label>RUT</Form.Label>
                 <Form.Control 
                   type="text" 
-                  placeholder="Ingresa el RUT" 
+                  placeholder="Ingresa el RUT sin puntos ni guión" 
                   value={newStudent.rut}
-                  onChange={(e) => setNewStudent({ ...newStudent, rut: e.target.value })}
+                  onChange={(e) => {
+                    // Eliminar cualquier punto o guión y solo permitir números
+                    const cleanRut = e.target.value.replace(/[.-]/g, '');
+                    setNewStudent({ ...newStudent, rut: cleanRut });
+                  }}
+                  pattern="\d{7,8}"
+                  maxLength="8"
+                  required
                 />
+                <Form.Text className="text-muted">
+                  Ingrese RUT sin puntos ni guión (ej: 12345678)
+                </Form.Text>
               </Form.Group>
               <Form.Group controlId="formNombres">
                 <Form.Label>Nombres</Form.Label>
@@ -531,7 +642,12 @@ const handleCancel = () => {
                   placeholder="Ingresa los nombres" 
                   value={newStudent.nombres}
                   onChange={(e) => setNewStudent({ ...newStudent, nombres: e.target.value })}
+                  required
+                  pattern="[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+"
                 />
+                <Form.Text className="text-muted">
+                  Solo se permiten letras y espacios
+                </Form.Text>
               </Form.Group>
               <Form.Group controlId="formApellidos">
                 <Form.Label>Apellidos</Form.Label>
@@ -540,7 +656,12 @@ const handleCancel = () => {
                   placeholder="Ingresa los apellidos" 
                   value={newStudent.apellidos}
                   onChange={(e) => setNewStudent({ ...newStudent, apellidos: e.target.value })}
+                  required
+                  pattern="[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+"
                 />
+                <Form.Text className="text-muted">
+                  Solo se permiten letras y espacios
+                </Form.Text>
               </Form.Group>
               <Form.Group controlId="formCorreo">
                 <Form.Label>Correo</Form.Label>
@@ -548,14 +669,30 @@ const handleCancel = () => {
                   type="email" 
                   placeholder="Ingresa el correo electrónico" 
                   value={newStudent.correo}
-                  onChange={(e) => setNewStudent({ ...newStudent, correo: e.target.value })}
+                  onChange={(e) => setNewStudent({ ...newStudent, correo: e.target.value.toLowerCase() })}
+                  required
+                  pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
                 />
+                <Form.Text className="text-muted">
+                  Ingrese un correo electrónico válido
+                </Form.Text>
               </Form.Group>
             </Form>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowModal(false)}>Cancelar</Button>
-            <Button variant="primary" onClick={handleAddStudent}>Agregar</Button>
+            <Button variant="secondary" onClick={handleCloseModal}>Cancelar</Button>
+            <Button 
+              variant="primary" 
+              onClick={handleAddStudent}
+              disabled={
+                !newStudent.rut || 
+                !newStudent.nombres || 
+                !newStudent.apellidos || 
+                !newStudent.correo
+              }
+            >
+              Agregar
+            </Button>
           </Modal.Footer>
         </Modal>
       </div>
