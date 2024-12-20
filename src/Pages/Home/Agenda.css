@@ -230,3 +230,97 @@
 .form-check:hover {
   background-color: #f8f9fa;
 }
+
+/* Añadir al final de tu CSS existente */
+@media (max-width: 768px) {
+  .agenda-container {
+    padding: 10px; /* Reducir padding en móviles */
+  }
+
+  .agenda-container .card {
+    margin-bottom: 15px; /* Aumentar margen entre tarjetas */
+  }
+
+  .agenda-container .asignaciones-scroll-container {
+    padding: 0 10px 10px;
+    margin: 0 -10px;
+  }
+
+  .agenda-container .asignaciones-row {
+    flex-wrap: nowrap;
+    gap: 10px; /* Reducir gap entre tarjetas */
+  }
+
+  .agenda-container .asignacion-card {
+    width: 250px; /* Reducir ancho de tarjetas */
+  }
+
+  .agenda-container .timeline-view {
+    max-width: 100%; /* Ocupar ancho completo */
+  }
+
+  .agenda-container .timeline-item {
+    flex-direction: column; /* Cambiar a disposición vertical */
+    margin-bottom: 1.5rem;
+  }
+
+  .agenda-container .timeline-date {
+    width: 100%; /* Ocupar ancho completo */
+    padding-right: 0;
+    margin-bottom: 0.5rem;
+    text-align: left;
+  }
+
+  .agenda-container .timeline-content {
+    border-left: none; /* Quitar borde izquierdo */
+    border-top: 2px solid var(--color-secondary); /* Añadir borde superior */
+    padding-left: 0;
+    padding-top: 1rem;
+  }
+
+  .agenda-container .institucion-row {
+    flex-direction: column; /* Apilar elementos verticalmente */
+    align-items: flex-start;
+    padding: 0.75rem;
+  }
+
+  .agenda-container .estudiantes-chips {
+    padding: 0;
+    margin-top: 0.5rem;
+  }
+
+  .agenda-container .badge-info {
+    font-size: 0.9rem; /* Reducir tamaño de fuente */
+    padding: 6px 10px;
+  }
+
+  .agenda-container .card-header {
+    padding: 8px; /* Reducir padding del encabezado */
+    font-size: 0.9rem; /* Reducir tamaño de fuente */
+  }
+
+  .agenda-container .card-header .fas {
+    margin-right: 5px; /* Reducir margen de íconos */
+  }
+
+  .agenda-container .btn-outline-primary {
+    font-size: 0.9rem; /* Reducir tamaño de fuente de botones */
+    padding: 0.375rem 0.75rem;
+  }
+
+  .checkbox-group {
+    padding-left: 10px; /* Reducir padding de grupos de checkbox */
+  }
+}
+
+/* Ajustes adicionales para pantallas muy pequeñas */
+@media (max-width: 480px) {
+  .agenda-container .asignacion-card {
+    width: 220px; /* Aún más reducido para pantallas muy pequeñas */
+  }
+
+  .agenda-container .estudiante-chip {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+  }
+}

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
-import { Dropdown, Button } from 'react-bootstrap';
+import { Dropdown, Button, Modal, Form } from 'react-bootstrap';
+import { toast } from 'react-toastify';
 import './Usuarios.css';
 
 const Usuarios = () => {
@@ -33,7 +34,8 @@ const Usuarios = () => {
 
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [newPassword, setNewPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
 
   const handleModalOpen = () => setModalOpen(true);
   const handleModalClose = () => {
@@ -160,9 +162,16 @@ const Usuarios = () => {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      toast.success(`Usuario creado. Contraseña: ${contrasenaFinal}`, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       
-      // Mostrar la contraseña generada o utilizada
-      alert(`Contraseña: ${contrasenaFinal}`);
       setNuevoUsuario({
       nombres: '',
       apellidos: '',
@@ -179,8 +188,18 @@ const Usuarios = () => {
     handleModalClose();
   } catch (error) {
     console.error('Error al crear usuario:', error);
-    // Opcional: mostrar un mensaje de error al usuario
-    alert('Error al crear usuario. Por favor, intente nuevamente.');
+      // Mostrar toast de error
+      toast.error(
+        error.response?.data?.error || 'Error al crear usuario. Por favor, intente nuevamente.', 
+        {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        }
+      );
   }
 };
 
@@ -255,33 +274,94 @@ const Usuarios = () => {
           }
         }
       );
-      alert(`Credenciales enviadas a ${usuario.nombres} ${usuario.apellidos}`);
+      toast.success(`Credenciales enviadas a ${usuario.nombres} ${usuario.apellidos}`, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } catch (error) {
       console.error('Error al enviar credenciales:', error);
-      alert('No se pudieron enviar las credenciales');
+      toast.error('No se pudieron enviar las credenciales', {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
-  const handleCambioContrasena = async (usuario) => {
-    const nuevaContrasena = prompt(`Ingrese nueva contraseña para ${usuario.nombres} ${usuario.apellidos}`);
-    if (nuevaContrasena) {
-      try {
-        const token = getToken();
-        await axios.put(
-          `${process.env.REACT_APP_API_URL}/personal/${usuario.id}/cambiar-contrasena`,
-          { nuevaContrasena },
-          {
-            headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json' 
-            }
+  const handleCambioContrasena = (usuario) => {
+    setSelectedUser(usuario);
+    setNewPassword('');
+    setPasswordError('');
+    setPasswordModalOpen(true);
+  };
+
+  const validatePassword = (password) => {
+    const regexContrasena = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,20}$/;
+    if (!password) {
+      return 'La contraseña es obligatoria';
+    }
+    if (!regexContrasena.test(password)) {
+      return 'La contraseña debe contener al menos una letra mayúscula, una letra minúscula, un número y tener entre 8 y 20 caracteres.';
+    }
+    return '';
+  };
+
+  const handleChangePasswordSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validar contraseña
+    const error = validatePassword(newPassword);
+    if (error) {
+      setPasswordError(error);
+      return;
+    }
+  
+    try {
+      const token = getToken();
+      await axios.put(
+        `${process.env.REACT_APP_API_URL}/personal/${selectedUser.id}/cambiar-contrasena`,
+        { nuevaContrasena: newPassword },
+        {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json' 
           }
-        );
-        alert('Contraseña cambiada exitosamente');
-      } catch (error) {
-        console.error('Error al cambiar contraseña:', error);
-        alert('No se pudo cambiar la contraseña');
-      }
+        }
+      );
+      
+      toast.success('Contraseña cambiada exitosamente', {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      
+      // Cerrar modal
+      setPasswordModalOpen(false);
+    } catch (error) {
+      console.error('Error al cambiar contraseña:', error);
+      
+      // Mostrar mensaje de error
+      toast.error(
+        error.response?.data?.error || 'No se pudo cambiar la contraseña', 
+        {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        }
+      );
     }
   };
 
@@ -679,6 +759,54 @@ const Usuarios = () => {
         <i className="fas fa-arrow-left"></i> Volver al Home
         </button>
       </div>
+      {selectedUser && (
+  <Modal show={passwordModalOpen} onHide={() => setPasswordModalOpen(false)}>
+    <Modal.Header closeButton>
+      <Modal.Title>Cambiar Contraseña</Modal.Title>
+    </Modal.Header>
+    <Modal.Body>
+      <Form onSubmit={handleChangePasswordSubmit}>
+        <Form.Group>
+          <Form.Label>
+            Nueva Contraseña para {selectedUser.nombres} {selectedUser.apellidos}
+          </Form.Label>
+          <Form.Control
+            type="password"
+            value={newPassword}
+            onChange={(e) => {
+              setNewPassword(e.target.value);
+              setPasswordError('');
+            }}
+            placeholder="Ingrese nueva contraseña"
+          />
+          {passwordError && (
+            <Form.Text className="text-danger">
+              {passwordError}
+            </Form.Text>
+          )}
+          <Form.Text className="text-muted">
+            La contraseña debe contener:
+            <ul className="mb-0">
+              <li>Entre 8 y 20 caracteres</li>
+              <li>Al menos una letra mayúscula</li>
+              <li>Al menos una letra minúscula</li>
+              <li>Al menos un número</li>
+            </ul>
+          </Form.Text>
+        </Form.Group>
+        <div className="text-end mt-3">
+          <Button variant="secondary" className="me-2" onClick={() => setPasswordModalOpen(false)}>
+            Cancelar
+          </Button>
+          <Button type="submit" variant="primary">
+            Cambiar Contraseña
+          </Button>
+        </div>
+      </Form>
+    </Modal.Body>
+  </Modal>
+)}
+
     </div>
   );
 };

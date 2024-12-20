@@ -365,12 +365,16 @@
 @media (max-width: 991px) {
   .main-header,
   .main-footer {
-    width: 100%;
-    margin-left: 0 !important;
+    width: 130%;
+    margin-left: 0;
+  }
+
+  .main-header h1{
+    font-size: 1rem;
   }
 
   .content-wrapper {
     margin-left: 0 !important;
-    width: 100%;
+    width: 130%;
   }
 }

@@ -231,7 +231,7 @@ const CambiarContrasena = () => {
                   'Cambiar Contraseña'
                 )}
               </button>
-              <div className="text-center">
+              {/* <div className="text-center">
                 <Link 
                   to="/" 
                   className="text-muted" 
@@ -245,7 +245,7 @@ const CambiarContrasena = () => {
                   <i className="fas fa-arrow-left mr-2"></i>
                   Ya recuerdo mi contraseña
                 </Link>
-              </div>
+              </div> */}
             </form>
           </div>
         </div>
