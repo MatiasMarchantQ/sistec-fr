@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Tabs, Tab, Container, Button } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import _ from 'lodash';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -17,7 +15,10 @@ import ModalEditarFichaInfantil from './ModalEditarFichaInfantil'; // Ajusta la 
 const FichaClinicaAdulto = ({ fichaClinica }) => {
   const navigate = useNavigate();
   const [valorHbA1c, setValorHbA1c] = useState(fichaClinica.factoresRiesgo?.valorHbac1 || '');
-  
+  if (!fichaClinica) {
+    return <div>Cargando...</div>; // O un mensaje de carga
+  }
+
   return (
     <>
       <div className="row mb-4">
@@ -44,12 +45,16 @@ const FichaClinicaAdulto = ({ fichaClinica }) => {
           <div className="row">
             <div className="col-md-6">
             <p>
-                <strong>Diagnóstico: </strong> 
-                {fichaClinica.diagnostico?.nombre || 
-                fichaClinica.diagnostico?.diagnosticoOtro || 
-                fichaClinica.diagnostico_otro || 
-                'N/A'}
-              </p>
+  <strong>Diagnósticos: </strong> 
+  {Array.isArray(fichaClinica.diagnosticos) && fichaClinica.diagnosticos.length > 0 
+    ? fichaClinica.diagnosticos.map((diag, index) => (
+        <span key={index}>
+          {diag.esOtro ? diag.diagnosticoOtro : diag.nombre}
+          {index < fichaClinica.diagnosticos.length - 1 ? ', ' : ''}
+        </span>
+      ))
+    : 'N/A'}
+</p>
               <p>
                 <strong>Escolaridad:</strong> {
                   (fichaClinica.escolaridad && 
@@ -287,14 +292,12 @@ const formatearFichaAdulto = (fichaClinica) => {
       telefonoPrincipal: fichaClinica.paciente?.telefonoPrincipal || 'N/A',
       telefonoSecundario: fichaClinica.paciente?.telefonoSecundario || 'N/A'
     },
-    diagnostico: {
-      nombre: fichaClinica.diagnostico?.nombre || 
-              (fichaClinica.diagnostico && fichaClinica.diagnostico.nombre) || 
-              null,
-      diagnosticoOtro: fichaClinica.diagnostico_otro || 
-                       (fichaClinica.diagnostico && fichaClinica.diagnostico.diagnosticoOtro) || 
-                       null
-    },
+    diagnosticos: Array.isArray(fichaClinica.diagnosticos) ? fichaClinica.diagnosticos.map(diag => ({
+      id: diag.id,
+      nombre: diag.nombre,
+      esOtro: diag.es_diagnostico_otro,
+      diagnosticoOtro: diag.diagnostico_otro_texto
+    })) : [],
     escolaridad: {
       id: fichaClinica.escolaridad?.id || null,
       nivel: fichaClinica.escolaridad?.nivel || 'No especificado'
@@ -578,7 +581,7 @@ const compararDatos = (original, reevaluacion) => {
   
   // Campos a comparar dependiendo del tipo de ficha
   const camposComparar = tipo === 'adulto' ? [
-    'diagnostico', 
+    'diagnosticos', 
     'escolaridad', 
     'ocupacion', 
     'direccion',
@@ -599,6 +602,34 @@ const compararDatos = (original, reevaluacion) => {
   ];
 
   camposComparar.forEach(campo => {
+    if (campo === 'diagnosticos') {
+      // Comparación de diagnósticos
+      const diagnosticosOriginales = original.diagnosticos || [];
+      const diagnosticosReevaluacion = reevaluacion.diagnosticos || [];
+
+      // Comparar por contenido, no por referencia
+      const sonDiagnosticosIguales = _.isEqual(
+        diagnosticosOriginales.map(d => ({
+          id: d.id,
+          nombre: d.nombre,
+          esOtro: d.esOtro,
+          diagnosticoOtro: d.diagnosticoOtro
+        })),
+        diagnosticosReevaluacion.map(d => ({
+          id: d.id,
+          nombre: d.nombre,
+          esOtro: d.esOtro,
+          diagnosticoOtro: d.diagnosticoOtro
+        }))
+      );
+
+      if (!sonDiagnosticosIguales) {
+        cambios['diagnosticos'] = {
+          original: diagnosticosOriginales,
+          reevaluacion: diagnosticosReevaluacion
+        };
+      }
+
     // Función para obtener valor de un objeto anidado
     const getNestedValue = (obj, path) => {
       return path.split('.').reduce((acc, part) => 
@@ -633,7 +664,7 @@ const compararDatos = (original, reevaluacion) => {
         reevaluacion: valorReevaluacion
       };
     }
-  });
+  }});
 
   return cambios;
 };
@@ -663,6 +694,12 @@ const renderCambiosDetectados = (cambios) => {
   };
 
   const formatearValor = (valor) => {
+    // Caso específico para diagnósticos
+    if (Array.isArray(valor)) {
+      return valor.map(diag => 
+        diag.esOtro ? diag.diagnosticoOtro : diag.nombre
+      ).join(', ');
+    }
     // Caso específico para diagnóstico
     if (valor && typeof valor === 'object' && ('nombre' in valor || 'diagnosticoOtro' in valor)) {
       // Prioriza diagnosticoOtro si existe
@@ -965,13 +1002,17 @@ useEffect(() => {
                                   <p><strong>Edad:</strong> {reevaluacion.paciente?.edad || 'N/A'}</p>
                                   <p><strong>Teléfono Principal:</strong> {reevaluacion.paciente?.telefonoPrincipal || 'N/A'}</p>
                                   <p>
-                                    <strong>Diagnóstico:</strong> {
-                                      (reevaluacion.diagnostico?.nombre || 
-                                      reevaluacion.diagnostico?.diagnosticoOtro || 
-                                      reevaluacion.diagnostico_otro || 
-                                      'N/A')
-                                    }
-                                  </p>
+  <strong>Diagnóstico:</strong> {
+    reevaluacion.diagnosticos && reevaluacion.diagnosticos.length > 0
+      ? reevaluacion.diagnosticos.map((diag, index) => (
+          <span key={index}>
+            {diag.esOtro ? diag.diagnosticoOtro : diag.nombre}
+            {index < reevaluacion.diagnosticos.length - 1 ? ', ' : ''}
+          </span>
+        ))
+      : 'N/A'
+  }
+</p>
                                   <p><strong>Ocupación:</strong> {reevaluacion.ocupacion || 'N/A'}</p>
                                   <p><strong>Escolaridad:</strong> {reevaluacion.escolaridad?.nivel || 'N/A'}</p>
                                   <p><strong>Con quién vive:</strong> {reevaluacion.conQuienVive || 'N/A'}</p>
@@ -1171,17 +1212,6 @@ useEffect(() => {
           </div>
         </Tab>
       </Tabs>
-      <ToastContainer 
-      position="top-right"
-      autoClose={3000}
-      hideProgressBar={false}
-      newestOnTop={false}
-      closeOnClick
-      rtl={false}
-      pauseOnFocusLoss
-      draggable
-      pauseOnHover
-    />
     </Container>
   );
 };

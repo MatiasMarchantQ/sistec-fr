@@ -31,6 +31,9 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
   const [ciclosVitales, setCiclosVitales] = useState([]);
   const [diagnosticoSeleccionado, setDiagnosticoSeleccionado] = useState('');
   const [diagnosticoOtro, setDiagnosticoOtro] = useState('');
+
+  const [diagnosticosSeleccionados, setDiagnosticosSeleccionados] = useState([]);
+
   const [tiposFamiliaSeleccionados, setTiposFamiliaSeleccionados] = useState('');
   const [tipoFamiliaOtro, setTipoFamiliaOtro] = useState('');
   const [cicloVitalSeleccionado, setCicloVitalSeleccionado] = useState(null);
@@ -87,6 +90,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
     // Determinar la fuente de datos principal
     const datosBase = reevaluacionSeleccionada || ultimaReevaluacion || datosIniciales;
 
+    console.log(datosBase);
     if (datosBase) {
       // Lógica de carga de datos existente
       setDatosAdulto(prev => ({
@@ -106,30 +110,34 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
         escolaridad: datosBase.escolaridad?.id || datosBase.escolaridad || ''
       }));
 
-      // Lógica para diagnóstico - Modificada para ser más exhaustiva
-      const diagnosticoAMostrar = datosBase.diagnostico?.id || 
-                                   datosBase.diagnostico || 
-                                   datosBase.diagnostico_id;
-      const diagnosticoOtroAMostrar = 
-        datosBase.diagnostico_otro || 
-        datosBase.diagnostico?.diagnosticoOtro || 
-        datosBase.diagnosticoOtro || 
-        datosBase.diagnostico?.nombre || // Añadido para capturar el nombre cuando no hay otro
-        '';
+      // Manejar diagnósticos
+    const diagnosticosAMostrar = datosBase.diagnosticos || [];
+    
+    // Extraer diagnósticos con ID
+    const diagnosticosConId = diagnosticosAMostrar
+      .filter(diag => diag.id !== null && !diag.esOtro)
+      .map(diag => diag.id.toString());
 
-      // Modificación clave: Si el diagnóstico a mostrar tiene nombre y no es un ID estándar
-      if (diagnosticoAMostrar?.nombre && (!diagnosticoAMostrar.id || diagnosticoAMostrar.id === null)) {
-        setDiagnosticoSeleccionado('otro');
-        setDiagnosticoOtro(diagnosticoAMostrar.nombre);
-      } else if (diagnosticoOtroAMostrar) {
-        // Si hay un diagnóstico personalizado, establecer como 'otro'
-        setDiagnosticoSeleccionado('otro');
-        setDiagnosticoOtro(diagnosticoOtroAMostrar);
-      } else if (diagnosticoAMostrar) {
-        // Si es un diagnóstico estándar, establecer su ID
-        setDiagnosticoSeleccionado(diagnosticoAMostrar);
-        setDiagnosticoOtro('');
-      }
+    // Extraer diagnóstico otro (si existe)
+    const diagnosticoOtroObj = diagnosticosAMostrar.find(diag => diag.esOtro);
+    
+    // Preparar los diagnósticos seleccionados
+    const diagnosticosSeleccionadosFinales = [...diagnosticosConId];
+    
+    // Agregar 'otro' si existe un diagnóstico personalizado
+    if (diagnosticoOtroObj || datosBase.diagnostico_otro) {
+      diagnosticosSeleccionadosFinales.push('otro');
+    }
+
+    // Establecer estados
+    setDiagnosticosSeleccionados(diagnosticosSeleccionadosFinales);
+    
+    // Establecer diagnóstico otro
+    setDiagnosticoOtro(
+      diagnosticoOtroObj?.nombre || 
+      datosBase.diagnostico_otro || 
+      ''
+    );
 
       // Manejo de tipos de familia
       let tiposFamiliaPreseleccionados = [];
@@ -288,8 +296,14 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
     if (!datosAdulto.apellidos) erroresValidacion.apellidos = 'Los apellidos son requeridos';
     if (!datosAdulto.rut) erroresValidacion.rut = 'El RUT es requerido';
     if (!datosAdulto.edad) erroresValidacion.edad = 'La edad es requerida';
-    if (!diagnosticoSeleccionado && !diagnosticoOtro) {
-      erroresValidacion.diagnostico = 'Debe seleccionar un diagnóstico o especificar uno personalizado';
+    // Validación de diagnósticos
+    if (diagnosticosSeleccionados.length === 0) {
+      erroresValidacion.diagnostico = 'Debe seleccionar al menos un diagnóstico';
+    }
+    
+    // Si se selecciona "Otro", requiere especificar
+    if (diagnosticosSeleccionados.includes('otro') && !diagnosticoOtro.trim()) {
+      erroresValidacion.diagnosticoOtro = 'Debe especificar el diagnóstico personalizado';
     }
     if (!datosAdulto.escolaridad) erroresValidacion.escolaridad = 'La escolaridad es requerida';
     if (!datosAdulto.telefonoPrincipal) erroresValidacion.telefonoPrincipal = 'El teléfono principal es requerido';
@@ -316,19 +330,25 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
     if (!validarFormulario()) {
         return;
     }
-  
+
     setIsSubmitting(true);
     setSubmitError('');
     setSuccessMessage('');
-  
+
     const datosParaEnviar = {
         tipo: 'adulto', // Agregar tipo explícitamente
         ...datosAdulto,
-        diagnostico_id: diagnosticoSeleccionado !== 'otro' ? diagnosticoSeleccionado : null,
-        diagnostico_otro: diagnosticoSeleccionado === 'otro' ? diagnosticoOtro : null,
+        diagnosticos_id: diagnosticosSeleccionados
+            .filter(diag => diag !== 'otro')
+            .map(id => parseInt(id)),  // Convertir a número
+        
+        // Manejar diagnóstico otro solo si está seleccionado y tiene valor
+        diagnostico_otro: diagnosticosSeleccionados.includes('otro') && diagnosticoOtro.trim() 
+            ? diagnosticoOtro 
+            : null,
         tiposFamilia: tiposFamiliaSeleccionados.includes('Otras') 
-        ? [] 
-        : tiposFamiliaSeleccionados.map(id => parseInt(id)),
+            ? [] 
+            : tiposFamiliaSeleccionados.map(id => parseInt(id)),
         tipoFamiliaOtro: tiposFamiliaSeleccionados.includes('Otras') ? tipoFamiliaOtro : null,
         ciclo_vital_familiar_id: cicloVitalSeleccionado,
         factoresRiesgo,
@@ -337,7 +357,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
         institucion_id: institucionId,
         isReevaluacion: true
     };
-  
+
     try {
         const token = getToken();
         
@@ -345,45 +365,21 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
         const reevaluacionId = reevaluacionSeleccionada?.id || 
                                 ultimaReevaluacion?.id || 
                                 datosIniciales?.id;
-  
+
         if (!reevaluacionId) {
             throw new Error('No se encontró un ID de reevaluación válido');
         }
-  
+
         const url = `${process.env.REACT_APP_API_URL}/fichas-clinicas/reevaluaciones/${reevaluacionId}`;
-  
+
         const response = await axios.put(url, datosParaEnviar, {
             headers: { Authorization: `Bearer ${token}` }
         });
-  
+
         if (response.data.success) {
             toast.success('Reevaluación actualizada exitosamente');
-            
-            // Actualizar estados basados en la respuesta del servidor
-            const datosActualizados = response.data.data;
-            
-            // Lógica de diagnóstico similar a la de formatearFichaAdulto
-            const diagnosticoAMostrar = datosActualizados.diagnostico?.id || 
-                                       datosActualizados.diagnostico || 
-                                       datosActualizados.diagnostico_id;
-            const diagnosticoOtroAMostrar = datosActualizados.diagnostico_otro || 
-                                            datosActualizados.diagnostico?.diagnosticoOtro || 
-                                            '';
-
-            // Establecer los estados de diagnóstico
-            if (diagnosticoOtroAMostrar) {
-                setDiagnosticoSeleccionado('otro');
-                setDiagnosticoOtro(diagnosticoOtroAMostrar);
-            } else if (diagnosticoAMostrar) {
-                setDiagnosticoSeleccionado(diagnosticoAMostrar);
-                setDiagnosticoOtro('');
-            }
-
-            // Actualizar otros estados
-            onIngresar(datosActualizados);
-            
+            onIngresar(response.data.data); // Refresh the data
             // No limpiar el formulario para mantener los datos actualizados
-            // limpiarFormulario();
         } else {
             setSubmitError('Error al actualizar la reevaluación');
         }
@@ -408,8 +404,12 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
     // Crear el objeto de datos que se va a enviar
     const datosParaEnviar = {
       ...datosAdulto,
-      diagnostico_id: diagnosticoSeleccionado !== 'otro' ? diagnosticoSeleccionado : null,
-      diagnostico_otro: diagnosticoSeleccionado === 'otro' ? diagnosticoOtro : null,
+      diagnosticos_id: diagnosticosSeleccionados
+        .filter(diag => diag !== 'otro')
+        .map(id => parseInt(id)),  // Convertir a número
+      diagnostico_otro: diagnosticosSeleccionados.includes('otro') 
+        ? diagnosticoOtro 
+        : null,
       tiposFamilia: tiposFamiliaSeleccionados.map(id => parseInt(id)),
       tipoFamiliaOtro: tiposFamiliaSeleccionados.includes('Otras') ? tipoFamiliaOtro : null,
       ciclo_vital_familiar_id: cicloVitalSeleccionado,
@@ -454,13 +454,6 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
   return (
     <>
     <ToastContainer />
-    {/* Botón de volver al principio */}
-      <button 
-          className="btn btn-outline-secondary mb-3" 
-          onClick={handleVolver}
-        >
-          <i className="fas fa-arrow-left me-2"></i>Volver
-      </button>
       <div className="alert alert-info">
         <strong>Ingreso Programa Telecuidado</strong>
         <p>
@@ -557,45 +550,71 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
               {errores.edad && <div className="invalid-feedback">{errores.edad}</div>}
             </div>
             </div>
-            <div className="col-md-4">
-              <div className="form-group">
-                <label>Diagnóstico</label>
-                <select
-                  className={`form-control ${errores.diagnostico ? 'is-invalid' : ''}`}
-                  value={diagnosticoSeleccionado}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setDiagnosticoSeleccionado(value);
-                    // Si no es "Otras", limpiar el campo de diagnóstico personalizado
-                    if (value !== 'otro') {
-                      setDiagnosticoOtro('');
-                    }
-                  }}
-                >
-                <option value="">Seleccione un diagnóstico</option>
-                {diagnosticos.map((diagnostico, index) => (
-                  <option 
-                    key={`${diagnostico.id}-${index}`}
-                    value={diagnostico.id}
-                  >
-                    {diagnostico.nombre}
-                  </option>
+            <div className="form-group">
+              <label>Diagnósticos</label>
+              <div className="border p-2">
+                {diagnosticos.map((diagnostico) => (
+                  <div key={diagnostico.id} className="form-check">
+                    <input 
+                      type="checkbox" 
+                      className="form-check-input" 
+                      id={`diagnostico-${diagnostico.id}`}
+                      value={diagnostico.id}
+                      checked={diagnosticosSeleccionados.includes(diagnostico.id.toString())}
+                      onChange={(e) => {
+                        const id = diagnostico.id.toString();
+                        setDiagnosticosSeleccionados(prev => 
+                          e.target.checked 
+                            ? [...prev, id]
+                            : prev.filter(selectedId => selectedId !== id)
+                        );
+                      }}
+                    />
+                    <label 
+                      className="form-check-label" 
+                      htmlFor={`diagnostico-${diagnostico.id}`}
+                    >
+                      {diagnostico.nombre}
+                    </label>
+                  </div>
                 ))}
-                <option value="otro">Otro diagnóstico</option>
-                </select>
-                {errores.diagnostico && <div className="invalid-feedback">{errores.diagnostico}</div>}
-                {/* Campo para diagnóstico personalizado */}
-                {diagnosticoSeleccionado === 'otro' && (
-                  <input
-                    type="text"
-                    className={`form-control mt-2 ${errores.diagnosticoOtro ? 'is-invalid' : ''}`}
-                    value={diagnosticoOtro}
-                    name="diagnosticoOtro"
-                    onChange={(e) => setDiagnosticoOtro(e.target.value)}
-                    placeholder="Especifique el diagnóstico"
+                
+                {/* Checkbox para "Otro" diagnóstico */}
+                <div className="form-check">
+                  <input 
+                    type="checkbox" 
+                    className="form-check-input" 
+                    id="diagnostico-otro"
+                    checked={diagnosticosSeleccionados.includes('otro')}
+                    onChange={(e) => {
+                      setDiagnosticosSeleccionados(prev => 
+                        e.target.checked 
+                          ? [...prev, 'otro']
+                          : prev.filter(item => item !== 'otro')
+                      );
+                    }}
                   />
-                )}
+                  <label 
+                    className="form-check-label" 
+                    htmlFor="diagnostico-otro"
+                  >
+                    Otro diagnóstico
+                  </label>
+                </div>
               </div>
+
+              {/* Campo para diagnóstico personalizado */}
+              {diagnosticosSeleccionados.includes('otro') && (
+                <input
+                  type="text"
+                  className={`form-control mt-2 ${errores.diagnosticoOtro ? 'is-invalid' : ''}`}
+                  value={diagnosticoOtro}
+                  name="diagnosticoOtro"
+                  onChange={(e) => setDiagnosticoOtro(e.target.value)}
+                  placeholder="Especifique el diagnóstico"
+                />
+              )}
+              {errores.diagnostico && <div className="invalid-feedback">{errores.diagnostico}</div>}
             </div>
             <div className="col-md-4">
             <div className="form-group">

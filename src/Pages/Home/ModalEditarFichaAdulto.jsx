@@ -19,8 +19,6 @@ const ModalEditarFichaAdulto = ({ show, onHide, fichaClinica, onActualizar }) =>
     apellidos: '',
     rut: '',
     edad: '',
-    diagnostico_id: '',
-    diagnostico_otro: '',
     escolaridad: '',
     ocupacion: '',
     direccion: '',
@@ -31,6 +29,9 @@ const ModalEditarFichaAdulto = ({ show, onHide, fichaClinica, onActualizar }) =>
     conectividad: '',
     valorHbac1: ''
   });
+
+  const [diagnosticosSeleccionados, setDiagnosticosSeleccionados] = useState([]);
+  const [diagnosticoOtro, setDiagnosticoOtro] = useState('');
 
   const [tiposFamiliaSeleccionados, setTiposFamiliaSeleccionados] = useState([]);
   const [tipoFamiliaOtro, setTipoFamiliaOtro] = useState('');
@@ -47,131 +48,109 @@ const ModalEditarFichaAdulto = ({ show, onHide, fichaClinica, onActualizar }) =>
       try {
         const token = getToken();
         
-        // Cargar diagnósticos
         const diagnosticosRes = await axios.get(
           `${process.env.REACT_APP_API_URL}/obtener/diagnosticos`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setDiagnosticos(diagnosticosRes.data);
+        setDiagnosticos(diagnosticosRes.data || []);
   
-        // Cargar niveles de escolaridad
         const escolaridadRes = await axios.get(
           `${process.env.REACT_APP_API_URL}/obtener/niveles-escolaridad`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setNivelesEscolaridad(escolaridadRes.data);
+        setNivelesEscolaridad(escolaridadRes.data || []);
   
-        // Cargar tipos de familia
         const tiposFamiliaRes = await axios.get(
           `${process.env.REACT_APP_API_URL}/obtener/tipos-familia`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setTiposFamilia(tiposFamiliaRes.data);
+        setTiposFamilia(tiposFamiliaRes.data || []);
   
-        // Cargar ciclos vitales
         const ciclosVitalesRes = await axios.get(
           `${process.env.REACT_APP_API_URL}/obtener/ciclos-vitales-familiares`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setCiclosVitales(ciclosVitalesRes.data);
+        setCiclosVitales(ciclosVitalesRes.data || []);
   
       } catch (error) {
         console.error('Error al cargar catálogos:', error);
         toast.error('No se pudieron cargar los datos iniciales');
       }
     };
-
-    // Cargar catálogos al montar el componente
+  
     cargarCatalogos();
-
-      // Cargar datos de la ficha cuando se muestre el modal y exista la ficha clínica
-      if (show && fichaClinica) {
-    // Lógica de diagnóstico más robusta
-    let diagnosticoId = null;
-    let diagnosticoOtro = null;
-
-    // Caso cuando hay un objeto de diagnóstico completo
-    if (fichaClinica.diagnostico) {
-      // Si tiene un nombre que coincide con algún diagnóstico
-      const diagnosticoEncontrado = diagnosticos.find(
-        d => d.nombre === fichaClinica.diagnostico.nombre
-      );
-
-      if (diagnosticoEncontrado) {
-        // Si se encuentra un diagnóstico con ID
-        diagnosticoId = diagnosticoEncontrado.id;
-      } else if (fichaClinica.diagnostico.diagnosticoOtro) {
-        // Si tiene un diagnóstico personalizado
-        diagnosticoId = null;
-        diagnosticoOtro = fichaClinica.diagnostico.diagnosticoOtro;
-      }
-    }
-
-      // Datos personales
+  
+    if (show && fichaClinica) {
       setDatosAdulto({
-      nombres: fichaClinica.paciente?.nombres || '',
-      apellidos: fichaClinica.paciente?.apellidos || '',
-      rut: fichaClinica.paciente?.rut || '',
-      edad: fichaClinica.paciente?.edad || '',
-      diagnostico_id: diagnosticoId,
-      diagnostico_otro: diagnosticoOtro,
-      escolaridad: fichaClinica.escolaridad?.id || '',
-      ocupacion: fichaClinica.ocupacion || '',
-      direccion: fichaClinica.direccion || '',
-      conQuienVive: fichaClinica.conQuienVive || '',
-      telefonoPrincipal: fichaClinica.paciente?.telefonoPrincipal || '',
-      telefonoSecundario: fichaClinica.paciente?.telefonoSecundario || '',
-      horarioLlamada: fichaClinica.horarioLlamada || '',
-      conectividad: fichaClinica.conectividad || '',
-      valorHbac1: fichaClinica.factoresRiesgo?.valorHbac1 || ''
+        nombres: fichaClinica.paciente?.nombres || '',
+        apellidos: fichaClinica.paciente?.apellidos || '',
+        rut: fichaClinica.paciente?.rut || '',
+        edad: fichaClinica.paciente?.edad || '',
+        escolaridad: fichaClinica.escolaridad?.id || '',
+        ocupacion: fichaClinica.ocupacion || '',
+        direccion: fichaClinica.direccion || '',
+        conQuienVive: fichaClinica.conQuienVive || '',
+        telefonoPrincipal: fichaClinica.paciente?.telefonoPrincipal || '',
+        telefonoSecundario: fichaClinica.paciente?.telefonoSecundario || '',
+        horarioLlamada: fichaClinica.horarioLlamada || '',
+        conectividad: fichaClinica.conectividad || '',
+        valorHbac1: fichaClinica.factoresRiesgo?.valorHbac1 || ''
       });
   
-      // Cargar tipos de familia
-      if (fichaClinica.informacionFamiliar?.tiposFamilia && fichaClinica.informacionFamiliar.tiposFamilia.length > 0) {
-          const primerTipoFamilia = fichaClinica.informacionFamiliar.tiposFamilia[0];
-          
-          if (primerTipoFamilia.tipoFamiliaOtro) {
-              // Si hay un valor personalizado
-              setTiposFamiliaSeleccionados(['Otras']);
-              setTipoFamiliaOtro(primerTipoFamilia.tipoFamiliaOtro);
-          } else if (primerTipoFamilia.id) {
-              // Si hay un ID de tipo de familia predefinido
-              setTiposFamiliaSeleccionados([primerTipoFamilia.id]);
-          } else {
-              // Si no hay información específica
-              setTiposFamiliaSeleccionados([]);
-          }
-      } else if (fichaClinica.informacionFamiliar?.tiposFamilia?.[0]?.tipoFamiliaOtro) {
-          // Si hay un tipo de familia personalizado, establecerlo
-          setTiposFamiliaSeleccionados(['Otras']);
-          setTipoFamiliaOtro(fichaClinica.informacionFamiliar.tiposFamilia[0].tipoFamiliaOtro);
+      // Precargar diagnósticos seleccionados con validación
+      const diagnosticosIds = (fichaClinica.diagnosticos || [])
+        .filter(d => d && d.id) // Asegurarse de que el diagnóstico y su ID existen
+        .map(d => d.id.toString());
+      setDiagnosticosSeleccionados(diagnosticosIds);
+  
+      // Manejar diagnóstico "otro" con validación
+      const otroDiagnostico = fichaClinica.diagnostico?.diagnosticoOtro || '';
+      if (otroDiagnostico) {
+        setDiagnosticosSeleccionados(prev => [...prev, 'otro']);
+        setDiagnosticoOtro(otroDiagnostico);
       }
   
-      // Ciclo vital familiar
-      const cicloVital = fichaClinica.ciclosVitalesFamiliares?.[0]?.id || '';
-      setCicloVitalSeleccionado(cicloVital);
+      // Cargar tipos de familia con validación
+      const tiposFamiliaData = fichaClinica.informacionFamiliar?.tiposFamilia || [];
+      if (tiposFamiliaData.length > 0) {
+        const primerTipoFamilia = tiposFamiliaData[0];
+        
+        if (primerTipoFamilia?.tipoFamiliaOtro) {
+          setTiposFamiliaSeleccionados(['Otras']);
+          setTipoFamiliaOtro(primerTipoFamilia.tipoFamiliaOtro);
+        } else if (primerTipoFamilia?.id) {
+          setTiposFamiliaSeleccionados([primerTipoFamilia.id.toString()]);
+        } else {
+          setTiposFamiliaSeleccionados([]);
+        }
+      }
   
-      // Factores de riesgo
+      // Ciclo vital familiar con validación
+      const cicloVital = fichaClinica.ciclosVitalesFamiliares?.[0]?.id;
+      setCicloVitalSeleccionado(cicloVital ? cicloVital.toString() : '');
+  
+      // Factores de riesgo con validación
       setFactoresRiesgo({
-          alcoholDrogas: fichaClinica.factoresRiesgo?.alcoholDrogas || 
-                         fichaClinica.alcohol_drogas || 
-                         false,
-          tabaquismo: fichaClinica.factoresRiesgo?.tabaquismo || 
-                      fichaClinica.tabaquismo || 
-                      false,
-          otros: fichaClinica.factoresRiesgo?.otros || 
-                 fichaClinica.otros_factores || 
-                 ''
+        alcoholDrogas: Boolean(fichaClinica.factoresRiesgo?.alcoholDrogas || fichaClinica.alcohol_drogas),
+        tabaquismo: Boolean(fichaClinica.factoresRiesgo?.tabaquismo || fichaClinica.tabaquismo),
+        otros: fichaClinica.factoresRiesgo?.otros || fichaClinica.otros_factores || ''
       });
-  }
-  }, [show, fichaClinica, getToken]);
-
+    }
+  }, [show, fichaClinica, getToken]); 
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setDatosAdulto(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleDiagnosticosChange = (e) => {
+    const { value, checked } = e.target;
+    setDiagnosticosSeleccionados(prev => 
+      checked ? [...prev, value] : prev.filter(id => id !== value)
+    );
   };
 
   const handleTiposFamiliaChange = (e) => {
@@ -195,11 +174,8 @@ const ModalEditarFichaAdulto = ({ show, onHide, fichaClinica, onActualizar }) =>
       
       const datosParaEnviar = {
         ...datosAdulto,
-        diagnostico_id: datosAdulto.diagnostico_id,
-  diagnostico_otro: 
-    datosAdulto.diagnostico_id === null 
-      ? datosAdulto.diagnostico_otro 
-      : null,
+          diagnosticos_id: diagnosticosSeleccionados.filter(id => id !== 'otro'), // Solo IDs de diagnósticos
+          diagnostico_otro: diagnosticosSeleccionados.includes('otro') && diagnosticoOtro ? diagnosticoOtro : null,
           tiposFamilia: 
           tiposFamiliaSeleccionados[0] === 'Otras' 
             ? ['Otras'] 
@@ -290,59 +266,40 @@ const ModalEditarFichaAdulto = ({ show, onHide, fichaClinica, onActualizar }) =>
             </Col>
           </Row>
           <Row>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Diagnóstico</Form.Label>
-              <Form.Control 
-  as="select" 
-  value={
-    datosAdulto.diagnostico_id === null 
-      ? 'Otros' 
-      : datosAdulto.diagnostico_id
-  }
-  onChange={(e) => {
-    const value = e.target.value;
-
-    if (value === 'Otros') {
-      setDatosAdulto(prev => ({
-        ...prev,
-        diagnostico_id: null,
-        diagnostico_otro: ''
-      }));
-    } else {
-      setDatosAdulto(prev => ({
-        ...prev,
-        diagnostico_id: value,
-        diagnostico_otro: ''
-      }));
-    }
-  }}
->
-  <option value="">Seleccione un diagnóstico</option>
-  {diagnosticos.map(diagnostico => (
-    <option 
-      key={diagnostico.id} 
-      value={diagnostico.id}
-    >
-      {diagnostico.nombre}
-    </option>
-  ))}
-  <option value="Otros">Otro diagnóstico</option>
-</Form.Control>
-              
-              {datosAdulto.diagnostico_id === null && (
-                <Form.Control 
-                  type="text" 
-                  name="diagnostico_otro"
-                  value={datosAdulto.diagnostico_otro}
-                  onChange={handleChange}
-                  placeholder="Especifique el diagnóstico"
-                  className="mt-2"
-                  required
-                />
-              )}
-            </Form.Group>
-          </Col>
+  <Col md={6}>
+    <Form.Group className="mb-3">
+      <Form.Label>Diagnóstico</Form.Label>
+      <div className="border p-2">
+        {diagnosticos.map(diagnostico => (
+          <Form.Check 
+            key={diagnostico.id}
+            type="checkbox"
+            label={diagnostico.nombre}
+            value={diagnostico.id}
+            checked={diagnosticosSeleccionados.includes(diagnostico.id.toString())}
+            onChange={handleDiagnosticosChange}
+          />
+        ))}
+        <Form.Check 
+          type="checkbox"
+          label="Otro diagnóstico"
+          value="otro"
+          checked={diagnosticosSeleccionados.includes('otro')}
+          onChange={handleDiagnosticosChange}
+        />
+        {diagnosticosSeleccionados.includes('otro') && (
+          <Form.Control 
+            type="text" 
+            name="diagnostico_otro"
+            value={diagnosticoOtro}
+            onChange={(e) => setDiagnosticoOtro(e.target.value)}
+            placeholder="Especifique el diagnóstico"
+            className="mt-2"
+          />
+        )}
+      </div>
+    </Form.Group>
+  </Col>
             <Col md={6}>
               <Form.Group className="mb-3">
                 <Form.Label>Escolaridad</Form.Label>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Button } from 'react-bootstrap';
 import axios from 'axios';
 import FichaClinicaInfantil from './FichaClinicaInfantil';
 import FichaClinicaAdulto from './FichaClinicaAdulto';
@@ -93,8 +94,93 @@ const IngresarFichaClinica = () => {
   }, [institucionSeleccionada, instituciones, user]);
 
   const handleVolver = () => {
-    navigate(-1);
-  };
+    // Obtener el estado de navegación original
+    const estadoNavegacion = location.state;
+
+    // Imprimir el estado de navegación para depuración
+    console.log('Estado de navegación:', estadoNavegacion);
+
+    // Verificar si hay un estado de navegación
+    if (estadoNavegacion) {
+        // Priorizar el origen específico
+        if (estadoNavegacion.origen) {
+            switch(estadoNavegacion.origen) {
+                case 'listado-fichas':
+                    navigate('?component=listado-fichas-clinicas', { 
+                        state: { 
+                            ...estadoNavegacion,
+                            tipo: estadoNavegacion.tipo || tipoFicha || 'adulto'
+                        } 
+                    });
+                    break;
+                case 'agenda':
+                    navigate('?component=agenda', { 
+                        state: { 
+                            ...estadoNavegacion,
+                            tipo: estadoNavegacion.tipo || tipoFicha || 'adulto'
+                        } 
+                    });
+                    break;
+                case 'dashboard':
+                    navigate('/home?component=dashboard');
+                    break;
+                default:
+                    // Volver al listado de fichas por defecto
+                    navigate('?component=listado-fichas-clinicas', {
+                        state: { 
+                            tipo: tipoFicha || 'adulto'
+                        }
+                    });
+            }
+        } 
+        // Si no hay origen pero hay un componente, intentar navegar basado en el componente
+        else if (estadoNavegacion.component) {
+            switch(estadoNavegacion.component) {
+                case 'agenda':
+                    navigate('?component=agenda', { 
+                        state: { 
+                            ...estadoNavegacion,
+                            tipo: tipoFicha || 'adulto'
+                        } 
+                    });
+                    break;
+                case 'listado-fichas-clinicas':
+                    navigate('?component=listado-fichas-clinicas', { 
+                        state: { 
+                            ...estadoNavegacion,
+                            tipo: tipoFicha || 'adulto'
+                        } 
+                    });
+                    break;
+                default:
+                    // Volver al listado de fichas por defecto
+                    navigate('?component=agenda', {
+                        state: { 
+                            tipo: tipoFicha || 'adulto'
+                        }
+                    });
+            }
+        }
+        // Si no hay origen ni componente específico
+        else {
+            // Volver al listado de fichas por defecto
+            navigate('?component=listado-fichas-clinicas', {
+                state: { 
+                    tipo: tipoFicha || 'adulto'
+                }
+            });
+        }
+    } 
+    // Si no hay estado de navegación
+    else {
+        // Volver al listado de fichas por defecto
+        navigate('?component=listado-fichas-clinicas', {
+            state: { 
+                tipo: tipoFicha || 'adulto'
+            }
+        });
+    }
+};
 
   const handleIngresar = (data) => {
     console.log('Ficha ingresada:', data);
@@ -105,6 +191,17 @@ const IngresarFichaClinica = () => {
 
   return (
     <div className="container mt-4">
+      <Button 
+        variant="" 
+        onClick={handleVolver}
+        style={{
+          border: 'none',
+          boxShadow: 'none',
+          color: 'black'
+        }}
+      >
+        <i className="fas fa-arrow-left me-8 pr-1"></i>Volver
+      </Button>
       <h2 className="text-center mb-4" style={{ color: '#388DE2' }}>Ficha Clínica</h2>
 
       {!isFromAgenda && (

@@ -703,7 +703,7 @@ const handlePaginationClick = (page) => {
                             <div className="d-flex justify-content-between align-items-center">
                                 <div>
                                     <i className="fas fa-clipboard-list mr-2"></i>
-                                    <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong>
+                                    <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong><br/>
                                     <span className="ml-2 text-muted">
                                         {ficha.paciente?.rut}
                                     </span>
@@ -716,7 +716,9 @@ const handlePaginationClick = (page) => {
                                 </div>
                             </div>
                             <div className="mt-1 text-muted small">
-                                {ficha.diagnostico ? ficha.diagnostico.nombre : ficha.diagnostico_otro || 'Sin diagnóstico'}
+                                {ficha.diagnosticos && ficha.diagnosticos.length > 0 
+                                    ? ficha.diagnosticos.map(d => d.nombre).join(', ') 
+                                    : (ficha.diagnostico_otro || 'Sin diagnóstico')}
                             </div>
                         </div>
                     ))}

@@ -300,7 +300,7 @@ const Dashboard = () => {
     },
     estudiantes: {
       total: 0,
-      asignados: 0
+      asignados: [{ total: 0 }]
     },
     estadisticasPorInstitucion: []
   }), []);
@@ -625,7 +625,7 @@ const Dashboard = () => {
             <div className="col-lg-6 col-6">
               <div className="small-box bg-success">
                 <div className="inner">
-                  <h3>{dashboardData.estudiantes.asignados}</h3>
+                <h3>{dashboardData.estudiantes.asignados[0]?.total || 0}</h3>
                   <p>Estudiantes Asignados</p>
                 </div>
                 <div className="icon">

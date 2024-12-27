@@ -36,11 +36,21 @@ const Reevaluacion = () => {
         telefonoPrincipal: fichaClinica.paciente?.telefonoPrincipal || fichaClinica.telefonoPrincipal || '',
         telefonoSecundario: fichaClinica.paciente?.telefonoSecundario || fichaClinica.telefonoSecundario || '',
         
-        diagnostico: fichaClinica.diagnostico?.id || fichaClinica.diagnostico || fichaClinica.diagnostico_id || '',
-        diagnostico_otro: fichaClinica.diagnostico_otro || 
-                          fichaClinica.diagnostico?.diagnosticoOtro || 
-                          '',
-        
+        // Manejar diagnósticos de manera más flexible
+        diagnosticos: (fichaClinica.diagnosticos || []).map(diag => ({
+          id: diag.id,
+          nombre: diag.nombre,
+          esOtro: diag.es_diagnostico_otro || diag.esOtro,
+          diagnosticoOtro: diag.diagnostico_otro_texto || diag.diagnosticoOtro
+        })),
+
+        diagnosticos_id: (fichaClinica.diagnosticos || [])
+          .filter(diag => diag.id !== null && !diag.es_diagnostico_otro)
+          .map(diag => diag.id.toString()),
+
+        diagnostico_otro: (fichaClinica.diagnosticos || [])
+          .find(diag => diag.es_diagnostico_otro)?.nombre || '',
+            
         escolaridad: fichaClinica.escolaridad?.id || fichaClinica.escolaridad || '',
         ocupacion: fichaClinica.ocupacion || '',
         direccion: fichaClinica.direccion || '',
@@ -311,6 +321,10 @@ const Reevaluacion = () => {
         // Preparar datos iniciales
         const prepararDatosIniciales = () => {
           const responseData = responseOriginal.data.data;
+          console.log('Datos originales completos:', responseData);
+          console.log('Diagnósticos en datos originales:', responseData.diagnosticos);
+          console.log('Diagnóstico otro:', responseData.diagnostico_otro);
+
           
           // Si estamos en modo edición y hay un reevaluacionId
           if (modoEdicion && reevaluacionId) {
@@ -348,12 +362,31 @@ const Reevaluacion = () => {
                   telefonoPrincipal: ultimaReevaluacion.paciente?.telefonoPrincipal || responseData.paciente?.telefonoPrincipal || '',
                   telefonoSecundario: ultimaReevaluacion.paciente?.telefonoSecundario || responseData.paciente?.telefonoSecundario || '',
                   
-                  diagnostico: ultimaReevaluacion.diagnostico?.id || responseData.diagnostico?.id || '',
-                  diagnostico_otro: ultimaReevaluacion.diagnostico_otro || 
-                                    ultimaReevaluacion.diagnostico?.diagnosticoOtro || 
-                                    responseData.diagnostico_otro || 
-                                    responseData.diagnostico?.diagnosticoOtro || 
-                                    '',
+                  diagnosticos: (
+                    ultimaReevaluacion?.diagnosticos || 
+                    responseData.diagnosticos || 
+                    []
+                  ).map(diag => ({
+                    id: diag.id,
+                    nombre: diag.nombre,
+                    esOtro: diag.es_diagnostico_otro || diag.esOtro,
+                    diagnosticoOtro: diag.diagnostico_otro_texto || diag.diagnosticoOtro
+                  })),
+        
+                  diagnosticos_id: (
+                    (ultimaReevaluacion?.diagnosticos || responseData.diagnosticos) 
+                    ? (ultimaReevaluacion?.diagnosticos || responseData.diagnosticos)
+                        .filter(diag => diag.id !== null && !diag.es_diagnostico_otro)
+                        .map(diag => diag.id.toString())
+                    : []
+                  ),
+                  
+                  diagnostico_otro: (
+                    (ultimaReevaluacion?.diagnosticos || responseData.diagnosticos) 
+                    ? ((ultimaReevaluacion?.diagnosticos || responseData.diagnosticos)
+                        .find(diag => diag.es_diagnostico_otro)?.nombre || '')
+                    : ''
+                  ),
                   
                   escolaridad: ultimaReevaluacion.escolaridad?.id || responseData.escolaridad?.id || '',
                   ocupacion: ultimaReevaluacion.ocupacion || responseData.ocupacion || '',
@@ -460,11 +493,13 @@ const Reevaluacion = () => {
                 telefonoSecundario: responseData.paciente?.telefonoSecundario || '',
                 
                 // Manejo específico de diagnóstico
-                diagnostico: responseData.diagnostico?.id || '',
-                diagnostico_otro: responseData.diagnostico_otro || 
-                                  responseData.diagnostico?.diagnosticoOtro || 
-                                  '',
-                
+                diagnosticos: responseData.diagnosticos || [],
+                diagnosticos_id: (responseData.diagnosticos || [])
+                  .filter(diag => diag.id !== null && !diag.es_diagnostico_otro)
+                  .map(diag => diag.id.toString()),
+                diagnostico_otro: (responseData.diagnosticos || [])
+                  .find(diag => diag.es_diagnostico_otro)?.nombre || '',
+                        
                 escolaridad: responseData.escolaridad?.id || '',
                 ocupacion: responseData.ocupacion || '',
                 direccion: responseData.direccion || '',
