@@ -150,4 +150,91 @@
     border: 1px solid #dee2e6;
     border-radius: 0.3rem;
   }
-  
+
+/* Media queries para diferentes tamaños de pantalla */
+@media screen and (max-width: 576px) {
+    /* Móviles */
+    .instituciones__title {
+        font-size: 1.5rem; /* Título más pequeño en móviles */
+    } 
+
+    .instituciones__select {
+        width: 100%; /* Select ocupa todo el ancho */
+    }
+
+    .instituciones__table {
+        display: block;
+        overflow-x: auto; /* Permite scroll horizontal en tablas */
+    }
+
+    .instituciones__btn--spacing {
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+
+    .modal-dialog {
+        margin: 5% 10px; /* Menos margen en móviles */
+    }
+}
+
+@media screen and (min-width: 577px) and (max-width: 768px) {
+    /* Tablets */
+    .instituciones__title {
+        font-size: 1.75rem;
+    }
+
+    .instituciones__controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .instituciones__select {
+        min-width: 200px;
+    }
+
+    .instituciones__btn {
+        padding: 8px 15px;
+    }
+
+    .modal-dialog {
+        margin: 8% auto;
+        max-width: 90%;
+    }
+}
+
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    /* Tablets grandes */
+    .instituciones__controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .modal-dialog {
+        max-width: 700px;
+    }
+}
+
+/* Optimizaciones para dispositivos táctiles */
+@media (hover: none) {
+    .instituciones__btn {
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .instituciones__btn:active {
+        transform: scale(0.98); /* Feedback táctil sutil */
+    }
+}
+
+
+/* Ajustes de tipografía responsiva */
+@media screen and (max-width: 320px) {
+    .instituciones__btn {
+        font-size: 0.8125rem;
+    }
+    
+    .instituciones__card-title {
+        font-size: 1.25rem;
+    }
+}

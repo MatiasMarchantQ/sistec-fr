@@ -9,7 +9,7 @@ import FichaClinicaInfantil from './FichaClinicaInfantil';
 import _ from 'lodash';
 
 const Reevaluacion = () => {
-  const { user, getToken } = useAuth();
+  const { user, getToken, handleSessionExpired } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -275,6 +275,11 @@ const Reevaluacion = () => {
     const fetchDatosReevaluacion = async () => {
       try {
         const token = getToken();
+
+        if (!token) {
+          handleSessionExpired();
+          return;
+        }
         
         // Obtener ficha original
         const responseOriginal = await axios.get(
@@ -552,16 +557,16 @@ const Reevaluacion = () => {
           setTipoFicha(tipo);
           setDatosIniciales(prepararDatosIniciales());
           setLoading(false);
-        } catch (err) {
-          console.error('Error al obtener datos:', err);
-          toast.error('No se pudo cargar la información: ' + err.message);
+        } catch (error) {
+          console.error('Error al obtener datos de reevaluación:', error);
+          handleSessionExpired(); // Manejar la expiración de sesión si es necesario
+        } finally {
           setLoading(false);
-          navigate(-1);
         }
       };
     
       fetchDatosReevaluacion();
-    }, [location.state, getToken, navigate, user.institucion_id, compararDatos, parseEdad]);
+    }, [location.state, getToken, navigate, compararDatos, parseEdad, handleSessionExpired]);
 
   const handleReevaluacionExitosa = (nuevaFicha) => {
     toast.success('Reevaluación registrada exitosamente');
@@ -605,7 +610,7 @@ const Reevaluacion = () => {
           onVolver={handleVolver}
           onIngresar={handleReevaluacionExitosa}
           esReevaluacion={true}
-          institucionId={fichaOriginal.institucion_id}
+          institucionId={fichaOriginal?.institucion_id}
           cambiosDetectados={cambiosDetectados}
           ultimaReevaluacion={ultimaReevaluacion}
           reevaluacionSeleccionada={reevaluacionSeleccionada}
@@ -618,7 +623,7 @@ const Reevaluacion = () => {
           onVolver={handleVolver}
           onIngresar={handleReevaluacionExitosa}
           esReevaluacion={true}
-          institucionId={fichaOriginal.institucion_id}
+          institucionId={fichaOriginal?.institucion_id}
           cambiosDetectados={cambiosDetectados}
           ultimaReevaluacion={ultimaReevaluacion}
           reevaluacionSeleccionada={reevaluacionSeleccionada}

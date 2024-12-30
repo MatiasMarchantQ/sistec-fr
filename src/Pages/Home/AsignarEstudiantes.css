@@ -1,10 +1,12 @@
 .asignar-estudiantes {
     padding: 20px;
 }
-  
+
 .asignar-estudiantes h2 {
-    margin-bottom: 20px;
-}
+    text-align: center;
+    font-size: 2rem;
+    color: #388DE2;
+  }
   
 .asignar-estudiantes .card {
     margin-bottom: 20px;
@@ -110,4 +112,113 @@
 .asignar-estudiantes .form-check-input:focus {
     border-color: #86b7fe;
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Media queries para diferentes tamaños de pantalla */
+@media screen and (max-width: 576px) {
+    /* Móviles */
+    .asignar-estudiantes {
+        padding: 10px;
+    }
+
+    .asignar-estudiantes h2 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+    }
+
+    .asignar-estudiantes .usuarios__controls {
+        flex-direction: column; /* Apilar controles verticalmente */
+    }
+
+    .asignar-estudiantes .usuarios__select,
+    .asignar-estudiantes .form-control,
+    .asignar-estudiantes .usuarios__btn {
+        width: 100%; /* Ocupar todo el ancho */
+        margin-bottom: 10px; /* Espaciado entre controles */
+    }
+
+    .asignar-estudiantes .table {
+        display: block;
+        overflow-x: auto; /* Permitir scroll horizontal en tablas */
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .asignar-estudiantes .table th,
+    .asignar-estudiantes .table td {
+        padding: 8px 5px; /* Ajustar padding */
+        min-width: 100px; /* Ancho mínimo para celdas */
+    }
+}
+
+@media screen and (min-width: 577px) and (max-width: 768px) {
+    /* Tablets */
+    .asignar-estudiantes {
+        padding: 15px;
+    }
+
+    .asignar-estudiantes .usuarios__controls {
+        flex-wrap: nowrap; /* Mantener en una sola línea */
+        justify-content: space-between; /* Espaciado entre controles */
+    }
+
+    .asignar-estudiantes .usuarios__select,
+    .asignar-estudiantes .form-control {
+        flex: 1; /* Permitir que crezcan */
+        margin-right: 10px; /* Espaciado entre controles */
+    }
+
+    .asignar-estudiantes .usuarios__btn {
+        flex: 0 0 auto; /* Mantener el tamaño del botón */
+    }
+}
+
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    /* Tablets grandes */
+    .asignar-estudiantes .usuarios__controls {
+        justify-content: flex-start; /* Alinear a la izquierda */
+    }
+
+    .asignar-estudiantes .usuarios__select,
+    .asignar-estudiantes .form-control {
+        max-width: 250px; /* Ancho máximo */
+    }
+}
+
+/* Modal responsivo */
+@media screen and (max-width: 576px) {
+    .asignar-estudiantes .modal-dialog {
+        margin: 10px;
+        max-height: 90vh;
+    }
+
+    .asignar-estudiantes .modal-body {
+        padding: 15px;
+    }
+
+    .asignar-estudiantes .modal-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .asignar-estudiantes .modal-footer .btn {
+        width: 100%;
+    }
+}
+
+/* Paginación responsiva */
+@media screen and (max-width: 576px ) {
+    .asignar-estudiantes .pagination {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .asignar-estudiantes .page-link {
+        min-width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
 }

@@ -531,13 +531,8 @@ const JustificacionModal = () => {
 
 const handleEditarAsignacion = async (asignacion) => {
   try {
-    console.log('Asignación completa para editar:', asignacion);
-    
     // Establecer explícitamente el estado de asignación excepcional
     const esAsignacionExcepcional = !!(asignacion.justificacion_excepcional);
-    
-    console.log('Es asignación excepcional:', esAsignacionExcepcional);
-    console.log('Justificación excepcional:', asignacion.justificacion_excepcional);
     
     const token = getToken();
     const apiUrl = process.env.REACT_APP_API_URL;

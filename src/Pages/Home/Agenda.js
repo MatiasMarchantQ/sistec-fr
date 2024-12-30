@@ -180,10 +180,12 @@ const fetchAsignaciones = async () => {
 
   // Effects
   useEffect(() => {
-    if (getToken()) {
+    const token = getToken();
+    if (token) {
       fetchAsignaciones();
     }
-  }, [month, year, paginationInfo.page, searchTerm]);
+    // Agregar todas las dependencias necesarias
+}, [month, year, paginationInfo.page, searchTerm, getToken]);
 
 
   const fetchFichasClinicas = async (institucionId) => {
@@ -597,50 +599,52 @@ const handlePaginationClick = (page) => {
       </Pagination>
 
       {/* Modal para mostrar todas las fichas clínicas */}
-      <Modal 
-        show={showAllFichasModal} 
-        onHide={() => {
-            setShowAllFichasModal(false);
-            setModalSearchTerm('');
-            setModalFechasFiltro({ fechaInicio: '', fechaFin: '' });
-            setModalFiltroReevaluacion('');
-            setModalPaginationInfo({
-                page: 1,
-                totalPages: 0,
-                totalRegistros: 0,
-                registrosPorPagina: 5,
-                currentInstitucionId: null
-            });
-            setAllFichas([]);
-        }}
-        size="lg"
-    >
-    <Modal.Header closeButton>
-        <Modal.Title>
-            Todas las Fichas Clínicas 
-            <small className="text-muted ml-2">
-                ({modalPaginationInfo.totalRegistros} registros)
-            </small>
+<Modal 
+    show={showAllFichasModal} 
+    onHide={() => {
+        setShowAllFichasModal(false);
+        setModalSearchTerm('');
+        setModalFechasFiltro({ fechaInicio: '', fechaFin: '' });
+        setModalFiltroReevaluacion('');
+        setModalPaginationInfo({
+            page: 1,
+            totalPages: 0,
+            totalRegistros: 0,
+            registrosPorPagina: 5,
+            currentInstitucionId: null
+        });
+        setAllFichas([]);
+    }}
+    size="lg"
+    className="ficha-modal" // Agregamos una clase para estilos específicos
+>
+    <Modal.Header closeButton className="flex-wrap">
+        <Modal.Title className="w-100">
+            <div className="d-flex justify-content-between align-items-center flex-wrap">
+                <span>Todas las Fichas Clínicas</span>
+                <small className="text-muted">
+                    ({modalPaginationInfo.totalRegistros} registros)
+                </small>
+            </div>
         </Modal.Title>
     </Modal.Header>
     <Modal.Body>
         {/* Filtros */}
         <div className="mb-4">
-        <Form>
+            <Form>
                 <Row>
-                    <Col md={12}>
+                    <Col xs={12}>
                         <InputGroup className="mb-3">
                             <InputGroup.Text>
                                 <i className="fas fa-search"></i>
                             </InputGroup.Text>
                             <Form.Control
                                 type="text"
-                                placeholder="Buscar por RUT o nombres del paciente..."
+                                placeholder="Buscar por RUT o nombres..."
                                 value={modalSearchTerm}
                                 onChange={(e) => {
                                     setModalSearchTerm(e.target.value);
                                     setModalPaginationInfo(prev => ({ ...prev, page: 1 }));
-                                    // Usar setTimeout para evitar demasiadas llamadas
                                     setTimeout(() => {
                                         fetchFichasParaModal();
                                     }, 300);
@@ -648,10 +652,8 @@ const handlePaginationClick = (page) => {
                             />
                         </InputGroup>
                     </Col>
-                </Row>
-                <Row>
-                    <Col md={4}>
-                        <Form.Group>
+                    <Col xs={12} sm={6}>
+                        <Form.Group className="mb-3">
                             <Form.Label>Fecha Inicio</Form.Label>
                             <Form.Control
                                 type="date"
@@ -659,13 +661,13 @@ const handlePaginationClick = (page) => {
                                 onChange={(e) => {
                                     setModalFechasFiltro(prev => ({ ...prev, fechaInicio: e.target.value }));
                                     setModalPaginationInfo(prev => ({ ...prev, page: 1 }));
-                                    fetchFichasParaModal(); // Recargar con nuevo filtro
+                                    fetchFichasParaModal();
                                 }}
                             />
                         </Form.Group>
                     </Col>
-                    <Col md={4}>
-                        <Form.Group>
+                    <Col xs={12} sm={6}>
+                        <Form.Group className="mb-3">
                             <Form.Label>Fecha Fin</Form.Label>
                             <Form.Control
                                 type="date"
@@ -673,7 +675,7 @@ const handlePaginationClick = (page) => {
                                 onChange={(e) => {
                                     setModalFechasFiltro(prev => ({ ...prev, fechaFin: e.target.value }));
                                     setModalPaginationInfo(prev => ({ ...prev, page: 1 }));
-                                    fetchFichasParaModal(); // Recargar con nuevo filtro
+                                    fetchFichasParaModal();
                                 }}
                             />
                         </Form.Group>
@@ -683,7 +685,7 @@ const handlePaginationClick = (page) => {
         </div>
 
         {loading ? (
-            <div className="text-center">
+            <div className="text-center p-4">
                 <div className="spinner-border text-primary" role="status">
                     <span className="sr-only">Cargando...</span>
                 </div>
@@ -694,28 +696,28 @@ const handlePaginationClick = (page) => {
                     {allFichas.map((ficha, index) => (
                         <div 
                             key={`ficha-${ficha.id}-${index}`}
-                            className="ficha-item p-2 mb-2 border rounded cursor-pointer hover-bg-light"
+                            className="ficha-item p-3 mb-2 border rounded cursor-pointer hover-bg-light"
                             onClick={() => {
                                 handleFichaClick(ficha.id, ficha.tipo);
                                 setShowAllFichasModal(false);
                             }}
                         >
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i className="fas fa-clipboard-list mr-2"></i>
-                                    <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong><br/>
-                                    <span className="ml-2 text-muted">
+                            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                                <div className="mb-2 mb-sm-0">
+                                    <i className="fas fa-clipboard-list me-2"></i>
+                                    <strong>{ficha.paciente?.nombres} {ficha.paciente?.apellidos}</strong>
+                                    <div className="text-muted">
                                         {ficha.paciente?.rut}
-                                    </span>
+                                    </div>
                                 </div>
-                                <div>
+                                <div className="d-flex align-items-center">
                                     <span className={`badge ${ficha.is_reevaluacion ? 'bg-warning' : 'bg-primary'} me-2`}></span>
                                     <small className="text-muted">
                                         {new Date(ficha.fecha).toLocaleDateString('es-CL')}
                                     </small>
                                 </div>
                             </div>
-                            <div className="mt-1 text-muted small">
+                            <div className="mt-2 text-muted small">
                                 {ficha.diagnosticos && ficha.diagnosticos.length > 0 
                                     ? ficha.diagnosticos.map(d => d.nombre).join(', ') 
                                     : (ficha.diagnostico_otro || 'Sin diagnóstico')}
@@ -725,22 +727,23 @@ const handlePaginationClick = (page) => {
                 </div>
 
                 {paginationInfo.totalPages > 1 && (
-                    <div className="d-flex justify-content-center mt-3">
+                    <div className="d-flex justify-content-center mt-3 pagination-container">
                         <nav>
-                            <ul className="pagination">
+                            <ul className="pagination flex-wrap">
                                 <li className={`page-item ${paginationInfo.page === 1 ? 'disabled' : ''}`}>
                                     <button 
                                         className="page-link" 
                                         onClick={() => handlePagination('prev')}
                                         disabled={paginationInfo.page === 1}
                                     >
-                                        Anterior
+                                        <span className="d-none d-sm-inline">Anterior</span>
+                                        <span className="d-inline d-sm-none">&lt;</span>
                                     </button>
                                 </li>
                                 {[...Array(paginationInfo.totalPages)].map((_, index) => (
                                     <li 
                                         key={index} 
-                                        className={`page-item ${index + 1 === paginationInfo.page ? 'active' : ''}`}
+                                        className={`page-item ${index + 1 === paginationInfo.page ? 'active' : ''} ${paginationInfo.totalPages > 5 ? 'd-none d-sm-block' : ''}`}
                                     >
                                         <button 
                                             className="page-link"
@@ -756,7 +759,8 @@ const handlePaginationClick = (page) => {
                                         onClick={() => handlePagination('next')}
                                         disabled={paginationInfo.page === paginationInfo.totalPages}
                                     >
-                                        Siguiente
+                                        <span className="d-none d-sm-inline">Siguiente</span>
+                                        <span className="d-inline d-sm-none">&gt;</span>
                                     </button>
                                 </li>
                             </ul>

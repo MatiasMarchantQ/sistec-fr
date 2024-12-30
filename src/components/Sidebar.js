@@ -54,17 +54,18 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
         <nav className="mt-2">
           <ul className="nav nav-sidebar flex-column" role="menu">
             {/* Menú de Agenda */}
+            {(user && (user.rol_id === 1 || user.rol_id === 2 || user.rol_id === 3)) && (
             <li className="nav-item">
               <Link 
-                to="?component=home"
+                to="?component=agenda"
                 className="nav-link"
-                onClick={() => handleSetActiveComponent('home')}
+                onClick={() => handleSetActiveComponent('agenda')}
               >
                 <i className="nav-icon fas fa-calendar-days"></i>
                 <p>Agenda</p>
               </Link>
             </li>
-
+            )}
             {/* Menú de Instituciones - Visible para rol_id 1 y 2 */}
             {(user && (user.rol_id === 1 || user.rol_id === 2)) && (
               <li className="nav-item">

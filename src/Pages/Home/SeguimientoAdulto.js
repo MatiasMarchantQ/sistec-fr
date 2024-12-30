@@ -205,8 +205,7 @@ const procesarSeguimiento = (seguimientoData = {}) => {
 };
 
 const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
-  const { getToken } = useAuth();
-  const { user } = useAuth();
+  const { getToken, user, handleSessionExpired } = useAuth();
 
   // Crear referencia para el acordeón
   const accordionRef = useRef(null);
@@ -364,6 +363,10 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
     try {
         setLoading(true);
         const token = getToken();
+        if (!token) {
+          handleSessionExpired(); // Manejar sesión expirada
+          return;
+        }
         const response = await axios.get(
             `${process.env.REACT_APP_API_URL}/seguimientos/adulto/${pacienteId}`,
             { headers: { Authorization: `Bearer ${token}` } }
@@ -448,14 +451,14 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
   // Función para guardar seguimiento
   const guardarSeguimiento = async (etapa, esActualizacion = false) => {
     try {
-      const token = getToken();        
+      const token = getToken();    
       // Preparar datos para enviar
       let datosParaEnviar = {
         pacienteId,  
         fichaId,     
         fecha: new Date().toISOString().split('T')[0],
-        usuario_id: user.id || null,
-        estudiante_id: user.estudiante_id || null,
+        usuario_id: user?.id || null,
+        estudiante_id: user?.estudiante_id || null,
       };
 
       // Agregar datos específicos según la etapa

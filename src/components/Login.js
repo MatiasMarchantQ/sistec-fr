@@ -18,7 +18,7 @@ const Login = () => {
   const [loadingForgotPassword, setLoadingForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showDirectorModal, setShowDirectorModal] = useState(false);
-  
+
   // Nuevos estados para el modal
   const [modalRut, setModalRut] = useState('');
   const [modalPassword, setModalPassword] = useState('');
@@ -29,7 +29,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await login(rut, password, rememberMe, 3);
+      const response = await login(rut, password, rememberMe);
       if (response.debe_cambiar_contrasena) {
         navigate('/cambiar-contrasena');
       } else {
@@ -37,7 +37,7 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Error durante el login:', error);
-      
+
       const errorMessages = {
         'USER_NOT_FOUND': 'No se encontró un usuario con este RUT',
         'INVALID_PASSWORD': 'Contraseña incorrecta',
@@ -47,10 +47,10 @@ const Login = () => {
         'SERVER_ERROR': 'Error interno del servidor. Intenta nuevamente más tarde',
         'default': 'Error al iniciar sesión'
       };
-  
+
       const errorCode = error.response?.data?.code || 'default';
       const errorMessage = errorMessages[errorCode];
-  
+
       toast.error(errorMessage, {
         position: "top-right",
         autoClose: 3000,
@@ -62,44 +62,72 @@ const Login = () => {
     }
   };
 
-  const handleDirectorLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const response = await loginDirector(modalRut, modalPassword, rememberMe);
-      
-      // Verificar si el director debe cambiar la contraseña
-      if (response.debe_cambiar_contrasena) {
-        navigate('/cambiar-contrasena');
-      } else {
-        navigate('/home');
-      }
-    } catch (error) {
-      console.error('Error durante el login de director:', error);
-      
-      toast.error('Error al iniciar sesión', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
+  // const handleDirectorLogin = async (e) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  //   try {
+  //     const response = await login(modalRut, modalPassword, rememberMe);
+
+  //     // Verificar si el director debe cambiar la contraseña
+  //     if (response.debe_cambiar_contrasena) {
+  //       navigate('/cambiar-contrasena');
+  //     } else {
+  //       navigate('/home');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error durante el login de director:', error);
+
+  //     toast.error('Error al iniciar sesión', {
+  //       position: "top-right",
+  //       autoClose: 3000,
+  //       hideProgressBar: false,
+  //       closeOnClick: true,
+  //       pauseOnHover: true,
+  //       draggable: true,
+  //     });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // const handleDirectorLogin = async (e) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  //   try {
+  //     const response = await loginDirector(modalRut, modalPassword, rememberMe);
+
+  //     // Verificar si el director debe cambiar la contraseña
+  //     if (response.debe_cambiar_contrasena) {
+  //       navigate('/cambiar-contrasena');
+  //     } else {
+  //       navigate('/home');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error durante el login de director:', error);
+
+  //     toast.error('Error al iniciar sesión', {
+  //       position: "top-right",
+  //       autoClose: 3000,
+  //       hideProgressBar: false,
+  //       closeOnClick: true,
+  //       pauseOnHover: true,
+  //       draggable: true,
+  //     });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setLoadingForgotPassword(true);
-  
+
     try {
       const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/auth/recuperar-contrasena`, 
+        `${process.env.REACT_APP_API_URL}/auth/recuperar-contrasena`,
         { email }
       );
-  
+
       if (response.status === 200) {
         toast.success('Si el correo está registrado, se ha enviado un correo para restablecer la contraseña', {
           position: "top-right",
@@ -109,18 +137,18 @@ const Login = () => {
           pauseOnHover: true,
           draggable: true,
         });
-  
+
         setShowForgotPassword(false);
       } else {
         throw new Error('Error al enviar el correo de recuperación');
       }
     } catch (error) {
       console.error('Error al enviar el correo de recuperación:', error);
-      
-      const errorMessage = error.response?.data?.error || 
-                           error.response?.data?.message || 
-                           'Error al enviar el correo de recuperación';
-      
+
+      const errorMessage = error.response?.data?.error ||
+        error.response?.data?.message ||
+        'Error al enviar el correo de recuperación';
+
       toast.error(errorMessage, {
         position: "top-right",
         autoClose: 3000,
@@ -149,22 +177,22 @@ const Login = () => {
           </li>
         </ul>
       </nav> */}
-      <a 
-          href="/recursos" 
-          className="btn btn-outline-light position-absolute top-0 end-0 m-3 d-flex align-items-center" 
-          style={{ 
-              zIndex: 1000, 
-              position: 'fixed',
-              borderRadius: '20px',
-              padding: '8px 15px'
-          }}
+      <a
+        href="/recursos"
+        className="btn btn-outline-light position-absolute top-0 end-0 m-3 d-flex align-items-center"
+        style={{
+          zIndex: 1000,
+          position: 'fixed',
+          borderRadius: '20px',
+          padding: '8px 15px'
+        }}
       >
-          <i className="fas fa-external-link-alt mr-2"></i>
-          Ir a Recursos
+        <i className="fas fa-external-link-alt mr-2"></i>
+        Ir a Recursos
       </a>
 
-      <div className="hold-transition login-page" style={{ 
-          backgroundImage: `
+      <div className="hold-transition login-page" style={{
+        backgroundImage: `
           linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
           url(/facsa.jpg)
         `,
@@ -178,13 +206,14 @@ const Login = () => {
         <div className="login-box">
           <div className="login-logo">
             <p className="brand-link">
-              <img src="/Logo UCM - Horizontal.jpg" alt="Logo UCM" style={{height: 100}}/>
+              <img src="/Logo UCM - Horizontal.jpg" alt="Logo UCM" style={{ height: 100 }} />
             </p>
           </div>
 
           <div className="card" style={{ boxShadow: 'none', transform: 'none', transition: 'none' }}>
             <div className="card-body login-card-body">
-            <p>¿Eres un Director/Docente? <a href="#" onClick={() => setShowDirectorModal(true)}>Inicia sesión aquí</a></p>
+              {/* <p>¿Eres un Director/Docente? <a href="#" onClick={() => setShowDirectorModal(true)}>Inicia sesión aquí</a></p> */}
+              <p className='text-center'>Iniciar sesión</p>
               <form onSubmit={handleSubmit}>
                 <div className="input-group mb-3">
                   <input
@@ -213,9 +242,9 @@ const Login = () => {
                     disabled={loading}
                   />
                   <div className="input-group-append">
-                    <div 
-                      className="input-group-text" 
-                      style={{ cursor: 'pointer' }} 
+                    <div
+                      className="input-group-text"
+                      style={{ cursor: 'pointer' }}
                       onClick={togglePasswordVisibility}
                     >
                       {showPassword ? (
@@ -229,9 +258,9 @@ const Login = () => {
                 <div className="row">
                   <div className="col-8">
                     <div className="icheck-primary">
-                      <input 
-                        type="checkbox" 
-                        id="remember" 
+                      <input
+                        type="checkbox"
+                        id="remember"
                         checked={rememberMe}
                         onChange={(e) => setRememberMe(e.target.checked)}
                         disabled={loading}
@@ -244,11 +273,11 @@ const Login = () => {
                       <Link to="#" onClick={() => setShowForgotPassword(true)}>Olvidé mi contraseña</Link>
                     </p>
                   </div>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-primary btn-block"
                     disabled={loading}
-                    style={{marginBottom: '10px'}}
+                    style={{ marginBottom: '10px' }}
                   >
                     {loading ? (
                       <span>
@@ -265,128 +294,134 @@ const Login = () => {
         </div>
       </div>
 
-      {showDirectorModal && (
-        <div 
-          className="modal fade show" 
-          style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)', paddingTop: '6rem' }} 
-          tabIndex="-1" 
-          role="dialog"
-        >
-          <div className="modal-dialog" role="document" style={{ 
-              maxWidth: '30%',
-              margin: '0 auto'
-            }}>
-            <div className="modal-content">
-              <div style={{margin: 12}}>
-                <button 
-                  type="button" 
-                  className="close" 
-                  onClick={() => setShowDirectorModal(false)}
-                >
-                  <span>&times;</span>
-                </button>
-              </div>
-              <div className="modal-body">
-                <div className="login-logo">
-                  <p className="brand-link">
-                    <img src="/Logo UCM - Horizontal.jpg" alt="Logo UCM" style={{height: 100}}/>
-                  </p>
-                </div>
-                <p className="login-box-msg">Iniciar sesión como Director/Docente</p>
+      {/* {showDirectorModal && (
+  <div 
+    className="modal fade show modal-responsive" 
+    style={{ 
+      display: 'block', 
+      backgroundColor: 'rgba(0,0,0,0.5)', 
+      paddingTop: '0',
+      zIndex: 1050 
+    }} 
+    tabIndex="-1" 
+    role="dialog"
+  >
+    <div className="modal-dialog modal-dialog-responsive" role="document">
+      <div className="modal-content">
+        <div className="modal-header">
+          <button 
+            type="button" 
+            className="close" 
+            onClick={() => setShowDirectorModal(false)}
+          >
+            <span>&times;</span>
+          </button>
+        </div>
+        <div className="modal-body">
+          <div className="login-logo">
+            <p className="brand-link">
+              <img 
+                src="/Logo UCM - Horizontal.jpg" 
+                alt="Logo UCM" 
+                className="img-fluid"
+                style={{maxHeight: '100px'}}
+              />
+            </p>
+          </div>
+          <p className="login-box-msg">Iniciar sesión como Director/Docente</p>
 
-                <form onSubmit={handleDirectorLogin}>
-                  <div className="form-group">
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="modalRut"
-                      placeholder="RUT sin puntos ni guión"
-                      value={modalRut}
-                      onChange={(e) => setModalRut(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <div className="input-group">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        className="form-control"
-                        id="modalPassword"
-                        placeholder="Contraseña"
-                        value={modalPassword}
-                        onChange={(e) => setModalPassword(e.target.value)}
-                        required
-                      />
-                      <div className="input-group-append">
-                        <button 
-                          className="btn btn-outline-secondary" 
-                          type="button"
-                          onClick={togglePasswordVisibility}
-                        >
-                          {showPassword ? (
-                            <i className="fas fa-eye-slash" />
-                          ) : (
-                            <i className="fas fa-eye" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <div className="custom-control custom-checkbox">
-                      <input 
-                        type="checkbox" 
-                        className="custom-control-input" 
-                        id="directorRememberMe"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                      />
-                      <label 
-                        className="custom-control-label" 
-                        htmlFor="directorRememberMe"
-                      >
-                        Recuérdame
-                      </label>
-                    </div>
-                  </div>
+          <form onSubmit={handleDirectorLogin}>
+            <div className="form-group">
+              <input
+                type="text"
+                className="form-control"
+                id="modalRut"
+                placeholder="RUT sin puntos ni guión"
+                value={modalRut}
+                onChange={(e) => setModalRut(e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <div className="input-group">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="form-control"
+                  id="modalPassword"
+                  placeholder="Contraseña"
+                  value={modalPassword}
+                  onChange={(e) => setModalPassword(e.target.value)}
+                  required
+                />
+                <div className="input-group-append">
                   <button 
-                    type="submit" 
-                    className="btn btn-primary btn-block"
-                    disabled={loading}
-                    style={{marginBottom: 70}}
+                    className="btn btn-outline-secondary" 
+                    type="button"
+                    onClick={togglePasswordVisibility}
                   >
-                    {loading ? (
-                      <span>
-                        <i className="fas fa-spinner fa-spin"></i> Cargando...
-                      </span>
+                    {showPassword ? (
+                      <i className="fas fa-eye-slash" />
                     ) : (
-                      'Iniciar Sesión'
+                      <i className="fas fa-eye" />
                     )}
                   </button>
-                </form>
+                </div>
               </div>
             </div>
-          </div>
+            <div className="form-group">
+              <div className="custom-control custom-checkbox">
+                <input 
+                  type="checkbox" 
+                  className="custom-control-input" 
+                  id="directorRememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <label 
+                  className="custom-control-label" 
+                  htmlFor="directorRememberMe"
+                >
+                  Recuérdame
+                </label>
+              </div>
+            </div>
+            <button 
+              type="submit" 
+              className="btn btn-primary btn-block"
+              disabled={loading}
+            >
+              {loading ? (
+                <span>
+                  <i className="fas fa-spinner fa-spin"></i> Cargando...
+                </span>
+              ) : (
+                'Iniciar Sesión'
+              )}
+            </button>
+          </form>
         </div>
-      )}
+      </div>
+    </div>
+  </div>
+)} */}
 
       {showForgotPassword && (
-        <div 
-          className="modal fade show" 
-          style={{ 
-            display: 'block', 
-            backgroundColor: 'rgba(0,0,0,0.5)' 
-          }} 
-          tabIndex="-1" 
+        <div
+          className="modal fade show"
+          style={{
+            display: 'block',
+            backgroundColor: 'rgba(0,0,0,0.5)'
+          }}
+          tabIndex="-1"
           role="dialog"
         >
           <div className="modal-dialog" role="document">
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Restablecer Contraseña</h5>
-                <button 
-                  type="button" 
-                  className="close" 
+                <button
+                  type="button"
+                  className="close"
                   onClick={() => setShowForgotPassword(false)}
                   disabled={loadingForgotPassword}
                 >
@@ -415,8 +450,8 @@ const Login = () => {
                       </div>
                     </div>
                   </div>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-primary btn-block"
                     disabled={loadingForgotPassword}
                   >

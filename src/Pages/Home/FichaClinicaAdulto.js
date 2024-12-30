@@ -453,6 +453,11 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
 
   return (
     <>
+    {submitError && (
+  <div className="alert alert-danger mt-3">
+    {submitError}
+  </div>
+)}
     <ToastContainer />
       <div className="alert alert-info">
         <strong>Ingreso Programa Telecuidado</strong>

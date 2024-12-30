@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Navigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'react-toastify';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'admin-lte/dist/css/adminlte.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -24,36 +26,70 @@ import Dashboard from './Dashboard';
 
 const Home = () => {
   const location = useLocation();
+  const { user } = useAuth();
   const [activeComponent, setActiveComponent] = useState('agenda');
   const [selectedFichaId, setSelectedFichaId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
-  
+  const [lastValidComponent, setLastValidComponent] = useState('agenda');
+
+  // Define component access permissions
+  const componentPermissions = {
+    'dashboard': [1, 2],
+    'agenda': [1, 2, 3],
+    'ficha-clinica': [1, 2, 3],
+    'reevaluacion': [1, 2, 3],
+    'instituciones': [1, 2],
+    'usuarios': [1],
+    'cargar-estudiantes': [1, 2],
+    'asignar-estudiantes': [1, 2],
+    'listado-estudiantes': [1, 2],
+    'ingresar-ficha-clinica': [1, 2, 3],
+    'listado-fichas-clinicas': [1, 2]
+  };
+
+  // Check if user has permission for a component
+  const hasPermission = (component) => {
+    if (!user || !componentPermissions[component]) return false;
+    return componentPermissions[component].includes(user.rol_id);
+  };
+
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const componentFromURL = searchParams.get('component');
   
     if (componentFromURL) {
-      // Priorizar el componente de la URL
-      setActiveComponent(componentFromURL);
+      if (hasPermission(componentFromURL)) {
+        setActiveComponent(componentFromURL);
+        setLastValidComponent(componentFromURL);
+      } else {
+        // Si no tiene permiso, mostrar toast y mantener el último componente válido
+        toast.error('No tienes autorización para acceder a esta sección');
+        setActiveComponent(lastValidComponent);
+      }
     } else if (location.state && location.state.component) {
-      // Si no hay componente en URL, usar el estado de navegación
       const { component, fichaId, tipo } = location.state;
   
-      // Validación flexible para ficha clínica
       if (component === 'ficha-clinica') {
-        // Si falta fichaId o tipo, navegar al listado de fichas
         if (!fichaId || !tipo) {
           setActiveComponent('listado-fichas-clinicas');
+        } else if (!hasPermission(component)) {
+          toast.error('No tienes autorización para acceder a esta sección');
+          setActiveComponent(lastValidComponent);
         } else {
           setActiveComponent(component);
+          setLastValidComponent(component);
           setSelectedFichaId(fichaId);
         }
-      } else {
+      } else if (hasPermission(component)) {
         setActiveComponent(component);
+        setLastValidComponent(component);
+      } else {
+        toast.error('No tienes autorización para acceder a esta sección');
+        setActiveComponent(lastValidComponent);
       }
     }
-  }, [location]);
+  }, [location, user]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -94,6 +130,44 @@ const Home = () => {
   }, [isMobile, isSidebarOpen]);
 
   const renderContent = () => {
+    // Si el usuario no está autorizado para el componente actual,
+    // mostrar el último componente válido
+    if (!hasPermission(activeComponent)) {
+      switch (lastValidComponent) {
+        case 'agenda':
+          return <Agenda 
+            onFichaSelect={setSelectedFichaId} 
+            setActiveComponent={setActiveComponent}
+          />;
+        case 'ficha-clinica':
+          return <FichaClinica id={selectedFichaId} />;
+        case 'reevaluacion':
+          return <Reevaluacion />;
+        case 'instituciones':
+          return <Instituciones />;
+        case 'usuarios':
+          return <Usuarios />;
+        case 'cargar-estudiantes':
+          return <CargarEstudiantes />;
+        case 'asignar-estudiantes':
+          return <AsignarEstudiantes />;
+        case 'listado-estudiantes':
+          return <ListadoEstudiantes />;
+        case 'ingresar-ficha-clinica':
+          return <IngresarFichaClinica />;
+        case 'listado-fichas-clinicas':
+          return <ListadoFichasClinicas />;
+        case 'dashboard':
+          return <Dashboard />;
+        default:
+          return <Agenda 
+            onFichaSelect={setSelectedFichaId} 
+            setActiveComponent={setActiveComponent}
+          />;
+      }
+    }
+
+    // Renderizar el componente solicitado si tiene permisos
     switch (activeComponent) {
       case 'agenda':
         return <Agenda 
@@ -102,7 +176,7 @@ const Home = () => {
         />;
       case 'ficha-clinica':
         return <FichaClinica id={selectedFichaId} />;
-      case 'reevaluacion': 
+      case 'reevaluacion':
         return <Reevaluacion />;
       case 'instituciones':
         return <Instituciones />;
@@ -118,9 +192,8 @@ const Home = () => {
         return <IngresarFichaClinica />;
       case 'listado-fichas-clinicas':
         return <ListadoFichasClinicas />;
-        case 'dashboard':
-          return <Dashboard />;
-
+      case 'dashboard':
+        return <Dashboard />;
       default:
         return <Agenda 
           onFichaSelect={setSelectedFichaId} 
@@ -128,6 +201,7 @@ const Home = () => {
         />;
     }
   };
+
 
   return (
     <div className={`wrapper ${isSidebarOpen ? 'sidebar-open' : 'sidebar-mini'}`}>

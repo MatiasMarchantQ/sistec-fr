@@ -51,21 +51,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Manejar expiración de sesión
   const handleSessionExpired = () => {
     localStorage.clear();
     sessionStorage.clear();
     setToken(null);
     setUser (null);
-    setIsUnauthorized(true);
-    toast.error('Su sesión ha expirado. Por favor, inicie sesión nuevamente.', {
-      position: "top-right",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-    });
+    alert('Su sesión ha expirado. Por favor, inicie sesión nuevamente.'); // Usar alert en lugar de toast
     window.location.href = '/'; // Redirigir a la página de inicio de sesión
   };
 
@@ -152,6 +143,7 @@ export const AuthProvider = ({ children }) => {
       setUser (userData);
     } catch (error) {
       console.error('Error al obtener datos del usuario:', error);
+      alert('Error al obtener datos del usuario: ' + error.message); // Usar alert
       logout();
     }
   };
@@ -163,18 +155,18 @@ export const AuthProvider = ({ children }) => {
   const login = async (rut, contrasena, rememberMe) => {
     try {
       setLoading(true);
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/login`, {
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/login2`, {
         rut,
         contrasena,
         rememberMe
       });
-
+  
       const { accessToken, nombres, estudiante_id, rol_id } = response.data;
       const storage = rememberMe ? localStorage : sessionStorage;
-
+  
       storage.setItem('accessToken', accessToken);
       setToken(accessToken);
-
+  
       const decoded = jwtDecode(accessToken);
       const userData = {
         id: rol_id === 3 ? null : (decoded.id || null), // Si es rol de estudiante, id será null
@@ -183,7 +175,7 @@ export const AuthProvider = ({ children }) => {
         estudiante_id: estudiante_id || decoded.estudiante_id,
         es_estudiante: rol_id === 3 // Agregar una bandera para identificar estudiantes
       };
-
+  
       storage.setItem('userData', JSON.stringify(userData));
       setUser (userData);
       setError('');
@@ -197,40 +189,40 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const loginDirector = async (rut, contrasena, rememberMe) => {
-    try {
-      setLoading(true);
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/login/directores`, {
-        rut,
-        contrasena,
-        rememberMe
-      });
+  // const loginDirector = async (rut, contrasena, rememberMe) => {
+  //   try {
+  //     setLoading(true);
+  //     const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/login/directores`, {
+  //       rut,
+  //       contrasena,
+  //       rememberMe
+  //     });
 
-      const { accessToken, nombres, rol_id } = response.data;
-      const storage = rememberMe ? localStorage : sessionStorage;
+  //     const { accessToken, nombres, rol_id } = response.data;
+  //     const storage = rememberMe ? localStorage : sessionStorage;
 
-      storage.setItem('accessToken', accessToken);
-      setToken(accessToken);
+  //     storage.setItem('accessToken', accessToken);
+  //     setToken(accessToken);
 
-      const decoded = jwtDecode(accessToken);
-      const userData = {
-        id: decoded.id,
-        rol_id: rol_id || decoded.rol_id,
-        nombres: nombres || decoded.nombres
-      };
+  //     const decoded = jwtDecode(accessToken);
+  //     const userData = {
+  //       id: decoded.id,
+  //       rol_id: rol_id || decoded.rol_id,
+  //       nombres: nombres || decoded.nombres
+  //     };
 
-      storage.setItem('userData', JSON.stringify(userData));
-      setUser (userData);
-      setError('');
-      return response.data;
-    } catch (error) {
-      console.error('Error durante el login de director:', error);
-      setError('Error de autenticación');
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     storage.setItem('userData', JSON.stringify(userData));
+  //     setUser (userData);
+  //     setError('');
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error('Error durante el login de director:', error);
+  //     setError('Error de autenticación');
+  //     throw error;
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const getToken = () => token;
 
@@ -240,10 +232,11 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     login,
-    loginDirector,
+    // loginDirector,
     logout,
     getToken,
-    setError
+    setError,
+    handleSessionExpired
   };
 
   return (
