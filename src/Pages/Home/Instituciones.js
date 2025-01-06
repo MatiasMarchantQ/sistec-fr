@@ -182,7 +182,7 @@ const Instituciones = () => {
   };
 
   const VolverHome = () => {
-    navigate('/home?component=home');
+    navigate('/home?component=agenda');
   };
 
   const handleReceptorInputChange = (index, field, value) => {
@@ -363,7 +363,12 @@ const handleSaveChanges = async (institucionId) => {
 
   return (
     <div className="instituciones">
-      <h2 className="instituciones__title text-center mb-4">Gestión de Instituciones</h2>
+      <div className="instituciones__back">
+        <button className="instituciones__btn--back" onClick={VolverHome}>
+          <i className="fas fa-arrow-left"></i> Volver
+        </button>
+      </div>
+      <h2 className="instituciones__title font-weight-bold text-center mb-4">Gestión de Instituciones</h2>
 
      {/* Controles de búsqueda y filtrado */}
       <div className="instituciones__controls d-flex justify-content-between mb-3">
@@ -704,13 +709,6 @@ const handleSaveChanges = async (institucionId) => {
             </li>
           </ul>
         </nav>
-      </div>
-
-      {/* Botón de volver al home */}
-      <div className="instituciones__back text-center">
-        <button className="instituciones__btn instituciones__btn--info btn" onClick={VolverHome}>
-          <i className="fas fa-arrow-left"></i> Volver al Home
-        </button>
       </div>
     </div>
   );

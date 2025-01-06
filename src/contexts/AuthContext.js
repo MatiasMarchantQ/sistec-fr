@@ -1,19 +1,60 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
-import { toast } from 'react-toastify';
-import { Modal, Button } from 'react-bootstrap';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-toastify'
+import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser ] = useState(null);
+  const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
+  const [renewCredentials, setRenewCredentials] = useState({
+    rut: '',
+    contrasena: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Agregar una referencia para controlar si la sesión ya expiró
+  const sessionExpiredRef = useRef(false);
+
+  const isRenewingRef = useRef(false);
+
+  const handleSessionExpired = () => {
+    // Evitar múltiples activaciones
+    if (sessionExpiredRef.current || isRenewingRef.current) {
+      return;
+    }
+    
+    sessionExpiredRef.current = true;
+    localStorage.clear();
+    sessionStorage.clear();
+    setToken(null);
+    setUser(null);
+    setShowSessionExpiredModal(true);
+    
+    // Mostrar el toast una sola vez
+    toast.error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.', {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
+  };
+
+  const handleForceLogout = () => {
+    logout();
+    setShowSessionExpiredModal(false);
+    // Redirigir a la página de login o home
+    window.location.href = '/';
+  };
 
   const logout = async () => {
     try {
@@ -42,35 +83,30 @@ export const AuthProvider = ({ children }) => {
         });
       }
     } finally {
-      // Limpiar completamente
       localStorage.clear();
       sessionStorage.clear();
       setToken(null);
-      setUser (null);
+      setUser(null);
       setLoading(false);
+      // Resetear el estado de expiración de sesión
+      sessionExpiredRef.current = false;
     }
-  };
-
-  const handleSessionExpired = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-    setToken(null);
-    setUser (null);
-    alert('Su sesión ha expirado. Por favor, inicie sesión nuevamente.'); // Usar alert en lugar de toast
-    window.location.href = '/'; // Redirigir a la página de inicio de sesión
   };
 
   // Configurar el interceptor de Axios
   useEffect(() => {
-    const interceptor = axios.interceptors.request.use(
+    const requestInterceptor = axios.interceptors.request.use(
       (config) => {
+        if (isRenewingRef.current || showSessionExpiredModal) {
+          return config;
+        }
         const storedToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
         if (storedToken) {
           const decoded = jwtDecode(storedToken);
           const currentTime = Date.now() / 1000;
 
-          // Verificar si el token ha expirado
-          if (decoded.exp < currentTime) {
+          // Verificar si el token ha expirado y la sesión no ha sido manejada aún
+          if (decoded.exp < currentTime && !sessionExpiredRef.current) {
             handleSessionExpired();
             return Promise.reject(new Error('Token expirado'));
           }
@@ -79,16 +115,66 @@ export const AuthProvider = ({ children }) => {
         }
         return config;
       },
-      (error) => {
-        return Promise.reject(error);
-      }
+      (error) => Promise.reject(error)
     );
 
-    // Limpiar el interceptor cuando el componente se desmonte
+    const responseInterceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (!isRenewingRef.current && 
+          error.response && 
+          (error.response.status === 401 || error.response.status === 403) && 
+          !sessionExpiredRef.current &&
+          error.response.data.code !== "INVALID_PASSWORD") {
+        handleSessionExpired();
+      }
+      return Promise.reject(error);
+    }
+  );
+
     return () => {
-      axios.interceptors.request.eject(interceptor);
+      axios.interceptors.request.eject(requestInterceptor);
+      axios.interceptors.response.eject(responseInterceptor);
     };
   }, []);
+
+  // Modificar handleRenewSession para manejar mejor los errores
+  const handleRenewSession = async (e) => {
+    e.preventDefault();
+
+    isRenewingRef.current = true;
+    
+    try {
+      const response = await login(
+        renewCredentials.rut,
+        renewCredentials.contrasena,
+        true
+      );
+
+      setShowSessionExpiredModal(false);
+      setRenewCredentials({ rut: '', contrasena: '' });
+      setError('');
+      // Resetear el estado de expiración de sesión después de un login exitoso
+      sessionExpiredRef.current = false;
+      window.location.reload();
+    } catch (error) {
+      setError('Credenciales inválidas. No se pudo renovar la sesión.');
+      toast.error('Error al renovar la sesión', {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      isRenewingRef.current = false;
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setRenewCredentials(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   // Verificar token existente
   const initializeAuth = () => {
@@ -109,7 +195,7 @@ export const AuthProvider = ({ children }) => {
         const parsedUserData = storedUserData ? JSON.parse(storedUserData) : null;
         setToken(storedToken);
         if (parsedUserData) {
-          setUser (parsedUserData);
+          setUser(parsedUserData);
         } else {
           fetchUserData(storedToken);
         }
@@ -140,7 +226,7 @@ export const AuthProvider = ({ children }) => {
 
       const storage = localStorage.getItem('accessToken') ? localStorage : sessionStorage;
       storage.setItem('userData', JSON.stringify(userData));
-      setUser (userData);
+      setUser(userData);
     } catch (error) {
       console.error('Error al obtener datos del usuario:', error);
       alert('Error al obtener datos del usuario: ' + error.message); // Usar alert
@@ -160,13 +246,13 @@ export const AuthProvider = ({ children }) => {
         contrasena,
         rememberMe
       });
-  
+
       const { accessToken, nombres, estudiante_id, rol_id } = response.data;
       const storage = rememberMe ? localStorage : sessionStorage;
-  
+
       storage.setItem('accessToken', accessToken);
       setToken(accessToken);
-  
+
       const decoded = jwtDecode(accessToken);
       const userData = {
         id: rol_id === 3 ? null : (decoded.id || null), // Si es rol de estudiante, id será null
@@ -175,14 +261,22 @@ export const AuthProvider = ({ children }) => {
         estudiante_id: estudiante_id || decoded.estudiante_id,
         es_estudiante: rol_id === 3 // Agregar una bandera para identificar estudiantes
       };
-  
+
       storage.setItem('userData', JSON.stringify(userData));
-      setUser (userData);
+      setUser(userData);
       setError('');
       return response.data;
     } catch (error) {
       console.error('Error durante el login:', error);
-      setError('Error de autenticación');
+      if (error.response && error.response.data) {
+        // Mostrar el mensaje de error específico del servidor
+        toast.error(error.response.data.error || 'Error de autenticación', {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      } else {
+        setError('Error de autenticación');
+      }
       throw error;
     } finally {
       setLoading(false);
@@ -242,6 +336,70 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={value}>
       {children}
+      <Modal
+        show={showSessionExpiredModal}
+        onHide={() => {
+          if (!sessionExpiredRef.current) {
+            setShowSessionExpiredModal(false);
+          }
+        }}
+        backdrop="static"
+        keyboard={false}
+        centered
+      >
+        <Modal.Header>
+          <Modal.Title>Sesión Expirada</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="mb-4">Tu sesión ha expirado. Puedes renovar la sesión o cerrar sesión:</p>
+          <Form onSubmit={handleRenewSession}>
+            <Form.Group>
+              <Form.Label>RUT</Form.Label>
+              <Form.Control
+                type="text"
+                name="rut"
+                value={renewCredentials.rut}
+                onChange={handleInputChange}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mt-3">
+              <Form.Label>Contraseña</Form.Label>
+              <InputGroup>
+                <Form.Control
+                  type={showPassword ? "text" : "password"}
+                  name="contrasena"
+                  value={renewCredentials.contrasena}
+                  onChange={handleInputChange}
+                  required
+                />
+                <Button
+                  variant="outline-secondary"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ?
+                    <i className="fas fa-eye-slash"></i> :
+                    <i className="fas fa-eye"></i>
+                  }
+                </Button>
+              </InputGroup>
+            </Form.Group>
+            {error && <p className="text-danger mt-2">{error}</p>}
+            <div className="d-grid gap-2 mt-4">
+              <Button type="submit" variant="primary">
+                Renovar Sesión
+              </Button>
+              <Button 
+                variant="outline-danger" 
+                onClick={handleForceLogout}
+                type="button"
+              >
+                Cerrar Sesión
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
     </AuthContext.Provider>
   );
 };

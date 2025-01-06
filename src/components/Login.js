@@ -37,28 +37,6 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Error durante el login:', error);
-
-      const errorMessages = {
-        'USER_NOT_FOUND': 'No se encontró un usuario con este RUT',
-        'INVALID_PASSWORD': 'Contraseña incorrecta',
-        'ACCOUNT_DISABLED': 'Tu cuenta ha sido desactivada',
-        'ACCOUNT_LOCKED': 'Cuenta bloqueada temporalmente',
-        'MISSING_CREDENTIALS': 'Debes ingresar RUT y contraseña',
-        'SERVER_ERROR': 'Error interno del servidor. Intenta nuevamente más tarde',
-        'default': 'Error al iniciar sesión'
-      };
-
-      const errorCode = error.response?.data?.code || 'default';
-      const errorMessage = errorMessages[errorCode];
-
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
     }
   };
 

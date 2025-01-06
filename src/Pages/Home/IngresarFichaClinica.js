@@ -97,9 +97,6 @@ const IngresarFichaClinica = () => {
     // Obtener el estado de navegación original
     const estadoNavegacion = location.state;
 
-    // Imprimir el estado de navegación para depuración
-    console.log('Estado de navegación:', estadoNavegacion);
-
     // Verificar si hay un estado de navegación
     if (estadoNavegacion) {
         // Priorizar el origen específico
@@ -202,7 +199,7 @@ const IngresarFichaClinica = () => {
       >
         <i className="fas fa-arrow-left me-8 pr-1"></i>Volver
       </Button>
-      <h2 className="text-center mb-4" style={{ color: '#388DE2' }}>Ficha Clínica</h2>
+      <h2 className="text-center font-weight-bold mb-4" style={{ color: 'var(--color-accent)' }}>Ficha Clínica</h2>
 
       {!isFromAgenda && (
         <>

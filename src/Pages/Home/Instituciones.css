@@ -5,8 +5,7 @@
 
 /* Título */
 .instituciones__title {
-    font-size: 2rem;
-    color: #388DE2;
+    color: var(--color-accent);
 }
 
 /* Controles del bloque */
@@ -107,6 +106,11 @@
 .instituciones__btn--info {
     background-color: #17a2b8;
     color: white;
+}
+
+.instituciones__btn--back {
+    border: none;
+    background-color: white;
 }
 
 .instituciones__btn--info:hover {

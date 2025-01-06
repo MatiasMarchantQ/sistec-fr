@@ -5,7 +5,8 @@
 .asignar-estudiantes h2 {
     text-align: center;
     font-size: 2rem;
-    color: #388DE2;
+    color: var(--color-accent);
+    font-weight: bold;
   }
   
 .asignar-estudiantes .card {

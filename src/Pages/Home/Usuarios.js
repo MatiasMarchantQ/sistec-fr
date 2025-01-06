@@ -274,7 +274,7 @@ const Usuarios = () => {
   };
 
   const VolverHome = () => {
-    navigate('/home?component=home');
+    navigate('/home?component=agenda');
   };
 
   const hayFiltrosAplicados = () => {
@@ -391,7 +391,13 @@ const Usuarios = () => {
 
   return (
     <div className="usuarios">
-      <h2 className="usuarios__title text-center mb-4">Personal académico</h2>
+      {/* Botón de volver al home */}
+      <div className="instituciones__back">
+        <button className="instituciones__btn--back" onClick={VolverHome}>
+          <i className="fas fa-arrow-left"></i> Volver
+        </button>
+      </div>
+      <h2 className="usuarios__title text-center font-weight-bold mb-4">Personal académico</h2>
 
       {/* Selector de tipo de usuario */}
       <div className="usuarios__controls d-flex justify-content-between mb-3">
@@ -772,12 +778,6 @@ const Usuarios = () => {
           <button className="usuarios__btn usuarios__btn--success btn me-2">Guardar Cambios</button>
           <button className="usuarios__btn usuarios__btn--secondary btn">Cancelar</button>
         </div> */}
-      </div>
-      {/* Botón de volver al home */}
-      <div className="instituciones__back text-center">
-        <button className="instituciones__btn instituciones__btn--info btn" onClick={VolverHome}>
-          <i className="fas fa-arrow-left"></i> Volver al Home
-        </button>
       </div>
       {selectedUser && (
         <Modal show={passwordModalOpen} onHide={() => setPasswordModalOpen(false)}>

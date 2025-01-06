@@ -3,7 +3,7 @@ import { Button } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import FichaClinicaAdulto from './FichaClinicaAdulto';
 import FichaClinicaInfantil from './FichaClinicaInfantil';
 import _ from 'lodash';
@@ -71,8 +71,6 @@ const Reevaluacion = () => {
     
     const formatearFichaInfantil = (fichaClinica) => {
       const edadPaciente = fichaClinica.paciente?.edad || fichaClinica.edad || '';
-      console.log('Datos para parsear edad:', edadPaciente); // Agregar log aquí
-
       return {
         nombres: fichaClinica.paciente?.nombres || fichaClinica.nombres || '',
         apellidos: fichaClinica.paciente?.apellidos || fichaClinica.apellidos || '',
@@ -326,10 +324,6 @@ const Reevaluacion = () => {
         // Preparar datos iniciales
         const prepararDatosIniciales = () => {
           const responseData = responseOriginal.data.data;
-          console.log('Datos originales completos:', responseData);
-          console.log('Diagnósticos en datos originales:', responseData.diagnosticos);
-          console.log('Diagnóstico otro:', responseData.diagnostico_otro);
-
           
           // Si estamos en modo edición y hay un reevaluacionId
           if (modoEdicion && reevaluacionId) {
@@ -585,7 +579,6 @@ const Reevaluacion = () => {
   
   return (
     <div className="container">
-      <ToastContainer />
       <div className="d-flex mb-3">
         <Button 
           variant="" 
@@ -599,7 +592,7 @@ const Reevaluacion = () => {
           <i className="fas fa-arrow-left me-8 pr-1"></i>Volver
         </Button>
       </div>
-      <h2 className="text-center mb-4">
+      <h2 className="text-center mb-4" style={{'color': 'var(--color-accent)'}}>
         Reevaluación - {tipoFicha === 'adulto' ? 'Adulto' : 'Infantil'}
       </h2>
   

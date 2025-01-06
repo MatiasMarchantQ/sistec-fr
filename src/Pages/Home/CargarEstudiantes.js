@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Modal, Button, Form, Alert } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
 import './CargarEstudiantes.css';
@@ -514,21 +514,20 @@ const CargarEstudiantes = () => {
     pageNumbers.push(i);
   }
 
+  const VolverHome = () => {
+    navigate('/home?component=agenda');
+  };
+
+
   return (
     <div className="cargar-estudiantes">
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
+      <div className="instituciones__back">
+        <button className="instituciones__btn--back" onClick={VolverHome}>
+          <i className="fas fa-arrow-left"></i> Volver
+        </button>
+      </div>
       <div className="container mt-4">
-        <h2 className="mb-4">Cargar Estudiantes</h2>
+        <h2 className="mb-4 font-weight-bold">Cargar Estudiantes</h2>
         <div className="card card-primary">
           <div className="card-header">
             <h3 className="card-title">Cargar archivo Excel</h3>

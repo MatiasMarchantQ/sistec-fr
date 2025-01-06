@@ -2,7 +2,7 @@ import React, { useState, useEffect} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciales, ultimaReevaluacion = null, reevaluacionSeleccionada = null, modoEdicion }) => {
@@ -90,7 +90,6 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
     // Determinar la fuente de datos principal
     const datosBase = reevaluacionSeleccionada || ultimaReevaluacion || datosIniciales;
 
-    console.log(datosBase);
     if (datosBase) {
       // Lógica de carga de datos existente
       setDatosAdulto(prev => ({
@@ -458,7 +457,6 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
     {submitError}
   </div>
 )}
-    <ToastContainer />
       <div className="alert alert-info">
         <strong>Ingreso Programa Telecuidado</strong>
         <p>

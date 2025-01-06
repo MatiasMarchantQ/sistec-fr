@@ -624,7 +624,6 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
         draggable: true
       });
 
-      console.log('Datos recibidos:', response.data);
       await cargarSeguimientosAnteriores();
   
     } catch (error) {

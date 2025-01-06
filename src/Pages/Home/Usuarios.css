@@ -6,8 +6,7 @@
 }
 
 .usuarios__title {
-    font-size: 2rem;
-    color: #388DE2;
+    color: var(--color-accent);
 }
 
 .usuarios__controls {
@@ -31,7 +30,7 @@
 }
 
 .usuarios__btn--primary {
-    background-color: #007bff;
+    background-color: var(--color-accent);
     color: white;
 }
 

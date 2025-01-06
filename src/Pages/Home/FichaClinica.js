@@ -539,6 +539,7 @@ const FichaClinica = () => {
       // Si no hay origen específico, volver al listado de fichas
       navigate('?component=agenda', {
         state: {
+          fichaId: fichaClinica.id,
           tipo: tipo || 'adulto'
         }
       });
@@ -747,6 +748,10 @@ const FichaClinica = () => {
     }
   }, [fichaId, tipo]);
 
+  if (!user) {
+    return <div>Verificando...</div>;
+  }
+
   const handleFiltrar = () => {
     // Validar que la fecha de inicio no sea mayor que la fecha fin
     if (fechaInicio && fechaFin && new Date(fechaInicio) > new Date(fechaFin)) {
@@ -804,7 +809,7 @@ const FichaClinica = () => {
         />
       ) : null}
 
-      <h2 className="text-center mb-0 pb-2">
+      <h2 className="text-center mb-0 pb-2" style={{ 'color': 'var(--color-accent)'}}>
         Ficha Clínica {tipo === 'adulto' ? 'Adulto' : 'Infantil'} - {fichaClinica.paciente?.nombres} {fichaClinica.paciente?.apellidos}
       </h2>
       <Tabs

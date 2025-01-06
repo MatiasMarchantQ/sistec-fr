@@ -70,7 +70,7 @@ const ListadoFichasClinicas = () => {
         // Asegurarse de que tipoFicha tenga un valor
         const filtrosParaExportar = { 
             ...filtros,
-            tipoFicha: filtros.tipoFicha || '' // Asegúrate de que siempre haya un valor
+            tipoFicha: filtros.tipoFicha || ''
         };
 
         // Crear parámetros para la solicitud
@@ -116,10 +116,6 @@ const ListadoFichasClinicas = () => {
             switch (error.response.status) {
                 case 400:
                     alert('Debe seleccionar un tipo de ficha válido (adulto o infantil).');
-                    break;
-                case 401:
-                    alert('Su sesión ha expirado. Por favor, inicie sesión nuevamente.');
-                    navigate('/');
                     break;
                 case 404:
                     alert('No se encontraron fichas clínicas para exportar.');
@@ -211,9 +207,6 @@ const ListadoFichasClinicas = () => {
         console.error('Error al buscar fichas:', error);
         setFichas([]);
         setTotalPaginas(1);
-        if (error.response?.status === 401) {
-            navigate('/');
-        }
     } finally {
         setIsLoading(false);
     }
@@ -263,9 +256,6 @@ const ListadoFichasClinicas = () => {
         }
     } catch (error) {
         console.error('Error al limpiar filtros:', error);
-        if (error.response?.status === 401) {
-            navigate('/');
-        }
     } finally {
         setIsLoading(false);
     }
@@ -292,9 +282,19 @@ const ListadoFichasClinicas = () => {
   // Verificar si hay filtros activos
   const hayFiltrosActivos = Object.values(filtros).some(value => value !== '');
 
+  const VolverHome = () => {
+    navigate('/home?component=agenda');
+  };
+
+  
   return (
     <Container fluid className="p-4">
-      <h1 className="mb-4">Listado de Fichas Clínicas</h1>
+      <div className="instituciones__back">
+        <button className="instituciones__btn--back" onClick={VolverHome}>
+          <i className="fas fa-arrow-left"></i> Volver
+        </button>
+      </div>
+      <h2 className="font-weight-bold text-center mb-4" style={{ 'color': 'var(--color-accent)'}}>Listado de Fichas Clínicas</h2>
       
       {/* Formulario de Filtros */}
       <Form className="mb-4" onSubmit={(e) => { e.preventDefault(); aplicarFiltros(); }}>
