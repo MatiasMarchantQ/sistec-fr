@@ -180,7 +180,7 @@ const IngresarFichaClinica = () => {
 };
 
   const handleIngresar = (data) => {
-    console.log('Ficha ingresada:', data);
+    console.log('Ficha ingresada');
   };
 
   // Determinar si se puede seleccionar manualmente el tipo de ficha

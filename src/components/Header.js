@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dropdown, Modal, Form, Button } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../contexts/AuthContext';
 import './Components.css';
@@ -279,7 +279,7 @@ const Header = ({ toggleSidebar }) => {
 
   return (
     <div>
-      <ToastContainer 
+      {/* <ToastContainer 
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
@@ -289,7 +289,7 @@ const Header = ({ toggleSidebar }) => {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-      />
+      /> */}
     
     <nav className="main-header navbar navbar-expand navbar-light custom-header">
       <button 

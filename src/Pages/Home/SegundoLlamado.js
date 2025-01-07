@@ -143,7 +143,7 @@ const SegundoLlamado = ({
       const pacienteInfo = [
         { label: 'Nombre', value: `${paciente.nombres} ${paciente.apellidos}` },
         { label: 'RUT', value: paciente.rut },
-        { label: 'Fecha de Nacimiento', value: formatFecha(paciente.fecha_nacimiento) },
+        // { label: 'Fecha de Nacimiento', value: formatFecha(paciente.fecha_nacimiento) },
         { label: 'Edad', value: String(paciente.edad) },
         { label: 'Teléfono Principal', value: paciente.telefono_principal || 'No registrado' },
         { label: 'Teléfono Secundario', value: paciente.telefono_secundario || 'No registrado' }
@@ -593,7 +593,7 @@ const SegundoLlamado = ({
         <Form onSubmit={handleSubmit}>
           {renderContent()}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-            <Button type="submit" disabled={disabled}>Guardar</Button>
+            <Button type="submit" disabled={disabled}>Ingresar</Button>
             {seguimiento.id && esEditable && (
               <Button
                 variant="success"

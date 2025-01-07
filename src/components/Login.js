@@ -157,29 +157,25 @@ const Login = () => {
       </nav> */}
       <a
         href="/recursos"
-        className="btn btn-outline-light position-absolute top-0 end-0 m-3 d-flex align-items-center"
+        className="login-button position-absolute top-0 end-0 m-4 rounded-pill"
         style={{
           zIndex: 1000,
           position: 'fixed',
           borderRadius: '20px',
-          padding: '8px 15px'
+          padding: '8px 15px',
+          textDecoration: 'none'
         }}
       >
         <i className="fas fa-external-link-alt mr-2"></i>
         Ir a Recursos
       </a>
 
-      <div className="hold-transition login-page" style={{
-        backgroundImage: `
-          linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
-          url(/facsa.jpg)
-        `,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        position: 'relative',
-        height: '100vh',
-        paddingTop: '60px',
-      }}>
+      <div className="hold-transition login-page" style={{ 
+          backgroundImage: `linear-gradient(rgba(0, 23, 31, 0.8), rgba(0, 52, 89, 0.8)), url(/facsa.jpg)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}>
         <div className="overlay" />
         <div className="login-box">
           <div className="login-logo">
@@ -205,7 +201,7 @@ const Login = () => {
                   />
                   <div className="input-group-append">
                     <div className="input-group-text">
-                      <span className="fas fa-envelope" />
+                      <span className="fas fa-user" />
                     </div>
                   </div>
                 </div>

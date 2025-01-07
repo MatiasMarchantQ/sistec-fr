@@ -313,7 +313,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
 
   const limpiarFormulario = () => {
     setDatosAdulto(initialDatosAdulto);
-    setDiagnosticoSeleccionado('');
+    setDiagnosticosSeleccionados('');
     setDiagnosticoOtro('');
     setTiposFamiliaSeleccionados([]);
     setCicloVitalSeleccionado('');

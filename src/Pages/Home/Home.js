@@ -62,8 +62,11 @@ const Home = () => {
       if (hasPermission(componentFromURL)) {
         setActiveComponent(componentFromURL);
         setLastValidComponent(componentFromURL);
+      } else if (lastValidComponent === 'agenda') {
+        // Solo establecer el componente por defecto, sin mostrar error
+        setActiveComponent('agenda');
+        setLastValidComponent('agenda');
       } else {
-        // Si no tiene permiso, mostrar toast y mantener el último componente válido
         toast.error('No tienes autorización para acceder a esta sección');
         setActiveComponent(lastValidComponent);
       }
@@ -89,7 +92,7 @@ const Home = () => {
         setActiveComponent(lastValidComponent);
       }
     }
-  }, [location, user]);
+}, [location, user]);
 
   useEffect(() => {
     const handleResize = () => {

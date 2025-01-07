@@ -313,7 +313,7 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
       generarRecomendaciones(seguimiento.grupoEdad);
     }
   }, [pacienteId, seguimiento.grupoEdad]);
-  
+
   // Si no hay usuario, mostrar pantalla de carga o nada
   if (!user) {
     return <div>Verificando...</div>;
@@ -729,41 +729,168 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
 
 
   const exportarDetallesPDF = async (seguimiento) => {
-    // Primero, crea un contenedor temporal para el contenido que deseas exportar
-    const input = document.getElementById('detallesSeguimiento'); // Asegúrate de que este ID coincida con el contenedor del modal
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
 
-    // Captura el contenido del elemento
-    const canvas = await html2canvas(input);
-    const imgData = canvas.toDataURL('image/png');
+    // Almacenar los textareas originales
+    const originalTextareas = [];
+    const tempDivs = [];
 
-    // Crea un nuevo PDF
-    const pdf = new jsPDF();
-    const imgWidth = 98; // Ancho de la imagen en el PDF
-    const pageHeight = pdf.internal.pageSize.height;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let heightLeft = imgHeight;
+    // Estilo para la tabla de información
+    const addInfoTable = () => {
+      pdf.setFontSize(12);
+      pdf.setTextColor(33, 33, 33);
 
+      // Configuración de la tabla
+      const startX = 20;
+      let startY = 30;
+      const cellWidth = 80;
+      const cellHeight = 10;
+      const lineHeight = 7;
 
-    // Añadir datos del paciente
-    pdf.setFontSize(12);
-    pdf.text(`Nombre: ${seguimiento.paciente_infantil?.nombres || 'N/A'} ${seguimiento.paciente_infantil?.apellidos || ''}`, 10, 10);
-    pdf.text(`Edad: ${seguimiento.grupo_edad || 'N/D'}`, 10, 20);
-    pdf.text(`Fecha: ${seguimiento.fecha || 'N/D'}`, 10, 30);
+      // Título
+      pdf.setFontSize(16);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('Información del Paciente', startX, 20);
+      pdf.setFontSize(12);
 
+      // Datos del paciente
+      const pacienteInfo = [
+        { label: 'Nombre', value: `${seguimiento.paciente_infantil?.nombres || 'N/A'} ${seguimiento.paciente_infantil?.apellidos || ''}` },
+        { label: 'RUT', value: seguimiento.paciente_infantil?.rut || 'N/A' },
+        { label: 'Edad', value: seguimiento.grupoEdad || 'N/D' },
+        { label: 'Teléfono Principal', value: seguimiento.paciente_infantil?.telefono_principal || 'No registrado' },
+        { label: 'Teléfono Secundario', value: seguimiento.paciente_infantil?.telefono_secundario || 'No registrado' }
+      ];
 
-    // Agregar la imagen al PDF
-    pdf.addImage(imgData, 'PNG', 10, 40, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
+      // Dibujar tabla
+      pacienteInfo.forEach((item, index) => {
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(startX, startY + index * cellHeight, cellWidth, cellHeight, 'F');
+        pdf.text(item.label, startX + 2, startY + index * cellHeight + lineHeight);
 
-    // Si la imagen es más alta que una página, agrega más páginas
-    while (heightLeft >= 0) {
-      pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 10, -260, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(startX + cellWidth, startY + index * cellHeight, cellWidth, cellHeight, 'F');
+        pdf.text(String(item.value), startX + cellWidth + 2, startY + index * cellHeight + lineHeight);
+      });
+    };
+
+    // Agregar información del paciente
+    addInfoTable();
+    pdf.addPage();
+
+    const input = document.getElementById('exportable-content4'); // Asegúrate de que este ID coincida con el contenedor del contenido que deseas exportar
+    const sections = input.querySelectorAll('[data-pdf-section]');
+
+    try {
+      for (let pageIndex = 0; pageIndex < sections.length; pageIndex++) {
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
+
+        const section = sections[pageIndex];
+
+        // Modificar textareas antes de capturar
+        const textareas = section.querySelectorAll('textarea');
+        textareas.forEach(textarea => {
+          // Guardar referencia al textarea original
+          originalTextareas.push({
+            element: textarea,
+            parent: textarea.parentNode,
+            value: textarea.value
+          });
+
+          // Crear un div temporal que reemplace el textarea
+          const tempDiv = document.createElement('div');
+          tempDiv.style.width = textarea.style.width || '100%';
+          tempDiv.style.border = textarea.style.border;
+          tempDiv.style.padding = textarea.style.padding;
+          tempDiv.style.whiteSpace = 'pre-wrap';
+          tempDiv.style.wordBreak = 'break-word';
+          tempDiv.textContent = textarea.value;
+
+          // Almacenar referencia al div temporal
+          tempDivs.push({
+            div: tempDiv,
+            parent: textarea.parentNode
+          });
+
+          // Reemplazar textarea con div
+          textarea.parentNode.replaceChild(tempDiv, textarea);
+        });
+
+        const sectionCanvas = await html2canvas(section, {
+          scale: window.devicePixelRatio,
+          useCORS: true,
+          logging: false,
+          width: section.scrollWidth,
+          height: section.scrollHeight,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          imageTimeout: 0
+        });
+
+        const sectionImgData = sectionCanvas.toDataURL('image/jpeg', 1.0);
+
+        const pageWidth = pdf.internal.pageSize.width;
+        const imgWidth = pageWidth - 120; // Ajustar el ancho de la imagen
+        const imgHeight = (sectionCanvas.height * imgWidth) / sectionCanvas.width;
+
+        const xPosition = (pageWidth - imgWidth) / 2;
+        const yPosition = 15;
+
+        pdf.addImage(
+          sectionImgData,
+          'JPEG',
+          xPosition,
+          yPosition,
+          imgWidth,
+          imgHeight,
+          undefined,
+          'FAST'
+        );
+      }
+
+      pdf.save(`seguimiento_infantil_${seguimiento.numero_llamado || 'detalles'}.pdf`);
+    } catch (error) {
+      console.error('Error al exportar PDF:', error);
+      toast.error('Hubo un problema al exportar el PDF.');
+    } finally {
+      // Restaurar textareas y eliminar divs temporales
+      originalTextareas.forEach(({ element, parent, value }) => {
+        const restoredTextarea = document.createElement('textarea');
+        restoredTextarea.className = element.className;
+        restoredTextarea.style.cssText = element.style.cssText;
+        restoredTextarea.value = value;
+
+        // Copiar todos los event listeners y atributos
+        for (let attr of element.attributes) {
+          restoredTextarea.setAttribute(attr.name, attr.value);
+        }
+
+        // Restaurar evento onChange
+        restoredTextarea.addEventListener('change', (e) => {
+          setSeguimiento(prev => ({
+            ...prev,
+            [restoredTextarea.name]: e.target.value
+          }));
+        });
+
+        parent.replaceChild(restoredTextarea, parent.firstChild);
+      });
+
+      tempDivs.forEach(({ div, parent }) => {
+        if (parent.contains(div)) {
+          parent.removeChild(div);
+        }
+      });
+
+      originalTextareas.length = 0;
+      tempDivs.length = 0;
     }
-
-    // Guarda el PDF
-    pdf.save(`seguimiento_infantil_${seguimiento.numero_llamado || 'detalles'}.pdf`);
   };
 
   return (
@@ -1010,76 +1137,82 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
               : 'Seguimiento'} - {selectedSeguimiento?.fecha}
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body id="detallesSeguimiento">
-          {selectedSeguimiento && (
-            <div>
-              <p><strong>Edad:</strong> {selectedSeguimiento.grupo_edad}</p>
-              <h5>Hitos de Desarrollo</h5>
-              {Object.entries(selectedSeguimiento.areaDPM || {}).map(([area, cumplido]) => {
-                // Solo mostrar áreas con valor booleano
-                if (cumplido === null || cumplido === undefined) return null;
+        <div id="exportable-content4">
+          <Modal.Body id="detallesSeguimiento">
+            {selectedSeguimiento && (
+              <div>
+                <p><strong>Edad:</strong> {selectedSeguimiento.grupo_edad}</p>
+                <div data-pdf-section>
+                  <h5>Hitos de Desarrollo</h5>
+                  {Object.entries(selectedSeguimiento.areaDPM || {}).map(([area, cumplido]) => {
+                    // Solo mostrar áreas con valor booleano
+                    if (cumplido === null || cumplido === undefined) return null;
 
-                const areaFormateada = area === 'motorGrueso' ? 'Motor Grueso' :
-                  area === 'motorFino' ? 'Motor Fino' :
-                    area.charAt(0).toUpperCase() + area.slice(1);
+                    const areaFormateada = area === 'motorGrueso' ? 'Motor Grueso' :
+                      area === 'motorFino' ? 'Motor Fino' :
+                        area.charAt(0).toUpperCase() + area.slice(1);
 
-                // Verificar si existen hitos para el área
-                const hitosArea = HITOS_DESARROLLO[selectedSeguimiento.grupoEdad]?.[area];
-                if (!hitosArea) {
-                  return (
-                    <Card key={area} className="mb-3">
-                      <Card.Header>
-                        <strong>{areaFormateada}</strong>
-                      </Card.Header>
-                      <Card.Body>
-                        <p>No hay hitos disponibles para esta área.</p>
-                      </Card.Body>
-                    </Card>
-                  );
-                }
+                    // Verificar si existen hitos para el área
+                    const hitosArea = HITOS_DESARROLLO[selectedSeguimiento.grupoEdad]?.[area];
+                    if (!hitosArea) {
+                      return (
+                        <Card key={area} className="mb-3">
+                          <Card.Header>
+                            <strong>{areaFormateada}</strong>
+                          </Card.Header>
+                          <Card.Body>
+                            <p>No hay hitos disponibles para esta área.</p>
+                          </Card.Body>
+                        </Card>
+                      );
+                    }
 
-                return (
-                  <Card key={area} className="mb-3">
-                    <Card.Header>
-                      <strong>{areaFormateada}</strong>
-                    </Card.Header>
-                    <Card.Body>
-                      {hitosArea.map((hito, index) => (
-                        <div key={index} className="mb-3">
-                          <p>{hito.descripcion}</p>
-                          <Alert
-                            variant={cumplido ? "success" : "danger"}
-                            className="p-2"
-                          >
-                            Respuesta: {cumplido ? "Sí" : "No"}
-                          </Alert>
-                        </div>
-                      ))}
-                    </Card.Body>
-                  </Card>
-                );
-              })}
-
-              <h5>Recomendaciones</h5>
-              {[
-                { label: 'Área Motora', key: 'areaMotora' },
-                { label: 'Área de Lenguaje', key: 'areaLenguaje' },
-                { label: 'Área Socioemocional', key: 'areaSocioemocional' },
-                { label: 'Área Cognitiva', key: 'areaCognitiva' }
-              ].map(({ label, key }) => (
-                <div key={key} className="mb-3">
-                  <strong>{label}:</strong>
-                  <Card>
-                    <Card.Body>
-                      {selectedSeguimiento.recomendaciones?.[key] ||
-                        <span className="text-muted">No hay recomendaciones específicas</span>}
-                    </Card.Body>
-                  </Card>
+                    return (
+                      <Card key={area} className="mb-3">
+                        <Card.Header>
+                          <strong>{areaFormateada}</strong>
+                        </Card.Header>
+                        <Card.Body>
+                          {hitosArea.map((hito, index) => (
+                            <div key={index} className="mb-3">
+                              <p>{hito.descripcion}</p>
+                              <Alert
+                                variant={cumplido ? "success" : "danger"}
+                                className="p-2"
+                              >
+                                Respuesta: {cumplido ? "Sí" : "No"}
+                              </Alert>
+                            </div>
+                          ))}
+                        </Card.Body>
+                      </Card>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-          )}
-        </Modal.Body>
+
+                <div data-pdf-section>
+                  <h5>Recomendaciones</h5>
+                  {[
+                    { label: 'Área Motora', key: 'areaMotora' },
+                    { label: 'Área de Lenguaje', key: 'areaLenguaje' },
+                    { label: 'Área Socioemocional', key: 'areaSocioemocional' },
+                    { label: 'Área Cognitiva', key: 'areaCognitiva' }
+                  ].map(({ label, key }) => (
+                    <div key={key} className="mb-3">
+                      <strong>{label}:</strong>
+                      <Card>
+                        <Card.Body>
+                          {selectedSeguimiento.recomendaciones?.[key] ||
+                            <span className="text-muted">No hay recomendaciones específicas</span>}
+                        </Card.Body>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Modal.Body>
+        </div>
         <Modal.Footer>
           <Button variant="primary" onClick={() => exportarDetallesPDF(selectedSeguimiento)}>
             Exportar a PDF

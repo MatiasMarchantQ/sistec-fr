@@ -51,14 +51,23 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
   const [datosCargados, setDatosCargados] = useState(false);
 
 
-  const parseEdad = useMemo(() => (edadString) => {
-    // Si no hay valor o es null, devolver objeto con null
+  const parseEdad = useMemo(() => (edadString, edadAniosDirecto, edadMesesDirecto, edadDiasDirecto) => {
+    // Caso 1: Si recibimos valores directos de años/meses/días
+    if (edadAniosDirecto !== undefined || edadMesesDirecto !== undefined || edadDiasDirecto !== undefined) {
+        return {
+            edadAnios: edadAniosDirecto || null,
+            edadMeses: edadMesesDirecto || null,
+            edadDias: edadDiasDirecto || null
+        };
+    }
+
+    // Caso 2: Si no hay valor o es null, devolver objeto con null
     if (!edadString) {
-      return {
-        edadAnios: null,
-        edadMeses: null,
-        edadDias: null
-      };
+        return {
+            edadAnios: null,
+            edadMeses: null,
+            edadDias: null
+        };
     }
 
     // Convertir a string y limpiar espacios
@@ -66,90 +75,110 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
 
     // Regex para manejar formatos específicos
     const regexPatterns = [
-      // "1 años, 10 días"
-      /^(\d+)\s*años?,?\s*(\d+)\s*días?$/i,
-
-      // "23 meses, 1 días"
-      /^(\d+)\s*meses?,?\s*(\d+)?\s*días?$/i,
-
-      // "1 años, 1 meses" 
-      /^(\d+)\s*años?,\s*(\d+)\s*meses?$/i,
-
-      // "1 años, 1 meses, 10 días"
-      /^(\d+)\s*años?,\s*(\d+)\s*meses?,\s*(\d+)\s*días?$/i
+        // "1 años, 10 días"
+        /^(\d+)\s*años?,?\s*(\d+)\s*días?$/i,
+        // "23 meses, 1 días"
+        /^(\d+)\s*meses?,?\s*(\d+)?\s*días?$/i,
+        // "1 años, 1 meses"
+        /^(\d+)\s*años?,\s*(\d+)\s*meses?$/i,
+        // "1 años, 1 meses, 10 días"
+        /^(\d+)\s*años?,\s*(\d+)\s*meses?,\s*(\d+)\s*días?$/i,
+        // "5 años"
+        /^(\d+)\s*años?$/i,
+        // "3 meses"
+        /^(\d+)\s*meses?$/i,
+        // "10 días"
+        /^(\d+)\s*días?$/i
     ];
 
     // Probar cada patrón de regex
     for (let regex of regexPatterns) {
-      const match = edadString.match(regex);
+        const match = edadString.match(regex);
 
-      if (match) {
-        const result = {
-          edadAnios: null,
-          edadMeses: null,
-          edadDias: null
-        };
+        if (match) {
+            const result = {
+                edadAnios: null,
+                edadMeses: null,
+                edadDias: null
+            };
 
-        // Manejar casos con años y días
-        if (regex.source.includes('años') && regex.source.includes('días')) {
-          result.edadAnios = match[1];
-          result.edadDias = match[2];
-        }
-        // Manejar caso de meses y días
-        else if (regex.source.includes('meses')) {
-          result.edadMeses = match[1];
-          if (match[2]) {
-            result.edadDias = match[2];
-          }
-        }
-        // Manejar casos con años y meses
-        else if (regex.source.includes('años') && regex.source.includes('meses')) {
-          result.edadAnios = match[1];
-          result.edadMeses = match[2];
-          if (match[3]) {
-            result.edadDias = match[3];
-          }
-        }
+            // Manejar casos con años y días
+            if (regex.source.includes('años') && regex.source.includes('días')) {
+                result.edadAnios = match[1];
+                result.edadDias = match[2];
+            }
+            // Manejar caso de meses y días
+            else if (regex.source.includes('meses')) {
+                result.edadMeses = match[1];
+                if (match[2]) {
+                    result.edadDias = match[2];
+                }
+            }
+            // Manejar casos con años y meses
+            else if (regex.source.includes('años') && regex.source.includes('meses')) {
+                result.edadAnios = match[1];
+                result.edadMeses = match[2];
+                if (match[3]) {
+                    result.edadDias = match[3];
+                }
+            } else if (regex.source.includes('años')) {
+                result.edadAnios = match[1];
+            } else if (regex.source.includes('meses')) {
+                result.edadMeses = match[1];
+            } else if (regex.source.includes('días')) {
+                result.edadDias = match[1];
+            }
 
-        return result;
-      }
+            return result;
+        }
     }
 
     // Último intento: extraer números de la cadena
     const numeros = edadString.match(/\d+/g);
     if (numeros) {
-      return {
-        edadAnios: numeros[0] || null,
-        edadMeses: numeros[1] || null,
-        edadDias: numeros[2] || null
-      };
+        return {
+            edadAnios: numeros[0] || null,
+            edadMeses: numeros[1] || null,
+            edadDias: numeros[2] || null
+        };
     }
 
-    // Si no se puede parsear
-    console.warn('Formato de edad no reconocido:', edadString);
-
     return {
-      edadAnios: null,
-      edadMeses: null,
-      edadDias: null
+        edadAnios: null,
+        edadMeses: null,
+        edadDias: null
     };
-  }, []);
+}, []);
 
   useEffect(() => {
     // Priorizar ultimaReevaluacion sobre datosIniciales
     const datosBase = reevaluacionSeleccionada || ultimaReevaluacion || datosIniciales;
-
+    console.log('Datos base:', datosBase);
+    
     if (datosBase) {
       // Datos personales del niño
       setDatosNino(prev => {
-        // Parsear edad con múltiples estrategias
-        const edadParseada = parseEdad(
-          datosBase.edad ||
-          datosBase.paciente?.edad ||
-          (datosBase.edadAnios && datosBase.edadMeses && datosBase.edadDias
-            ? `${datosBase.edadAnios} años, ${datosBase.edadMeses} meses, ${datosBase.edadDias} días`
-            : '')
-        );
+        // Verificar si tenemos valores individuales de edad
+        const tieneValoresIndividuales = 
+          datosBase.edadAnios !== undefined || 
+          datosBase.edadMeses !== undefined || 
+          datosBase.edadDias !== undefined;
+
+        // Determinar la edad a parsear
+        let edadParseada;
+        if (tieneValoresIndividuales) {
+          edadParseada = parseEdad(null, 
+            datosBase.edadAnios || null, 
+            datosBase.edadMeses || null, 
+            datosBase.edadDias || null
+          );
+        } else {
+          // Si no hay valores individuales, intentar con el string completo
+          const edadString = datosBase.edad || datosBase.paciente?.edad;
+          edadParseada = parseEdad(edadString);
+        }
+
+        console.log(edadParseada);
 
         return {
           ...prev,

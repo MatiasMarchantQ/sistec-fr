@@ -154,6 +154,24 @@
   margin-left: 0 !important;
 }
 
+.login-button {
+  background-color: rgba(0, 52, 89, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--color-white);
+  transition: all 0.3s ease;
+}
+
+.login-button:hover {
+  background-color: var(--color-accent);
+  color: var(--color-white);
+}
+
+.login-button {
+  padding: 0.4rem 1rem;
+  font-size: 0.9rem;
+}
+
 /* Estilos para el footer */
 .login-page-wrapper .main-footer {
   background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
@@ -219,7 +237,6 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
     z-index: 1;
 }
 

@@ -122,15 +122,10 @@ const CambiarContrasena = () => {
     <div 
       className="hold-transition login-page" 
       style={{ 
-        backgroundImage: `
-          linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
-          url(/facsa.jpg)
-        `,
+        backgroundImage: `linear-gradient(rgba(0, 23, 31, 0.8), rgba(0, 52, 89, 0.8)), url(/facsa.jpg)`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        position: 'relative',
-        height: '100vh',
-        paddingTop: '60px',
+        backgroundAttachment: 'fixed'
       }}
     >
       <div className="login-box">

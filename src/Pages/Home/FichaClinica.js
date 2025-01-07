@@ -445,7 +445,6 @@ const FichaClinica = () => {
   const reevaluacionesPorPagina = 5;
   const [totalRegistros, setTotalRegistros] = useState(0);
   const [filtrosAplicados, setFiltrosAplicados] = useState(false);
-
   const limpiarFiltros = () => {
     setFechaInicio('');
     setFechaFin('');
@@ -755,13 +754,13 @@ const FichaClinica = () => {
   const handleFiltrar = () => {
     // Validar que la fecha de inicio no sea mayor que la fecha fin
     if (fechaInicio && fechaFin && new Date(fechaInicio) > new Date(fechaFin)) {
-        alert('La fecha de inicio no puede ser mayor que la fecha fin');
-        return;
+      alert('La fecha de inicio no puede ser mayor que la fecha fin');
+      return;
     }
 
     setFiltrosAplicados(true); // Establecer que los filtros están aplicados
     fetchReevaluaciones(1, fechaInicio, fechaFin);
-};
+  };
 
   // En el componente FichaClinica
   const cambiarPagina = (numeroPagina) => {
@@ -809,7 +808,7 @@ const FichaClinica = () => {
         />
       ) : null}
 
-      <h2 className="text-center mb-0 pb-2" style={{ 'color': 'var(--color-accent)'}}>
+      <h2 className="text-center mb-0 pb-2" style={{ 'color': 'var(--color-accent)' }}>
         Ficha Clínica {tipo === 'adulto' ? 'Adulto' : 'Infantil'} - {fichaClinica.paciente?.nombres} {fichaClinica.paciente?.apellidos}
       </h2>
       <Tabs
@@ -958,13 +957,9 @@ const FichaClinica = () => {
                                   <i className={`fas fa-chevron-${cambiosExpandidos ? 'up' : 'down'}`}></i>
                                 </div>
 
-                                {cambiosExpandidos ? (
+                                {cambiosExpandidos && (
                                   <div className="mt-3">
                                     {renderCambiosDetectados(cambiosDetectados[reevaluacion.id].cambios)}
-                                  </div>
-                                ) : (
-                                  <div className="mt-3">
-                                    <h6 className="text-muted mb-0">No hay cambios detectados.</h6>
                                   </div>
                                 )}
                               </div>
