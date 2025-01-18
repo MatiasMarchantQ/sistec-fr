@@ -126,6 +126,12 @@ export const AuthProvider = ({ children }) => {
           (error.response.status === 401 || error.response.status === 403) && 
           !sessionExpiredRef.current &&
           error.response.data.code !== "INVALID_PASSWORD") {
+
+          // Manejar el caso de cuenta desactivada
+        if (error.response.data.code === "ACCOUNT_DISABLED") {
+          return Promise.reject(error); // No llamar a handleSessionExpired
+        }
+        // Manejar como expiración de sesión
         handleSessionExpired();
       }
       return Promise.reject(error);

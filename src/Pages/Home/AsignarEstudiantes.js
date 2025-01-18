@@ -926,10 +926,10 @@ const AsignarEstudiantes = () => {
 
 
       <Card>
-        <Card.Header className="position-relative">
+        <Card.Header className="position-relative custom-header text-light">
           <Card.Title className="mb-0">Estudiantes y sus Asignaciones</Card.Title>
           <Button
-            variant="primary"
+            variant="light"
             className="position-absolute top-50 end-0 translate-middle-y"
             onClick={() => setShowAsignarModal(true)}
             disabled={selectedEstudiantes.length === 0}

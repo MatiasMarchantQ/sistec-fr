@@ -450,7 +450,7 @@ const Instituciones = () => {
 
       {/* Tabla de instituciones */}
       <div className="instituciones__card card">
-        <div className="instituciones__card-header card-header">
+        <div className="instituciones__card-header card-header custom-card text-light">
           <h3 className="instituciones__card-title card-title">Lista de Instituciones</h3>
         </div>
         <div className="instituciones__card-body card-body">
@@ -501,7 +501,7 @@ const Instituciones = () => {
                       <div>
                         {editedFields.receptores?.filter(receptor => !receptor._delete).map((receptor, index) => (
                           <div key={index} className="mb-2 row">
-                            <div className="col-6">
+                            <div className="col-4">
                               <input
                                 type="text"
                                 className="form-control mb-1"
@@ -592,25 +592,25 @@ const Instituciones = () => {
                     {editingId === institucion.id ? (
                       <>
                         <button
-                          className="instituciones__btn instituciones__btn--success instituciones__btn--spacing btn btn-sm"
+                          className="instituciones__btn instituciones__btn--success btn btn-xs mr-1"
                           onClick={() => handleSaveChanges(institucion.id)}
                         >
-                          <i className="fas fa-save"></i>
+                          <i className="fas fa-save"></i><br/>Guardar
                         </button>
                         <button
                           className="instituciones__btn instituciones__btn--secondary btn btn-sm"
                           onClick={handleCancelEdit}
                         >
-                          <i className="fas fa-times"></i>
+                          <i className="fas fa-times"></i><br/>Cancelar
                         </button>
                       </>
                     ) : (
                       <>
                         <button
-                          className="instituciones__btn instituciones__btn--warning instituciones__btn--spacing btn btn-sm"
+                          className="instituciones__btn instituciones__btn--warning instituciones__btn--spacing btn btn-sm text-dark"
                           onClick={() => handleEdit(institucion)}
                         >
-                          <i className="fas fa-edit"></i>
+                          <i className="fas fa-edit"></i> Editar
                         </button>
                       </>
                     )}
@@ -628,15 +628,16 @@ const Instituciones = () => {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Registrar Nueva Institución</h5>
-                <button type="button" className="close" onClick={handleModalClose}>
+                <button type="button" className="close" onClick={handleModalClose} aria-label="Cerrar">
                   <span>&times;</span>
                 </button>
               </div>
               <div className="modal-body">
                 <form onSubmit={handleSubmit}>
                   <div className="form-group">
-                    <label>Tipo</label>
+                    <label htmlFor="tipo_id">Tipo de institución</label>
                     <select
+                      id="tipo_id"
                       name="tipo_id"
                       className="form-control"
                       value={nuevaInstitucion.tipo_id}
@@ -652,22 +653,24 @@ const Instituciones = () => {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Nombre</label>
+                    <label htmlFor="nombre">Nombre de institución</label>
                     <input
                       type="text"
+                      id="nombre"
                       name="nombre"
                       className="form-control"
                       value={nuevaInstitucion.nombre}
                       onChange={handleInputChange}
+                      placeholder='Nombre de la institución'
                       required
                     />
                   </div>
                   <div className="form-group">
-                    <label>Receptores</label>
+                    <label>Receptor(es)</label>
                     {nuevaInstitucion.receptores.map((receptor, index) => (
                       <div key={index} className="mb-2">
                         <select
-                          className="form-control"
+                          className="form-control mb-1"
                           value={receptor.cargo}
                           onChange={(e) => handleReceptorInputChange(index, 'cargo', e.target.value)}
                           required
@@ -679,29 +682,33 @@ const Instituciones = () => {
                         <input
                           type="text"
                           className="form-control mb-1"
-                          placeholder="Nombre del receptor"
+                          placeholder="Nombre y Apellido del/la receptor(a)"
                           value={receptor.nombre}
                           onChange={(e) => handleReceptorInputChange(index, 'nombre', e.target.value)}
                           required
                         />
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm mt-1"
-                          onClick={() => handleRemoveReceptorInput(index)}
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
+                        {nuevaInstitucion.receptores.length > 1 && (
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm mt-1"
+                            onClick={() => handleRemoveReceptorInput(index)}
+                            aria-label={`Eliminar receptor ${index + 1}`}
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        )}
                       </div>
                     ))}
                     <button
                       type="button"
                       className="btn btn-primary btn-sm"
                       onClick={handleAddReceptorInput}
+                      aria-label="Añadir receptor"
                     >
                       <i className="fas fa-plus"></i> Añadir Receptor
                     </button>
                   </div>
-                  <button type="submit" className="instituciones__btn instituciones__btn--success mt-3">
+                  <button type="submit" className="btn btn-primary mt-3 w-100">
                     Registrar
                   </button>
                 </form>

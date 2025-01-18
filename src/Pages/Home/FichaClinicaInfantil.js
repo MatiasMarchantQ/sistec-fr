@@ -512,7 +512,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       });
 
       if (response.data.success) {
-        toast.success('Reevaluación actualizada exitosamente');
         onIngresar(response.data.data); // Refresh the data
 
         // Limpiar el formulario
@@ -627,7 +626,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       );
 
       if (response.data.success) {
-        toast.success('Ficha clínica infantil creada exitosamente');
         onIngresar(response.data.data);
         // Limpiar el formulario
         setDatosNino({
@@ -697,7 +695,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       </div>
 
       <div className="card mb-4">
-        <div className="card-header">Datos del Niño/a</div>
+        <div className="card-header custom-card text-light">Datos del Niño/a</div>
         <div className="card-body">
           <div className="row">
             <div className="col-md-4">
@@ -881,7 +879,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       </div>
 
       <div className="card mb-4">
-        <div className="card-header">Evaluación Psicomotora</div>
+        <div className="card-header custom-card text-light">Evaluación Psicomotora</div>
         <div className="card-body">
           <div className="row">
             <div className="col-md-6">
@@ -932,7 +930,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       </div>
 
       <div className="card mb-4">
-        <div className="card-header">Información Familiar (Puede ingresar más de uno)</div>
+        <div className="card-header custom-card text-light">Información Familiar (Puede ingresar más de uno)</div>
         <div className="card-body">
           {padres.map((padre, index) => (
             <div key={index} className="border p-3 mb-3">
@@ -1005,7 +1003,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       </div>
 
       <div className="card mb-4">
-        <div className="card-header">Información Adicional</div>
+        <div className="card-header custom-card text-light">Información Adicional</div>
         <div className="card-body">
           <div className="row">
             <div className="col-md-6">
@@ -1089,7 +1087,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       </div>
 
       <div className="card mb-4">
-        <div className="card-header">Factores de Riesgo</div>
+        <div className="card-header custom-card text-light">Factores de Riesgo</div>
         <div className="card-body">
           <h5>Factores de Riesgo del Niño/a</h5>
           <div className="row mb-3">

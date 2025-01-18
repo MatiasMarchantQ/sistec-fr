@@ -528,8 +528,8 @@ const CargarEstudiantes = () => {
       </div>
       <div className="container mt-4">
         <h2 className="mb-4 font-weight-bold">Cargar Estudiantes</h2>
-        <div className="card card-primary">
-          <div className="card-header">
+        <div className="card">
+          <div className="card-header custom-card text-light">
             <h3 className="card-title">Cargar archivo Excel</h3>
           </div>
           <div className="card-footer">

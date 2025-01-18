@@ -536,7 +536,7 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
           )
         );
 
-        alert('Seguimiento actualizado correctamente');
+        toast.success('Seguimiento actualizado correctamente');
       } else {
         // Crear nuevo seguimiento (código existente)
         const response = await axios.post(
@@ -548,7 +548,7 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
         // Añadir el nuevo seguimiento a la lista
         setSeguimientosAnteriores(prev => [...prev, response.data]);
 
-        alert('Seguimiento guardado correctamente');
+        toast.success('Seguimiento guardado correctamente');
       }
 
       // Resetear estados
@@ -899,7 +899,7 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
 
       {/* Sección de Hitos de Desarrollo */}
       <Card className="mb-4">
-        <Card.Header>Hitos de Desarrollo</Card.Header>
+        <Card.Header className='custom-header text-light'>Hitos de Desarrollo</Card.Header>
         <Card.Body>
           <Form.Group>
             <Form.Label>Edad</Form.Label>
@@ -929,7 +929,7 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
 
       {/* Sección de Recomendaciones */}
       <Card className="mb-4">
-        <Card.Header>Recomendaciones</Card.Header>
+        <Card.Header className='custom-header text-light'>Recomendaciones</Card.Header>
         <Card.Body>
           {seguimiento.recomendaciones.areaMotora ? (
             <Form.Group className="mb-3">

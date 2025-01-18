@@ -720,7 +720,9 @@ const handlePaginationClick = (page) => {
                             <div className="mt-2 text-muted small">
                                 {ficha.diagnosticos && ficha.diagnosticos.length > 0 
                                     ? ficha.diagnosticos.map(d => d.nombre).join(', ') 
-                                    : (ficha.diagnostico_otro || 'Sin diagnóstico')}
+                                    : (ficha.diagnostico && ficha.diagnostico.nombre 
+                                        ? ficha.diagnostico.nombre 
+                                        : 'Sin diagnóstico')}
                             </div>
                         </div>
                     ))}

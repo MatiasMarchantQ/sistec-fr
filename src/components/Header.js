@@ -362,7 +362,7 @@ const Header = ({ toggleSidebar }) => {
                 name="rut"
                 value={updatedUser.rut}
                 onChange={handleUpdateInputChange}
-                required
+                disabled
               />
             </Form.Group>
           </Form>

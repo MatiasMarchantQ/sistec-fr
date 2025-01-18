@@ -415,10 +415,7 @@ const Estudiantes = () => {
       const { total_procesados, exitosos, fallidos, resultados, errores } = response.data;
 
       // Usar toast para notificaciones
-      toast.success(`Envío de credenciales completado. 
-        Total procesados: ${total_procesados}, 
-        Exitosos: ${exitosos}, 
-        Fallidos: ${fallidos}`);
+      toast.success(`Envío de credenciales completado.`);
 
       // Si hay errores, mostrar en consola o en un modal
       if (errores && errores.length > 0) {
@@ -455,10 +452,7 @@ const Estudiantes = () => {
       // Mostrar resumen de envío
       const { total_procesados, exitosos, fallidos, errores } = response.data;
 
-      toast.success(`Envío de credenciales completado. 
-      Total procesados: ${total_procesados}, 
-      Exitosos: ${exitosos}, 
-      Fallidos: ${fallidos}`);
+      toast.success(`Envío de credenciales completado.`);
 
       if (errores && errores.length > 0) {
         console.error('Errores en envío masivo:', errores);
@@ -672,7 +666,7 @@ const Estudiantes = () => {
 
       {/* Tabla de estudiantes */}
       <Card>
-        <Card.Header>
+        <Card.Header className='custom-card text-light'>
           <Card.Title>Lista de Estudiantes</Card.Title>
         </Card.Header>
         <Card.Body>
@@ -857,7 +851,7 @@ const Estudiantes = () => {
           >
             <i className="fas fa-edit"></i> Edición Masiva
           </Button>
-          <Button
+          {/* <Button
             variant="info"
             className="ms-2"
             onClick={() => {
@@ -869,7 +863,7 @@ const Estudiantes = () => {
             }}
           >
             <i className="fas fa-envelope"></i> Enviar Credenciales por Año
-          </Button>
+          </Button> */}
           <Button
             variant="success"
             className="ms-2"
@@ -887,7 +881,7 @@ const Estudiantes = () => {
       </Row>
 
       {/* Modal de edición masiva */}
-      <Modal show={editarMasivoModal} onHide={handleCloseNuevoEstudianteModal}>
+      <Modal show={editarMasivoModal} onHide={handleCloseEditarMasivoModal}>
         <Modal.Header closeButton>
           <Modal.Title>Edición Masiva de Estudiantes</Modal.Title>
         </Modal.Header>
@@ -1040,7 +1034,7 @@ const Estudiantes = () => {
         </Modal.Body>
       </Modal>
 
-      <Modal show={cambioContrasenaModal} onHide={handleCloseNuevoEstudianteModal}>
+      <Modal show={cambioContrasenaModal} onHide={handleCloseCambioContrasenaModal}>
         <Modal.Header closeButton>
           <Modal.Title>Cambiar Contraseña</Modal.Title>
         </Modal.Header>

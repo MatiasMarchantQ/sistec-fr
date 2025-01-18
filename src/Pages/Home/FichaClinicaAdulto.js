@@ -467,19 +467,19 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
 
       {/* Datos Personales */}
       <div className="card mb-4">
-        <div className="card-header">Datos Personales</div>
+        <div className="card-header custom-card text-light">Datos Personales</div>
         <div className="card-body">
           <div className="row mt-3">
             <div className="col-md-4">
               <div className="form-group">
-                <label>Nombres</label>
+                <label>Nombre</label>
                 <input
                   type="text"
                   className={`form-control ${errores.nombres ? 'is-invalid' : ''}`}
                   name="nombres"
                   value={datosAdulto.nombres}
                   onChange={handleChange}
-                  placeholder="Ingrese nombres"
+                  placeholder="Ingrese el nombre"
                 />
                 {errores.nombres && <div className="invalid-feedback">{errores.nombres}</div>}
               </div>
@@ -493,7 +493,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   name="apellidos"
                   value={datosAdulto.apellidos}
                   onChange={handleChange}
-                  placeholder="Ingrese apellidos"
+                  placeholder="Ingrese el/los apellidos"
                 />
                 {errores.apellidos && <div className="invalid-feedback">{errores.apellidos}</div>}
               </div>
@@ -508,7 +508,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   name="rut"
                   value={datosAdulto.rut}
                   onChange={handleChange}
-                  placeholder="12345678-9"
+                  placeholder="Ej: 12345678-9"
                 />
                 {errores.rut && <div className="invalid-feedback">{errores.rut}</div>}
               </div>
@@ -653,7 +653,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   name="ocupacion"
                   value={datosAdulto.ocupacion}
                   onChange={handleChange}
-                  placeholder="Ingrese ocupación"
+                  placeholder="Ingrese la ocupación"
                 />
               </div>
             </div>
@@ -666,7 +666,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   name="direccion"
                   value={datosAdulto.direccion}
                   onChange={handleChange}
-                  placeholder="Ingrese dirección completa"
+                  placeholder="Ingrese la dirección completa"
                 />
               </div>
             </div>
@@ -676,7 +676,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
 
       {/* Información Familiar */}
       <div className="card mb-4">
-        <div className="card-header">Información Familiar</div>
+        <div className="card-header custom-card text-light">Información Familiar</div>
           <div className="card-body">
             <div className="row">
               <div className="col-md-12">
@@ -770,7 +770,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
 
       {/* Información de Contacto y Seguimiento */}
       <div className="card mb-4">
-        <div className="card-header">Información de Contacto y Seguimiento</div>
+        <div className="card-header custom-card text-light">Información de Contacto y Seguimiento</div>
         <div className="card-body">
           <div className="row">
             <div className="col-md-6">
@@ -782,7 +782,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   name="telefonoPrincipal"
                   value={datosAdulto.telefonoPrincipal}
                   onChange={handleChange}
-                  placeholder="912345678"
+                  placeholder="Ej: 912345678"
                 />
                 {errores.telefonoPrincipal && <div className="invalid-feedback">{errores.telefonoPrincipal}</div>}
               </div>
@@ -792,12 +792,13 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                 <label>Teléfono Secundario</label>
                 <input
                   type="tel"
-                  className="form-control"
+                  className={`form-control ${errores.telefonoSecundario ? 'is-invalid' : ''}`}
                   name="telefonoSecundario"
                   value={datosAdulto.telefonoSecundario}
                   onChange={handleChange}
                   placeholder="912345678"
                 />
+                {errores.telefonoSecundario && <div className="invalid-feedback">{errores.telefonoSecundario}</div>}
               </div>
             </div>
           </div>
@@ -811,7 +812,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   name="horarioLlamada"
                   value={datosAdulto.horarioLlamada}
                   onChange={handleChange}
-                  placeholder="Ej: 10:00 - 12:00"
+                  placeholder="Ej: 10:00 AM a 12:00 AM"
                 />
               </div>
             </div>
@@ -824,7 +825,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   name="conectividad"
                   value={datosAdulto.conectividad}
                   onChange={handleChange}
-                  placeholder="Ej: Buena, Regular, Mala"
+                  placeholder="Ej: Buena, Regular, Mala, etc..."
                 />
               </div>
             </div>
@@ -849,7 +850,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
 
       {/* Factores de Riesgo */}
       <div className="card mb-4">
-        <div className="card-header">Factores de Riesgo</div>
+        <div className="card-header custom-card text-light">Factores de Riesgo</div>
           <div className="card-body">
             <div className="form-check">
               <input 
@@ -881,7 +882,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   value={factoresRiesgo.otros}
                   name="Especifique"
                   onChange={(e) => setFactoresRiesgo({...factoresRiesgo, otros: e.target.value})}
-                  placeholder="Ejemplo: cerveza, marihuana, cigarrillo, etc."
+                  placeholder="Ej: cerveza, marihuana, cigarrillo, etc."
               />
             </div>
           </div>

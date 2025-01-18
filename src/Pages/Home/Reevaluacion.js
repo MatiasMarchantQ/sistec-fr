@@ -170,22 +170,19 @@ const Reevaluacion = () => {
         edadDias: match[3] || ''
       };
     }
-
     // Intentar patrón de solo meses y días
     match = edadString.match(patronSoloMeses);
     if (match) {
-      // Convertir meses a años si son más de 12
+      // Extraer meses y días directamente sin conversión
       const meses = parseInt(match[1]);
-      const anios = Math.floor(meses / 12);
-      const mesesRestantes = meses % 12;
+      const dias = match[2] || '';
 
       return {
-        edadAnios: anios > 0 ? anios.toString() : '',
-        edadMeses: mesesRestantes > 0 ? mesesRestantes.toString() : match[1],
-        edadDias: match[2] || ''
+        edadAnios: '', // No se convierte a años
+        edadMeses: meses > 0 ? meses.toString() : '', // Mantener meses como están
+        edadDias: dias // Mantener días como están
       };
     }
-
     // Intentar patrón de solo días
     match = edadString.match(patronSoloDias);
     if (match) {
@@ -566,12 +563,14 @@ const Reevaluacion = () => {
         }
       };
 
-        fetchDatosReevaluacion();
-      }
-    }, [location.state, getToken, navigate, compararDatos, parseEdad, handleSessionExpired]);
+      fetchDatosReevaluacion();
+    }
+  }, [location.state, getToken, navigate, compararDatos, parseEdad, handleSessionExpired]);
 
   const handleReevaluacionExitosa = (nuevaFicha) => {
-    toast.success('Reevaluación registrada exitosamente');
+    toast.success('Reevaluación registrada exitosamente', {
+        toastId: 'reevaluacion-success' // Esto evita duplicados
+    });
     setUltimaReevaluacion(nuevaFicha); // Actualizar la última reevaluación
     // navigate('?component=listado-fichas-clinicas', {
     //   state: {
