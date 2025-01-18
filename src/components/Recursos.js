@@ -180,7 +180,6 @@ const Recursos = () => {
 
           .login-button {
             background-color: rgba(0, 52, 89, 0.1);
-            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: var(--color-white);
             transition: all 0.3s ease;
@@ -211,7 +210,6 @@ const Recursos = () => {
 
           .main-card {
             background-color: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
             border: none;
             border-radius: 15px;
           }
@@ -315,10 +313,10 @@ const Recursos = () => {
                 alt="Logo UCM" 
                 style={{ 
                   height: '80px',
-                  marginBottom: '1.5rem',
+                  marginTop: '1.5rem',
                   '@media (min-width: 768px)': {
                     height: '120px',
-                    marginBottom: '2rem'
+                    marginBottom: '1rem'
                   }
                 }}
               />
@@ -428,7 +426,7 @@ const Recursos = () => {
                                     {recurso.tags.map((tag, tagIndex) => (
                                       <Badge 
                                         key={tagIndex}
-                                        className="me-2 px-3 py-2"
+                                        className="me-2 mb-1 px-3 py-2"
                                         style={{ 
                                           backgroundColor: 'var(--color-secondary)',
                                           color: 'var(--color-white)'

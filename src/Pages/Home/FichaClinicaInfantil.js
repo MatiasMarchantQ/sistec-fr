@@ -3,7 +3,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { CardText, DropdownButton, NavbarText } from 'react-bootstrap';
 
 const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosIniciales, ultimaReevaluacion = null, reevaluacionSeleccionada = null, modoEdicion }) => {
   const [datosNino, setDatosNino] = useState({

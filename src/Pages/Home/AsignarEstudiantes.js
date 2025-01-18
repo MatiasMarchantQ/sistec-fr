@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify'; // Importa toast
 import 'react-toastify/dist/ReactToastify.css';
-import './AsignarEstudiantes.css';
+import '../styles/AsignarEstudiantes.css';
 
 const getCurrentYear = () => {
   return new Date().getFullYear();
@@ -47,7 +47,7 @@ const AsignarEstudiantes = () => {
   const [conflictoAsignaciones, setConflictoAsignaciones] = useState(null);
   const [tempAsignacionData, setTempAsignacionData] = useState(null);
   const [justificacionEditable, setJustificacionEditable] = useState('');
-  
+
   // Función para formatear fecha
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -81,7 +81,7 @@ const AsignarEstudiantes = () => {
     }
     return years;
   };
-  
+
   const aniosOptions = getAniosOptions();
 
   useEffect(() => {
@@ -862,7 +862,7 @@ const AsignarEstudiantes = () => {
     navigate('/home?component=agenda');
   };
 
-  
+
   return (
     <div className="asignar-estudiantes" onMouseUp={handleMouseUp}>
       <div className="instituciones__back">
@@ -871,13 +871,14 @@ const AsignarEstudiantes = () => {
         </button>
       </div>
       <h2>Asignación de Estudiantes</h2>
-      <Row className="mb-3 align-items-end">
-        <Col xs={4} md={3}>
+      <Row className="mb-3 align-items-end g-2">
+        <Col xs={12} md={1}>
           <Form.Group>
             <Form.Label>Año Cursado</Form.Label>
             <Form.Select
               onChange={(e) => setAnoSeleccionado(e.target.value)}
               value={anoSeleccionado}
+              className="w-100"
             >
               <option value="">Seleccione un año</option>
               {aniosOptions.map((year) => (
@@ -887,47 +888,43 @@ const AsignarEstudiantes = () => {
           </Form.Group>
         </Col>
 
-        <Col xs={8} md={9}>
-          <Row className="g-2">
-            <Col xs={12} md={4}>
-              <Form.Select
-                value={filtroEstado}
-                onChange={(e) => setFiltroEstado(e.target.value)}
-              >
-                <option value="todos">Todos los Estados</option>
-                <option value="activos">Activos</option>
-                <option value="inactivos">Inactivos</option>
-              </Form.Select>
-            </Col>
-
-            <Col xs={12} md={4}>
-              <Form.Check
-                type="checkbox"
-                label="Con Justificación"
-                checked={filtroJustificacion}
-                onChange={(e) => setFiltroJustificacion(e.target.checked)}
-              />
-            </Col>
-
-            <Col xs={12} md={4}>
-              <InputGroup>
-                <FormControl
-                  placeholder="Buscar estudiante"
-                  aria-label="Buscar estudiante"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </InputGroup>
-            </Col>
-          </Row>
+        <Col xs={12} md={2}>
+          <Form.Select
+            value={filtroEstado}
+            onChange={(e) => setFiltroEstado(e.target.value)}
+            className="w-100"
+          >
+            <option value="todos">Todos los Estados</option>
+            <option value="activos">Activos</option>
+            <option value="inactivos">Inactivos</option>
+          </Form.Select>
         </Col>
 
-      </Row>
+        <Col xs={12} md={2}>
+          <Form.Check
+            type="checkbox"
+            label="Con Justificación"
+            checked={filtroJustificacion}
+            onChange={(e) => setFiltroJustificacion(e.target.checked)}
+            className="w-100"
+          />
+        </Col>
 
+        <Col xs={12} md={7}>
+          <InputGroup>
+            <FormControl
+              placeholder="Buscar estudiante"
+              aria-label="Buscar estudiante"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </InputGroup>
+        </Col>
+      </Row>
 
       <Card>
         <Card.Header className="position-relative custom-header text-light">
-          <Card.Title className="mb-0">Estudiantes y sus Asignaciones</Card.Title>
+          <Card.Title className="mb-0">Lista de Estudiantes</Card.Title>
           <Button
             variant="light"
             className="position-absolute top-50 end-0 translate-middle-y"

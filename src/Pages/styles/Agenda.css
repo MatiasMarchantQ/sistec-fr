@@ -163,6 +163,7 @@ body.modal-open {
   padding-left: 2rem;
 }
 
+
 .agenda-container .institucion-row {
   display: flex;
   align-items: center;
@@ -342,5 +343,5 @@ body.modal-open {
   .agenda-container .estudiante-chip {
     font-size: 0.75rem;
     padding: 0.2rem 0.6rem;
-  } 
+  }
 }

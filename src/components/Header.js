@@ -306,7 +306,7 @@ const Header = ({ toggleSidebar }) => {
           <Dropdown>
             <Dropdown.Toggle variant="link" id="dropdown-basic" className="text-white d-flex align-items-center" style={{ textDecoration: 'none' }}>
               <i className="fas fa-user mr-2"></i>
-              <span>Hola, {getFirstName(updatedUser.nombres || user.nombres)}</span>
+              <span className='greeting'>Hola, {getFirstName(updatedUser.nombres || user.nombres)}</span>
               <i className="fas fa-chevron-down ms-2"></i>
             </Dropdown.Toggle>
             <Dropdown.Menu>

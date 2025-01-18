@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { Dropdown, Button, Modal, Form } from 'react-bootstrap';
 import { toast } from 'react-toastify';
-import './Usuarios.css';
+import '../styles/Usuarios.css';
 
 const Usuarios = () => {
   const navigate = useNavigate();
@@ -429,7 +429,7 @@ const Usuarios = () => {
 
         <input
           type="text"
-          className="form-control w-50 mx-2"
+          className="form-control w-50"
           placeholder="Buscar..."
           value={searchTerm}
           onChange={handleSearchChange}
@@ -586,7 +586,7 @@ const Usuarios = () => {
 
       {/* Tabla de usuarios */}
       <div className="usuarios__card card">
-        <div className="usuarios__card-header card-header">
+        <div className="usuarios__card-header card-header custom-card text-light">
           <h3 className="usuarios__card-title card-title">Lista de Usuarios</h3>
         </div>
         <div className="usuarios__card-body card-body">

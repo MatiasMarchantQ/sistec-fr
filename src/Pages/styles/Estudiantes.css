@@ -243,20 +243,106 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
   
-  /* Responsive */
-  @media (max-width: 768px) {
-    .estudiantes__controls {
-      flex-direction: column;
-    }
-  
-    .estudiantes__controls > * {
-      width: 100% !important;
-      margin-bottom: 10px;
-    }
-  
-    .estudiantes table {
-      display: block;
-      overflow-x: auto;
-      white-space: nowrap;
-    }
+  /* Ajustes responsivos para estudiantes */
+@media screen and (max-width: 768px) {
+  .estudiantes__controls {
+    flex-direction: column;
+    gap: 10px;
   }
+
+  .estudiantes__controls select[style*="width"],
+  .estudiantes__controls .estudiantes__select,
+  .estudiantes__controls .form-select {
+    width: 100% !important;
+    max-width: none;
+    margin-bottom: 10px;
+  }
+
+  /* Ajustes específicos para el campo de búsqueda */
+  .estudiantes__controls input[type="text"],
+  .estudiantes__controls .form-control {
+    width: 100% !important;
+    flex: none !important;
+    max-width: none;
+    margin-bottom: 10px;
+  }
+
+  /* Ajustes para los botones */
+  .estudiantes__controls .estudiantes__btn {
+    width: 100%;
+    margin: 5px 0;
+  }
+
+  /* Resetear las clases de columnas de Bootstrap */
+  .estudiantes__controls .col-2,
+  .estudiantes__controls .col-4 {
+    width: 100% !important;
+    padding: 0;
+    flex: none !important;
+  }
+
+  /* Ajustes para la tabla */
+  .estudiantes__table-container {
+    margin: 0 -15px;
+    padding: 0 15px;
+  }
+}
+
+/* Ajustes específicos para móviles */
+@media screen and (max-width: 576px) {
+  .estudiantes {
+    padding: 10px;
+  }
+
+  .estudiantes__controls {
+    margin: 10px 0;
+  }
+
+  .estudiantes__controls input[type="text"] {
+    width: 100% !important;
+    margin: 5px 0;
+  }
+
+  .estudiantes__btn {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    width: 100%;
+    margin: 5px 0;
+  }
+
+  /* Ajustes para el modal en móviles */
+  .estudiantes .modal-dialog {
+    margin: 10px;
+  }
+
+  .estudiantes .modal-content {
+    padding: 10px;
+  }
+
+  .estudiantes .form-control {
+    font-size: 0.9rem;
+    padding: 8px;
+  }
+}
+
+/* Ajustes para tablets */
+@media screen and (min-width: 577px) and (max-width: 768px) {
+  .estudiantes__controls {
+    gap: 15px;
+    padding: 0 15px;
+  }
+
+  .estudiantes__controls input[type="text"] {
+    width: 100% !important;
+  }
+
+  .estudiantes__select {
+    min-width: 100%;
+  }
+
+  /* Ajustes para botones en tablets */
+  .estudiantes__btn--spacing {
+    margin-right: 0;
+    margin-bottom: 5px;
+  }
+}

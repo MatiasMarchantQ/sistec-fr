@@ -380,20 +380,27 @@
 
 /* Estilos para móviles */
 @media (max-width: 991px) {
-  .main-header,
-  .main-footer {
-    width: 130%;
+  .main-header h1 {
+    font-size: 0.7rem;
     margin-left: 0;
   }
 
-  .main-header h1 {
-    font-size: 1rem;
+  .main-header .greeting {
+    font-size: 0.7rem;
+    margin-left: 0;
+  }
+
+  .main-header i{
+    font-size: 0.7rem;
+  }
+
+  .main-footer strong{
+    font-size: 0.7rem;
   }
 
   .content-wrapper {
     margin-left: 0 !important;
-    width: 130%;
-    max-width: 130%;
+    width: 100%;
   }
 
   body.modal-open .main-header h1 {
@@ -449,6 +456,10 @@
 
   .login-logo img {
     max-height: 60px;
+  }
+
+  .login-box {
+    width: 95%;
   }
 
   .form-control, .btn-block {

@@ -212,17 +212,6 @@
         margin-bottom: 1rem;
     }
 
-    .usuarios__select {
-        width: 100%;
-        margin-bottom: 10px;
-    }
-
-    .usuarios__btn {
-        width: 100%;
-        margin-bottom: 5px;
-        min-height: 44px; /* Mejor área táctil */
-    }
-
     .usuarios__btn--spacing {
         margin-right: 0;
     }
@@ -249,6 +238,26 @@
         justify-content: center;
         flex-wrap: wrap;
         gap: 5px;
+    }
+
+    .usuarios__controls {
+        flex-direction: column;
+        gap: 10px;
+      }
+  
+      .usuarios__controls select[style*="width"],
+      .usuarios__controls .usuarios__select,
+      .usuarios__controls .form-select {
+          width: 100% !important; /* Sobrescribe el estilo inline */
+          max-width: none;
+      }
+
+     /* Ajuste específico para el campo de búsqueda */
+    .usuarios__controls input[type="text"],
+    .usuarios__controls .form-control {
+        width: 100% !important;
+        flex: none !important; /* Evita que flex afecte el ancho */
+        max-width: none;
     }
 }
 

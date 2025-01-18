@@ -4,7 +4,7 @@ import { Container, Row, Col, Form, Button, Card, Table, Modal, InputGroup, Pagi
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
-import './Estudiantes.css';
+import '../styles/Estudiantes.css';
 
 const getCurrentYear = () => {
   return new Date().getFullYear();
@@ -620,11 +620,12 @@ const Estudiantes = () => {
       </Row>
 
       {/* Controles de búsqueda y filtrado */}
-      <Row className="mb-2">
-        <Col xs={2} style={{ width: '9%' }}>
+      <Row className="mb-2 g-2">
+        <Col xs={12} md={1}>
           <Form.Select
             value={ano}
             onChange={(e) => handleFilterChange('ano', e.target.value)}
+            className="w-100"
           >
             <option value="">Seleccione un año</option>
             {Array.from({ length: 6 }, (_, index) => getCurrentYear() - index).map(year => (
@@ -632,33 +633,47 @@ const Estudiantes = () => {
             ))}
           </Form.Select>
         </Col>
-        <Col xs={2} style={{ width: '17%' }}>
+
+        <Col xs={12} md={2}>
           <Form.Select
             value={estadoFiltro}
             onChange={(e) => handleFilterChange('estadoFiltro', e.target.value)}
+            className="w-100"
           >
             <option value="todos">Todos los estados</option>
             <option value="activos">Activos</option>
             <option value="inactivos">Inactivos</option>
           </Form.Select>
         </Col>
-        <Col xs={4}>
+
+        <Col xs={12} md={5}>
           <Form.Control
             type="text"
             placeholder="Buscar por nombre o RUT..."
             value={searchTerm}
             onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+            className="w-100"
           />
         </Col>
+
         {isFiltered && (
-          <Col xs={2}>
-            <Button variant="secondary" onClick={limpiarFiltros}>
+          <Col xs={12} md="auto">
+            <Button
+              variant="secondary"
+              onClick={limpiarFiltros}
+              className="w-100"
+            >
               <i className="fas fa-eraser"></i> Limpiar Filtros
             </Button>
           </Col>
         )}
-        <Col xs={2}>
-          <Button variant="primary" onClick={() => setModalOpen(true)}>
+
+        <Col xs={12} md="auto">
+          <Button
+            variant="primary"
+            onClick={() => setModalOpen(true)}
+            className="w-100"
+          >
             <i className="fas fa-plus"></i> Añadir Estudiante
           </Button>
         </Col>

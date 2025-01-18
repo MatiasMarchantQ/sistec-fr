@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
-import './Instituciones.css';
+import '../styles/Instituciones.css';
 
 const Instituciones = () => {
   const navigate = useNavigate();
@@ -424,7 +424,7 @@ const Instituciones = () => {
 
         <input
           type="text"
-          className="form-control col-4"
+          className="form-control w-50"
           placeholder="Buscar..."
           value={searchTerm}
           onChange={handleSearchChange}

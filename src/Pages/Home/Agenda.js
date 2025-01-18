@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import { Modal, Form, InputGroup, Row, Col, Pagination } from 'react-bootstrap';
-import './Agenda.css';
+import '../styles/Agenda.css';
 
 const Agenda = ({ onFichaSelect, setActiveComponent }) => {
   const { user, getToken } = useAuth();
   const navigate = useNavigate();
   const currentDate = new Date();
+  const isMobile = window.innerWidth <= 991;
 
   // Estado
   const [month, setMonth] = useState(currentDate.getMonth());
@@ -448,7 +449,7 @@ const handlePaginationClick = (page) => {
 
       {/* Barra de búsqueda */}
       <div className="card-tools mb-4">
-        <div className="input-group input-group-sm" style={{ width: '250px' }}>
+        <div className="input-group input-group-sm" style={{ width: isMobile ? 'auto' : '270px' }}>
           <input
             type="text"
             className="form-control"

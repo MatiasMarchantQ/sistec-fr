@@ -155,90 +155,83 @@
     border-radius: 0.3rem;
   }
 
-/* Media queries para diferentes tamaños de pantalla */
-@media screen and (max-width: 576px) {
-    /* Móviles */
-    .instituciones__title {
-        font-size: 1.5rem; /* Título más pequeño en móviles */
-    } 
 
-    .instituciones__select {
-        width: 100%; /* Select ocupa todo el ancho */
+/* Controles responsivos */
+@media screen and (max-width: 768px) {
+    .instituciones__controls {
+      flex-direction: column;
+      gap: 10px;
     }
 
+    .instituciones__controls select[style*="width"],
+    .instituciones__controls .instituciones__select,
+    .instituciones__controls .form-select {
+        width: 100% !important; /* Sobrescribe el estilo inline */
+        max-width: none;
+    }
+
+      /* Ajuste específico para el campo de búsqueda */
+      .instituciones__controls input[type="text"],
+      .instituciones__controls .form-control {
+          width: 100% !important;
+          flex: none !important; /* Evita que flex afecte el ancho */
+          max-width: none;
+      }
+  
+    /* Ajuste específico para el botón de limpiar y añadir institución */
+    .instituciones__btn--secondary,
+    .instituciones__btn--primary {
+      margin-top: 5px;
+    }
+  }
+  
+  /* Ajustes específicos para móviles pequeños */
+  @media screen and (max-width: 576px) {
+    .instituciones {
+      margin: 10px;
+    }
+  
+    /* Ajuste para la tabla en móviles */
     .instituciones__table {
-        display: block;
-        overflow-x: auto; /* Permite scroll horizontal en tablas */
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
-
-    .instituciones__btn--spacing {
-        margin-right: 0;
-        margin-bottom: 5px;
-    }
-
-    .modal-dialog {
-        margin: 5% 10px; /* Menos margen en móviles */
-    }
-}
-
-@media screen and (min-width: 577px) and (max-width: 768px) {
-    /* Tablets */
-    .instituciones__title {
-        font-size: 1.75rem;
-    }
-
-    .instituciones__controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    .instituciones__select {
-        min-width: 200px;
-    }
-
+  
+    /* Ajustes para los botones en la tabla */
     .instituciones__btn {
-        padding: 8px 15px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      margin-bottom: 5px;
+      width: 100%;
     }
-
+  
+    /* Ajuste para el modal en móviles */
     .modal-dialog {
-        margin: 8% auto;
-        max-width: 90%;
+      margin: 10px;
+      padding: 10px;
     }
-}
-
-@media screen and (min-width: 769px) and (max-width: 1024px) {
-    /* Tablets grandes */
+  
+    .modal-content {
+      padding: 10px;
+    }
+  
+    /* Ajustes para los campos del formulario en el modal */
+    .form-control,
+    .form-select {
+      font-size: 0.9rem;
+      padding: 6px;
+    }
+  }
+  
+  /* Ajustes para tablets */
+  @media screen and (min-width: 577px) and (max-width: 768px) {
     .instituciones__controls {
-        display: flex;
-        align-items: center;
-        gap: 15px;
+      gap: 15px;
     }
-
-    .modal-dialog {
-        max-width: 700px;
-    }
-}
-
-/* Optimizaciones para dispositivos táctiles */
-@media (hover: none) {
+  
     .instituciones__btn {
-        -webkit-tap-highlight-color: transparent;
+      padding: 8px 12px;
     }
     
-    .instituciones__btn:active {
-        transform: scale(0.98); /* Feedback táctil sutil */
-    }
-}
-
-
-/* Ajustes de tipografía responsiva */
-@media screen and (max-width: 320px) {
-    .instituciones__btn {
-        font-size: 0.8125rem;
-    }
-    
-    .instituciones__card-title {
-        font-size: 1.25rem;
-    }
-}
+  }

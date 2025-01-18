@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
-import './CargarEstudiantes.css';
+import '../styles/CargarEstudiantes.css';
 
 const CargarEstudiantes = () => {
   const { getToken } = useAuth();
