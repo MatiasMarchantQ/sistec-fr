@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import _ from 'lodash';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './styles/FichaClinica.css';
+import '../styles/FichaClinica.css';
 
 import SeguimientoInfantil from './SeguimientoInfantil';
 import SeguimientoAdulto from './SeguimientoAdulto';
