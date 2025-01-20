@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Form, Button, Card, Table, Modal, InputGroup, Pagination, Dropdown } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Card, Table, Modal, InputGroup, Pagination, Dropdown, Spinner } from 'react-bootstrap';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,6 +13,7 @@ const getCurrentYear = () => {
 const Estudiantes = () => {
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  const [loading, setLoading] = useState(true);
   const [estudiantes, setEstudiantes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,7 +35,7 @@ const Estudiantes = () => {
   const [editedFields, setEditedFields] = useState({});
   const [ano, setAno] = useState(getCurrentYear().toString()); const [semestre, setSemestre] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('todos');
-  const limit = 10;
+  const limit = 15;
   const totalPages = Math.ceil(totalElements / limit);
   const isFirstPage = currentPage === 1;
   const isLastPage = currentPage === totalPages;
@@ -204,6 +205,8 @@ const Estudiantes = () => {
       setTotalElements(response.data.total);
     } catch (error) {
       console.error('Error al obtener estudiantes:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -281,7 +284,7 @@ const Estudiantes = () => {
 
     // Validar nombres
     if (!nombreRegex.test(nuevoEstudiante.nombres.trim())) {
-      errors.push('Nombres solo pueden contener letras');
+      errors.push('Nombre solo pueden contener letras');
     }
 
     // Validar apellidos
@@ -615,7 +618,7 @@ const Estudiantes = () => {
       </div>
       <Row className="mb-4">
         <Col>
-          <h2 className="text-center mb-4" style={{ color: 'color: #388DE2' }}>Gestión de Estudiantes</h2>
+          <h2 className="text-center mb-3" style={{ color: 'color: #388DE2' }}>Gestión de Estudiantes</h2>
         </Col>
       </Row>
 
@@ -680,12 +683,13 @@ const Estudiantes = () => {
       </Row>
 
       {/* Tabla de estudiantes */}
-      <Card>
-        <Card.Header className='custom-card text-light'>
-          <Card.Title>Lista de Estudiantes</Card.Title>
-        </Card.Header>
+      {loading ? (
+        <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
+          <Spinner animation="border" variant="primary" />
+        </div>
+      ) : (
         <Card.Body>
-          <Table responsive>
+          <Table striped bordered hover responsive>
             <thead>
               <tr>
                 <th style={{ textAlign: 'center' }}>
@@ -696,14 +700,13 @@ const Estudiantes = () => {
                     onChange={handleSeleccionarTodos}
                   />
                 </th>
-                <th>Nombres</th>
+                <th>Nombre</th>
                 <th>Apellidos</th>
                 <th>RUT</th>
                 <th>Correo</th>
                 <th>Años Cursados</th>
                 <th>Estado</th>
                 <th>Editar</th>
-                {/* <th>Enviar credencial</th> */}
               </tr>
             </thead>
             <tbody>
@@ -830,70 +833,86 @@ const Estudiantes = () => {
             </tbody>
           </Table>
         </Card.Body>
-      </Card>
+      )}
 
       {/* Paginación */}
-      <Row className="mt-3">
-        <Col>
-          <Pagination size="sm">
-            <Pagination.Prev
-              disabled={isFirstPage}
-              onClick={() => !isFirstPage && goToPage(currentPage - 1)}
-            />
-            {[...Array(totalPages)].map((_, index) => (
+      <div className="asignar-estudiantes__pagination d-flex flex-column flex-md-row justify-content-between align-items-center mb-3">
+        <Pagination size="sm" className="m-0 mb-2 mb-md-0">
+          <Pagination.Prev
+            disabled={isFirstPage}
+            onClick={() => !isFirstPage && setCurrentPage(currentPage - 1)}
+          />
+
+          {/* Lógica para mostrar los números de página */}
+          {totalPages > 5 ? (
+            <>
+              {currentPage > 2 && <Pagination.Item onClick={() => setCurrentPage(1)}>1</Pagination.Item>}
+              {currentPage > 3 && <Pagination.Ellipsis />}
+
+              {Array.from({ length: Math.min(3, totalPages) }, (_, index) => {
+                const page = Math.max(2, currentPage - 1) + index; // Muestra las páginas alrededor de la página actual
+                if (page <= totalPages) {
+                  return (
+                    <Pagination.Item
+                      key={page}
+                      active={currentPage === page}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </Pagination.Item>
+                  );
+                }
+                return null;
+              })}
+
+              {currentPage < totalPages - 2 && <Pagination.Ellipsis />}
+              {currentPage < totalPages - 1 && (
+                <Pagination.Item onClick={() => setCurrentPage(totalPages)}>{totalPages}</Pagination.Item>
+              )}
+            </>
+          ) : (
+            Array.from({ length: totalPages }, (_, index) => (
               <Pagination.Item
-                key={index}
+                key={index + 1}
                 active={currentPage === index + 1}
-                onClick={() => goToPage(index + 1)}
+                onClick={() => setCurrentPage(index + 1)}
               >
                 {index + 1}
               </Pagination.Item>
-            ))}
-            <Pagination.Next
-              disabled={isLastPage}
-              onClick={() => !isLastPage && goToPage(currentPage + 1)}
-            />
-          </Pagination>
-        </Col>
-      </Row>
+            ))
+          )}
 
-      <Row className="mt-3">
-        <Col>
-          <Button
-            variant="warning"
-            onClick={() => setEditarMasivoModal(true)}
-            disabled={estudiantesSeleccionados.length === 0}
-          >
-            <i className="fas fa-edit"></i> Edición Masiva
-          </Button>
-          {/* <Button
-            variant="info"
-            className="ms-2"
-            onClick={() => {
-              // Modal o confirmación para envío masivo de credenciales
-              const confirmar = window.confirm(`¿Está seguro de enviar credenciales a todos los estudiantes del año ${ano}?`);
-              if (confirmar) {
-                enviarCredencialesMasivoPorAno();
-              }
-            }}
-          >
-            <i className="fas fa-envelope"></i> Enviar Credenciales por Año
-          </Button> */}
-          <Button
-            variant="success"
-            className="ms-2"
-            onClick={() => {
-              const confirmar = window.confirm(`¿Está seguro de enviar credenciales a los estudiantes seleccionados?`);
-              if (confirmar) {
-                enviarCredencialesSeleccionados();
-              }
-            }}
-            disabled={estudiantesSeleccionados.length === 0} // Deshabilitar si no hay estudiantes seleccionados
-          >
-            <i className="fas fa-envelope"></i> Enviar Credenciales Seleccionados
-          </Button>
-        </Col>
-      </Row>
+          <Pagination.Next
+            disabled={isLastPage}
+            onClick={() => !isLastPage && setCurrentPage(currentPage + 1)}
+          />
+        </Pagination>
+
+        <Row className="d-flex justify-content-end">
+          <Col xs="auto" className="d-flex">
+            <Button
+              variant="warning"
+              onClick={() => setEditarMasivoModal(true)}
+              disabled={estudiantesSeleccionados.length === 0}
+            >
+              <i className="fas fa-edit"></i> Edición Masiva
+            </Button>
+            <Button
+              variant="success"
+              className="ms-2"
+              onClick={() => {
+                const confirmar = window.confirm(`¿Está seguro de enviar credenciales a los estudiantes seleccionados?`);
+                if (confirmar) {
+                  enviarCredencialesSeleccionados();
+                }
+              }}
+              disabled={estudiantesSeleccionados.length === 0} // Deshabilitar si no hay estudiantes seleccionados
+            >
+              <i className="fas fa-envelope"></i> Enviar Credenciales Seleccionados
+            </Button>
+          </Col>
+        </Row>
+      </div>
 
       {/* Modal de edición masiva */}
       <Modal show={editarMasivoModal} onHide={handleCloseEditarMasivoModal}>
@@ -939,7 +958,7 @@ const Estudiantes = () => {
         <Modal.Body>
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
-              <Form.Label>Nombres</Form.Label>
+              <Form.Label>Nombre</Form.Label>
               <Form.Control
                 type="text"
                 name="nombres"
@@ -947,7 +966,7 @@ const Estudiantes = () => {
                 onChange={handleInputChange}
                 required
                 pattern="[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+"
-                placeholder="Ingrese nombres"
+                placeholder="Ingrese nombre"
               />
               <Form.Text className="text-muted">
                 Solo se permiten letras y espacios

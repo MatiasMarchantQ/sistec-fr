@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
-import { Dropdown, Button, Modal, Form } from 'react-bootstrap';
+import { Dropdown, Button, Modal, Form, Spinner, Pagination } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import '../styles/Usuarios.css';
 
 const Usuarios = () => {
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  const [loading, setLoading] = useState(true);
   const [usuarios, setUsuarios] = useState([]);
   const [tipo, setTipo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -109,6 +110,8 @@ const Usuarios = () => {
       setTotalElements(response.data.total);
     } catch (error) {
       console.error('Error al obtener personal:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -275,14 +278,6 @@ const Usuarios = () => {
 
   const VolverHome = () => {
     navigate('/home?component=agenda');
-  };
-
-  const hayFiltrosAplicados = () => {
-    return (
-      tipo !== '' || // Verifica si hay un tipo seleccionado
-      estadoFiltro !== 'todos' || // Verifica si el estado es diferente de "todos"
-      searchTerm !== '' // Verifica si hay un término de búsqueda
-    );
   };
 
   const enviarCredencialIndividual = async (usuario) => {
@@ -464,12 +459,12 @@ const Usuarios = () => {
               <div className="usuarios-modal__body modal-body">
                 <form onSubmit={handleSubmit}>
                   <div className="form-group">
-                    <label>Nombres</label>
+                    <label>Nombre</label>
                     <input
                       type="text"
                       name="nombres"
                       className="form-control"
-                      placeholder="Ingrese nombres"
+                      placeholder="Ingrese nombre"
                       value={nuevoUsuario.nombres}
                       onChange={handleInputChange}
                       required
@@ -585,193 +580,210 @@ const Usuarios = () => {
       )}
 
       {/* Tabla de usuarios */}
-      <div className="usuarios__card card">
-        <div className="usuarios__card-header card-header custom-card text-light">
-          <h3 className="usuarios__card-title card-title">Lista de Usuarios</h3>
+      {loading ? (
+        <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
+          <Spinner animation="border" variant="primary" />
         </div>
-        <div className="usuarios__card-body card-body">
-          <table className="usuarios__table table table-bordered table-striped">
-            <thead>
-              <tr>
-                <th>Nombres</th>
-                <th>Apellidos</th>
-                <th>RUT</th>
-                <th>Correo</th>
-                <th>Rol</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.map((usuario) => (
-                <tr key={usuario.id}>
-                  <td>
-                    {editingId === usuario.id ? (
-                      <input
-                        type="text"
-                        className="form-control"
-                        defaultValue={usuario.nombres}
-                        onChange={(e) => handleFieldChange(usuario.id, 'nombres', e.target.value)}
-                      />
-                    ) : (
-                      usuario.nombres
-                    )}
-                  </td>
-                  <td>
-                    {editingId === usuario.id ? (
-                      <input
-                        type="text"
-                        className="form-control"
-                        defaultValue={usuario.apellidos}
-                        onChange={(e) => handleFieldChange(usuario.id, 'apellidos', e.target.value)}
-                      />
-                    ) : (
-                      usuario.apellidos
-                    )}
-                  </td>
-                  <td>{usuario.rut}</td> {/* El RUT no se puede editar */}
-                  <td>
-                    {editingId === usuario.id ? (
-                      <input
-                        type="email"
-                        className="form-control"
-                        defaultValue={usuario.correo}
-                        onChange={(e) => handleFieldChange(usuario.id, 'correo', e.target.value)}
-                      />
-                    ) : (
-                      usuario.correo
-                    )}
-                  </td>
-                  <td>
-                    {editingId === usuario.id ? (
-                      <select
-                        className="form-control"
-                        defaultValue={usuario.rol_id}
-                        onChange={(e) => handleFieldChange(usuario.id, 'rol_id', e.target.value)}
-                      >
-                        {roles.map(rol => (
-                          <option key={rol.id} value={rol.id}>
-                            {rol.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      roles.find(rol => rol.id === usuario.rol_id)?.nombre
-                    )}
-                  </td>
-                  <td>
-                    <div className="custom-control custom-switch">
-                      <input
-                        type="checkbox"
-                        className="custom-control-input"
-                        id={`customSwitch${usuario.id}`}
-                        checked={editingId === usuario.id ? editedFields.estado ?? usuario.estado : usuario.estado}
-                        onChange={(e) => {
-                          if (editingId === usuario.id) {
-                            handleFieldChange(usuario.id, 'estado', e.target.checked);
-                          }
-                        }}
-                        disabled={editingId !== usuario.id}
-                      />
-                      <label className="custom-control-label" htmlFor={`customSwitch${usuario.id}`}>
-                        {editingId === usuario.id ? (editedFields.estado ?? usuario.estado ? 'Activo' : 'Inactivo') : (usuario.estado ? 'Activo' : 'Inactivo')}
-                      </label>
-                    </div>
-                  </td>
-                  <td>
-                    {editingId === usuario.id ? (
-                      <div className="d-flex">
-                        <Button
-                          variant="success"
-                          size="sm"
-                          className="me-2"
-                          onClick={() => handleSaveChanges(usuario.id)}
-                        >
-                          <i className="fas fa-save me-1"></i>Guardar
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            setEditingId(null);
-                            setEditedFields({});
-                          }}
-                        >
-                          <i className="fas fa-times me-1"></i>Cancelar
-                        </Button>
-                      </div>
-                    ) : (
-                      <Dropdown>
-                        <Dropdown.Toggle variant="secondary" id={`dropdown-${usuario.id}`}>
-                          Acciones
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu>
-                          <Dropdown.Item
-                            onClick={() => handleEdit(usuario.id)}
-                          >
-                            <i className="fas fa-edit me-2"></i>Editar
-                          </Dropdown.Item>
-                          <Dropdown.Item
-                            onClick={() => handleCambioContrasena(usuario)}
-                          >
-                            <i className="fas fa-key me-2"></i>Cambiar Contraseña
-                          </Dropdown.Item>
-                          <Dropdown.Item
-                            onClick={() => enviarCredencialIndividual(usuario)}
-                          >
-                            <i className="fas fa-envelope me-2"></i>Enviar Credencial
-                          </Dropdown.Item>
-                        </Dropdown.Menu>
-                      </Dropdown>
-                    )}
-                  </td>
+      ) : (
+        <div className="usuarios__card">
+          <div>
+            <table className="usuarios__table table table-bordered table-striped">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Apellidos</th>
+                  <th>RUT</th>
+                  <th>Correo</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {usuarios.map((usuario) => (
+                  <tr key={usuario.id}>
+                    <td>
+                      {editingId === usuario.id ? (
+                        <input
+                          type="text"
+                          className="form-control"
+                          defaultValue={usuario.nombres}
+                          onChange={(e) => handleFieldChange(usuario.id, 'nombres', e.target.value)}
+                        />
+                      ) : (
+                        usuario.nombres
+                      )}
+                    </td>
+                    <td>
+                      {editingId === usuario.id ? (
+                        <input
+                          type="text"
+                          className="form-control"
+                          defaultValue={usuario.apellidos}
+                          onChange={(e) => handleFieldChange(usuario.id, 'apellidos', e.target.value)}
+                        />
+                      ) : (
+                        usuario.apellidos
+                      )}
+                    </td>
+                    <td>{usuario.rut}</td> {/* El RUT no se puede editar */}
+                    <td>
+                      {editingId === usuario.id ? (
+                        <input
+                          type="email"
+                          className="form-control"
+                          defaultValue={usuario.correo}
+                          onChange={(e) => handleFieldChange(usuario.id, 'correo', e.target.value)}
+                        />
+                      ) : (
+                        usuario.correo
+                      )}
+                    </td>
+                    <td>
+                      {editingId === usuario.id ? (
+                        <select
+                          className="form-control"
+                          defaultValue={usuario.rol_id}
+                          onChange={(e) => handleFieldChange(usuario.id, 'rol_id', e.target.value)}
+                        >
+                          {roles
+                            .filter(rol => rol.nombre !== 'Estudiante')
+                            .map(rol => (
+                              <option key={rol.id} value={rol.id}>
+                                {rol.nombre}
+                              </option>
+                            ))}
+                        </select>
+                      ) : (
+                        roles.find(rol => rol.id === usuario.rol_id)?.nombre
+                      )}
+                    </td>
+                    <td>
+                      <div className="custom-control custom-switch">
+                        <input
+                          type="checkbox"
+                          className="custom-control-input"
+                          id={`customSwitch${usuario.id}`}
+                          checked={editingId === usuario.id ? editedFields.estado ?? usuario.estado : usuario.estado}
+                          onChange={(e) => {
+                            if (editingId === usuario.id) {
+                              handleFieldChange(usuario.id, 'estado', e.target.checked);
+                            }
+                          }}
+                          disabled={editingId !== usuario.id}
+                        />
+                        <label className="custom-control-label" htmlFor={`customSwitch${usuario.id}`}>
+                          {editingId === usuario.id ? (editedFields.estado ?? usuario.estado ? 'Activo' : 'Inactivo') : (usuario.estado ? 'Activo' : 'Inactivo')}
+                        </label>
+                      </div>
+                    </td>
+                    <td>
+                      {editingId === usuario.id ? (
+                        <div className="d-flex">
+                          <Button
+                            variant="success"
+                            size="sm"
+                            className="me-2"
+                            onClick={() => handleSaveChanges(usuario.id)}
+                          >
+                            <i className="fas fa-save me-1"></i>Guardar
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              setEditingId(null);
+                              setEditedFields({});
+                            }}
+                          >
+                            <i className="fas fa-times me-1"></i>Cancelar
+                          </Button>
+                        </div>
+                      ) : (
+                        <Dropdown>
+                          <Dropdown.Toggle variant="secondary" id={`dropdown-${usuario.id}`}>
+                            Acciones
+                          </Dropdown.Toggle>
+                          <Dropdown.Menu>
+                            <Dropdown.Item
+                              onClick={() => handleEdit(usuario.id)}
+                            >
+                              <i className="fas fa-edit me-2"></i>Editar
+                            </Dropdown.Item>
+                            <Dropdown.Item
+                              onClick={() => handleCambioContrasena(usuario)}
+                            >
+                              <i className="fas fa-key me-2"></i>Cambiar Contraseña
+                            </Dropdown.Item>
+                            <Dropdown.Item
+                              onClick={() => enviarCredencialIndividual(usuario)}
+                            >
+                              <i className="fas fa-envelope me-2"></i>Enviar Credencial
+                            </Dropdown.Item>
+                          </Dropdown.Menu>
+                        </Dropdown>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Paginación */}
       <div className="usuarios__pagination d-flex justify-content-between align-items-center mb-3">
-        <nav aria-label="Page navigation">
-          <ul className="pagination pagination-sm">
-            {/* Botón de página anterior */}
-            <li className={`page-item ${isFirstPage ? 'disabled' : ''}`}>
-              <button
-                className="page-link"
-                onClick={() => !isFirstPage && goToPage(currentPage - 1)}
-              >
-                Anterior
-              </button>
-            </li>
+        <Pagination size="sm" className="m-0 mb-2 mb-md-0">
+          <Pagination.Prev
+            disabled={isFirstPage}
+            onClick={() => !isFirstPage && setCurrentPage(currentPage - 1)}
+          />
 
-            {/* Páginas */}
-            {[...Array(totalPages)].map((_, index) => (
-              <li
-                key={index}
-                className={`page-item ${currentPage === index + 1 ? 'active' : ''}`}
-              >
-                <button
-                  className="page-link"
-                  onClick={() => goToPage(index + 1)}
-                >
-                  {index + 1}
-                </button>
-              </li>
-            ))}
+          {/* Lógica para mostrar los números de página */}
+          {totalPages > 5 ? (
+            <>
+              {currentPage > 2 && <Pagination.Item onClick={() => setCurrentPage(1)}>1</Pagination.Item>}
+              {currentPage > 3 && <Pagination.Ellipsis />}
 
-            {/* Botón de página siguiente */}
-            <li className={`page-item ${isLastPage ? 'disabled' : ''}`}>
-              <button
-                className="page-link"
-                onClick={() => !isLastPage && goToPage(currentPage + 1)}
+              {Array.from({ length: Math.min(3, totalPages) }, (_, index) => {
+                const page = Math.max(2, currentPage - 1) + index; // Muestra las páginas alrededor de la página actual
+                if (page <= totalPages) {
+                  return (
+                    <Pagination.Item
+                      key={page}
+                      active={currentPage === page}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </Pagination.Item>
+                  );
+                }
+                return null;
+              })}
+
+              {currentPage < totalPages - 2 && <Pagination.Ellipsis />}
+              {currentPage < totalPages - 1 && (
+                <Pagination.Item onClick={() => setCurrentPage(totalPages)}>{totalPages}</Pagination.Item>
+              )}
+            </>
+          ) : (
+            Array.from({ length: totalPages }, (_, index) => (
+              <Pagination.Item
+                key={index + 1}
+                active={currentPage === index + 1}
+                onClick={() => setCurrentPage(index + 1)}
               >
-                Siguiente
-              </button>
-            </li>
-          </ul>
-        </nav>
+                {index + 1}
+              </Pagination.Item>
+            ))
+          )}
+
+          <Pagination.Next
+            disabled={isLastPage}
+            onClick={() => !isLastPage && setCurrentPage(currentPage + 1)}
+          />
+        </Pagination>
 
         {/* Botones de guardar y volver
         <div className="usuarios__actions">

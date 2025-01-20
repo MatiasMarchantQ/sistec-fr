@@ -28,10 +28,12 @@ const Home = () => {
   const location = useLocation();
   const { user } = useAuth();
   const [activeComponent, setActiveComponent] = useState('agenda');
+  const [selectedTipo, setSelectedTipo] = useState(null);
   const [selectedFichaId, setSelectedFichaId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
   const [lastValidComponent, setLastValidComponent] = useState('agenda');
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Define component access permissions
   const componentPermissions = {
@@ -59,40 +61,60 @@ const Home = () => {
     const componentFromURL = searchParams.get('component');
   
     if (componentFromURL) {
-      if (hasPermission(componentFromURL)) {
+      if (location.state && location.state.fichaId) {
+        // Si viene de un tab con state, permitir la navegación
+        if (hasPermission(componentFromURL)) {
+          setActiveComponent(componentFromURL);
+          setSelectedFichaId(location.state.fichaId);
+          setSelectedTipo(location.state.tipo);
+          setLastValidComponent(componentFromURL);
+        } else {
+          if (!isInitialLoad) {
+            toast.error('No tienes autorización para acceder a esta sección');
+          }
+          setActiveComponent(lastValidComponent);
+        }
+      } else if (hasPermission(componentFromURL)) {
         setActiveComponent(componentFromURL);
         setLastValidComponent(componentFromURL);
-      } else if (lastValidComponent === 'agenda') {
-        // Solo establecer el componente por defecto, sin mostrar error
-        setActiveComponent('agenda');
-        setLastValidComponent('agenda');
       } else {
-        toast.error('No tienes autorización para acceder a esta sección');
+        if (!isInitialLoad && lastValidComponent !== 'agenda') {
+          toast.error('No tienes autorización para acceder a esta sección');
+        }
         setActiveComponent(lastValidComponent);
       }
     } else if (location.state && location.state.component) {
       const { component, fichaId, tipo } = location.state;
   
-      if (component === 'ficha-clinica') {
+      if (component === 'ficha-clinica' || component === 'reevaluacion') {
         if (!fichaId || !tipo) {
           setActiveComponent('listado-fichas-clinicas');
-        } else if (!hasPermission(component)) {
-          toast.error('No tienes autorización para acceder a esta sección');
-          setActiveComponent(lastValidComponent);
-        } else {
+        } else if (hasPermission(component)) {
           setActiveComponent(component);
-          setLastValidComponent(component);
           setSelectedFichaId(fichaId);
+          setSelectedTipo(tipo);
+          setLastValidComponent(component);
+        } else {
+          if (!isInitialLoad) {
+            toast.error('No tienes autorización para acceder a esta sección');
+          }
+          setActiveComponent(lastValidComponent);
         }
       } else if (hasPermission(component)) {
         setActiveComponent(component);
         setLastValidComponent(component);
       } else {
-        toast.error('No tienes autorización para acceder a esta sección');
+        if (!isInitialLoad) {
+          toast.error('No tienes autorización para acceder a esta sección');
+        }
         setActiveComponent(lastValidComponent);
       }
     }
-}, [location, user]);
+
+    if (isInitialLoad) {
+      setIsInitialLoad(false);
+    }
+  }, [location, user, lastValidComponent, isInitialLoad]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -145,7 +167,8 @@ const Home = () => {
         case 'ficha-clinica':
           return <FichaClinica id={selectedFichaId} />;
         case 'reevaluacion':
-          return <Reevaluacion />;
+          return <Reevaluacion id={selectedFichaId}
+          tipo={selectedTipo} />;
         case 'instituciones':
           return <Instituciones />;
         case 'usuarios':
@@ -180,7 +203,8 @@ const Home = () => {
       case 'ficha-clinica':
         return <FichaClinica id={selectedFichaId} />;
       case 'reevaluacion':
-        return <Reevaluacion />;
+        return <Reevaluacion id={selectedFichaId}
+        tipo={selectedTipo}/>;
       case 'instituciones':
         return <Instituciones />;
       case 'usuarios':

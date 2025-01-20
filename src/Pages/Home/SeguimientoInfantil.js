@@ -205,7 +205,6 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
   const fichaIdValor = fichaId.fichaId || fichaId;
   const [modoEdicion, setModoEdicion] = useState(false);
   const [seguimientoOriginal, setSeguimientoOriginal] = useState(null);
-
   const { getToken, user, handleSessionExpired } = useAuth();
   const [seguimiento, setSeguimiento] = useState({
     fecha: new Date().toISOString().split('T')[0],
@@ -727,6 +726,11 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
     );
   };
 
+  const obtenerFechaActual = () => {
+    const fecha = new Date();
+    const opciones = { year: 'numeric', month: '2-digit', day: '2-digit' };
+    return fecha.toLocaleDateString('es-ES', opciones).replace(/\//g, '-'); // Cambia las barras por guiones
+  };
 
   const exportarDetallesPDF = async (seguimiento) => {
     const pdf = new jsPDF({
@@ -756,6 +760,8 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
       pdf.setTextColor(0, 0, 0);
       pdf.text('Información del Paciente', startX, 20);
       pdf.setFontSize(12);
+
+      console.log(seguimiento);
 
       // Datos del paciente
       const pacienteInfo = [
@@ -853,8 +859,8 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
           'FAST'
         );
       }
-
-      pdf.save(`seguimiento_infantil_${seguimiento.numero_llamado || 'detalles'}.pdf`);
+      const fechaActual = obtenerFechaActual();
+      pdf.save(`${seguimiento.paciente_infantil?.rut}_${fechaActual}_seguimiento_infantil_${seguimiento.numero_llamado || 'detalles'}.pdf`);
     } catch (error) {
       console.error('Error al exportar PDF:', error);
       toast.error('Hubo un problema al exportar el PDF.');
@@ -902,7 +908,7 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
         <Card.Header className='custom-header text-light'>Hitos de Desarrollo</Card.Header>
         <Card.Body>
           <Form.Group>
-            <Form.Label>Edad</Form.Label>
+            <Form.Label>Edad del paciente</Form.Label>
             <Form.Control
               as="select"
               value={seguimiento.grupoEdad}
@@ -1015,7 +1021,7 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
       <Card className="mt-4">
         <Card.Header>Seguimientos Anteriores</Card.Header>
         <Card.Body>
-          <Table striped bordered>
+          <Table striped bordered responsive>
             <thead>
               <tr>
                 <th>N°</th>

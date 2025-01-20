@@ -88,10 +88,6 @@
     border-radius: 8px;
 }
 
-/* Estilos de la tabla */
-.usuarios__card {
-    margin-top: 20px;
-}
 
 .usuarios__card-header {
     background-color: #f8f9fa;
@@ -99,7 +95,6 @@
 
 .usuarios__table {
     width: 100%;
-    margin-top: 10px;
 }
 
 .usuarios__table th,

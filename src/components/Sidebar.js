@@ -80,6 +80,20 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
               </li>
             )}
 
+            {/* Menú de Personal Académico - Visible solo para rol_id 1 */}
+            {user && user.rol_id === 1 && (
+              <li className="nav-item">
+                <Link 
+                  to="?component=usuarios"
+                  className="nav-link"
+                  onClick={() => handleSetActiveComponent('usuarios')}
+                >
+                  <i className="nav-icon fas fa-user-tie"></i>
+                  <p>Personal Académico</p>
+                </Link>
+              </li>
+            )}
+
             {/* Menú de Usuarios */}
             {(user && (user.rol_id === 1 || user.rol_id === 2)) && (
               <li className={`nav-item ${isUserMenuOpen ? 'menu-open' : ''}`}>
@@ -91,26 +105,14 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
                     toggleUserMenu();
                   }}
                 >
-                  <i className="nav-icon fas fa-user"></i>
+                  <i className="nav-icon fas fa-user-graduate"></i>
                   <p>
-                    Usuarios
+                    Estudiantes
                     <i className={`right fas fa-angle-${isUserMenuOpen ? 'left' : 'left'}`}></i>
                   </p>
                 </Link>
                 {isUserMenuOpen && (
                   <ul className="nav nav-treeview">
-                    {user.rol_id === 1 && (
-                      <li className="nav-item">
-                        <Link 
-                          to="?component=usuarios"
-                          className="nav-link"
-                          onClick={() => handleSetActiveComponent('usuarios')}
-                        >
-                          <i className="far fa-circle nav-icon"></i>
-                          <p>Personal Académico</p>
-                        </Link>
-                      </li>
-                    )}
                     <li className="nav-item">
                       <Link 
                         to="?component=cargar-estudiantes"
@@ -118,7 +120,7 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
                         onClick={() => handleSetActiveComponent('cargar-estudiantes')}
                       >
                         <i className="far fa-circle nav-icon"></i>
-                        <p>Cargar Estudiantes</p>
+                        <p>Carga Masiva</p>
                       </Link>
                     </li>
                     <li className="nav-item">
@@ -128,7 +130,7 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
                         onClick={() => handleSetActiveComponent('listado-estudiantes')}
                       >
                         <i className="far fa-circle nav-icon"></i>
-                        <p>Listado de Estudiantes</p>
+                        <p>Gestión de estudiantes</p>
                       </Link>
                     </li>
                     <li className="nav-item">

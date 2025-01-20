@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Table, Form, Row, Col, Button } from 'react-bootstrap';
+import { Container, Table, Form, Row, Col, Button, Pagination } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -14,8 +14,7 @@ const ListadoFichasClinicas = () => {
   const [tiposInstituciones, setTiposInstituciones] = useState([]);
   const [instituciones, setInstituciones] = useState([]);
   const [institucionesFiltradas, setInstitucionesFiltradas] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  
+
   // Estados de filtros y paginación
   const estadoInicialFiltros = {
     tipoInstitucion: '',
@@ -25,7 +24,7 @@ const ListadoFichasClinicas = () => {
     fechaInicial: '',
     fechaFinal: ''
   };
-  
+
   const [filtros, setFiltros] = useState(estadoInicialFiltros);
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
@@ -33,7 +32,6 @@ const ListadoFichasClinicas = () => {
   // Efecto para cargar datos iniciales
   useEffect(() => {
     const cargarDatosIniciales = async () => {
-      setIsLoading(true);
       try {
         await Promise.all([
           cargarTiposInstituciones(),
@@ -43,7 +41,6 @@ const ListadoFichasClinicas = () => {
       } catch (error) {
         console.error('Error al cargar datos iniciales:', error);
       } finally {
-        setIsLoading(false);
       }
     };
 
@@ -63,78 +60,75 @@ const ListadoFichasClinicas = () => {
   }, [filtros.tipoInstitucion, instituciones]);
 
   const exportarFichas = async () => {
-    setIsLoading(true);
     try {
-        const token = getToken();
-        
-        // Asegurarse de que tipoFicha tenga un valor
-        const filtrosParaExportar = { 
-            ...filtros,
-            tipoFicha: filtros.tipoFicha || ''
-        };
+      const token = getToken();
 
-        // Crear parámetros para la solicitud
-        const params = new URLSearchParams();
-        
-        // Agregar cada filtro que tenga un valor
-        Object.keys(filtrosParaExportar).forEach(key => {
-            if (filtrosParaExportar[key]) {
-                params.append(key, filtrosParaExportar[key]);
-            }
-        });
+      // Asegurarse de que tipoFicha tenga un valor
+      const filtrosParaExportar = {
+        ...filtros,
+        tipoFicha: filtros.tipoFicha || ''
+      };
 
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/fichas-clinicas/exportar`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-            params: params,
-            responseType: 'blob' // Para manejar la descarga del archivo
-        });
-    
-        // Verificar si la respuesta contiene datos
-        if (response.data.size === 0) {
-            alert('No hay datos para exportar con los filtros seleccionados.');
-            return;
+      // Crear parámetros para la solicitud
+      const params = new URLSearchParams();
+
+      // Agregar cada filtro que tenga un valor
+      Object.keys(filtrosParaExportar).forEach(key => {
+        if (filtrosParaExportar[key]) {
+          params.append(key, filtrosParaExportar[key]);
         }
-    
-        // Crear un enlace para descargar el archivo
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        
-        // Generar nombre de archivo con fecha actual
-        const fechaActual = new Date().toISOString().split('T')[0];
-        link.setAttribute('download', `fichas_clinicas_${fechaActual}.xlsx`);
-        
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-    
+      });
+
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/fichas-clinicas/exportar`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        params: params,
+        responseType: 'blob' // Para manejar la descarga del archivo
+      });
+
+      // Verificar si la respuesta contiene datos
+      if (response.data.size === 0) {
+        alert('No hay datos para exportar con los filtros seleccionados.');
+        return;
+      }
+
+      // Crear un enlace para descargar el archivo
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Generar nombre de archivo con fecha actual
+      const fechaActual = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `fichas_clinicas_${fechaActual}.xlsx`);
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
     } catch (error) {
-        console.error('Error al exportar fichas clínicas:', error);
-        
-        // Manejo de errores más específico
-        if (error.response) {
-            switch (error.response.status) {
-                case 400:
-                    alert('Debe seleccionar un tipo de ficha válido (adulto o infantil).');
-                    break;
-                case 404:
-                    alert('No se encontraron fichas clínicas para exportar.');
-                    break;
-                case 500:
-                    alert('Error interno del servidor. Intente nuevamente más tarde.');
-                    break;
-                default:
-                    alert('Ocurrió un error al exportar las fichas clínicas.');
-            }
-        } else if (error.request) {
-            alert('No se pudo conectar con el servidor. Verifique su conexión a internet.');
-        } else {
-            alert('Ocurrió un error inesperado.');
+      console.error('Error al exportar fichas clínicas:', error);
+
+      // Manejo de errores más específico
+      if (error.response) {
+        switch (error.response.status) {
+          case 400:
+            alert('Debe seleccionar un tipo de ficha válido (adulto o infantil).');
+            break;
+          case 404:
+            alert('No se encontraron fichas clínicas para exportar.');
+            break;
+          case 500:
+            alert('Error interno del servidor. Intente nuevamente más tarde.');
+            break;
+          default:
+            alert('Ocurrió un error al exportar las fichas clínicas.');
         }
-    } finally {
-        setIsLoading(false);
+      } else if (error.request) {
+        alert('No se pudo conectar con el servidor. Verifique su conexión a internet.');
+      } else {
+        alert('Ocurrió un error inesperado.');
+      }
     }
-};
+  };
 
   const cargarTiposInstituciones = async () => {
     try {
@@ -148,7 +142,7 @@ const ListadoFichasClinicas = () => {
       setTiposInstituciones([]);
     }
   };
-  
+
   const cargarInstituciones = async () => {
     try {
       const token = getToken();
@@ -168,47 +162,44 @@ const ListadoFichasClinicas = () => {
   };
 
   const cambiarPagina = async (nuevaPagina) => {
-    if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas && !isLoading) {
+    if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
       await buscarFichas(nuevaPagina);
     }
   };
 
   const buscarFichas = async (pagina = paginaActual) => {
-    setIsLoading(true);
     try {
-        const token = getToken();
-        const params = new URLSearchParams({
-            ...filtros,
-            pagina: pagina.toString(),
-            limite: '10'
-        });
-    
-        // Remover parámetros vacíos
-        for (const [key, value] of params.entries()) {
-            if (!value) params.delete(key);
-        }
-    
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/fichas-clinicas`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-            params: params
-        });
-    
-        // Add validation for the response data
-        if (response.data?.success && Array.isArray(response.data?.fichas)) {
-            setFichas(response.data.fichas);
-            setTotalPaginas(Math.ceil(response.data.total / response.data.limite));
-            setPaginaActual(pagina);
-        } else {
-            console.error('Invalid response format:', response.data);
-            setFichas([]);
-            setTotalPaginas(1);
-        }
-    } catch (error) {
-        console.error('Error al buscar fichas:', error);
+      const token = getToken();
+      const params = new URLSearchParams({
+        ...filtros,
+        pagina: pagina.toString(),
+        limite: '10'
+      });
+
+      // Remover parámetros vacíos
+      for (const [key, value] of params.entries()) {
+        if (!value) params.delete(key);
+      }
+
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/fichas-clinicas`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        params: params
+      });
+
+      // Add validation for the response data
+      if (response.data?.success && Array.isArray(response.data?.fichas)) {
+        setFichas(response.data.fichas);
+        setTotalPaginas(Math.ceil(response.data.total / response.data.limite));
+        setPaginaActual(pagina);
+      } else {
+        console.error('Invalid response format:', response.data);
         setFichas([]);
         setTotalPaginas(1);
-    } finally {
-        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error('Error al buscar fichas:', error);
+      setFichas([]);
+      setTotalPaginas(1);
     }
   };
 
@@ -216,11 +207,11 @@ const ListadoFichasClinicas = () => {
     const { name, value } = e.target;
     setFiltros(prev => {
       const newFiltros = { ...prev, [name]: value };
-      
+
       if (name === 'tipoInstitucion') {
         newFiltros.institucion = '';
       }
-      
+
       return newFiltros;
     });
   };
@@ -230,34 +221,31 @@ const ListadoFichasClinicas = () => {
   };
 
   const limpiarFiltros = async () => {
-    setIsLoading(true);
     try {
-        // Resetear todos los estados a sus valores iniciales
-        setFiltros(estadoInicialFiltros);
-        setPaginaActual(1);
-        setInstitucionesFiltradas(instituciones);
+      // Resetear todos los estados a sus valores iniciales
+      setFiltros(estadoInicialFiltros);
+      setPaginaActual(1);
+      setInstitucionesFiltradas(instituciones);
 
-        // Recargar los datos iniciales
-        await Promise.all([
-            cargarTiposInstituciones(),
-            cargarInstituciones()
-        ]);
-        
-        // Buscar fichas sin filtros
-        const token = getToken();
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/fichas-clinicas`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-            params: { pagina: '1', limite: '10' }
-        });
+      // Recargar los datos iniciales
+      await Promise.all([
+        cargarTiposInstituciones(),
+        cargarInstituciones()
+      ]);
 
-        if (response.data.success) {
-            setFichas(response.data.fichas);
-            setTotalPaginas(Math.ceil(response.data.total / response.data.limite));
-        }
+      // Buscar fichas sin filtros
+      const token = getToken();
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/fichas-clinicas`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        params: { pagina: '1', limite: '10' }
+      });
+
+      if (response.data.success) {
+        setFichas(response.data.fichas);
+        setTotalPaginas(Math.ceil(response.data.total / response.data.limite));
+      }
     } catch (error) {
-        console.error('Error al limpiar filtros:', error);
-    } finally {
-        setIsLoading(false);
+      console.error('Error al limpiar filtros:', error);
     }
   };
 
@@ -286,7 +274,7 @@ const ListadoFichasClinicas = () => {
     navigate('/home?component=agenda');
   };
 
-  
+
   return (
     <Container fluid className="p-4">
       <div className="instituciones__back">
@@ -294,38 +282,36 @@ const ListadoFichasClinicas = () => {
           <i className="fas fa-arrow-left"></i> Volver
         </button>
       </div>
-      <h2 className="font-weight-bold text-center mb-4" style={{ 'color': 'var(--color-accent)'}}>Listado de Fichas Clínicas</h2>
-      
+      <h2 className="font-weight-bold text-center mb-4" style={{ 'color': 'var(--color-accent)' }}>Listado de Fichas Clínicas</h2>
+
       {/* Formulario de Filtros */}
       <Form className="mb-4" onSubmit={(e) => { e.preventDefault(); aplicarFiltros(); }}>
         <Row className="mt-3">
-            <Col md={3}>
-                <Form.Group>
-                    <Form.Label> Fecha Inicial</Form.Label>
-                    <Form.Control
-                        type="date"
-                        name="fechaInicial"
-                        value={filtros.fechaInicial}
-                        onChange={handleChangeFiltro}
-                        disabled={isLoading}
-                        max={filtros.fechaFinal || new Date().toISOString().split('T')[0]}
-                    />
-                </Form.Group>
-            </Col>
-            <Col md={3}>
-                <Form.Group>
-                    <Form.Label>Fecha Final</Form.Label>
-                    <Form.Control
-                        type="date"
-                        name="fechaFinal"
-                        value={filtros.fechaFinal}
-                        onChange={handleChangeFiltro}
-                        disabled={isLoading}
-                        min={filtros.fechaInicial}
-                        max={new Date().toISOString().split('T')[0]}
-                    />
-                </Form.Group>
-            </Col>
+          <Col md={3}>
+            <Form.Group>
+              <Form.Label> Fecha Inicial</Form.Label>
+              <Form.Control
+                type="date"
+                name="fechaInicial"
+                value={filtros.fechaInicial}
+                onChange={handleChangeFiltro}
+                max={filtros.fechaFinal || new Date().toISOString().split('T')[0]}
+              />
+            </Form.Group>
+          </Col>
+          <Col md={3}>
+            <Form.Group>
+              <Form.Label>Fecha Final</Form.Label>
+              <Form.Control
+                type="date"
+                name="fechaFinal"
+                value={filtros.fechaFinal}
+                onChange={handleChangeFiltro}
+                min={filtros.fechaInicial}
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </Form.Group>
+          </Col>
         </Row>
         <Row>
           <Col md={3}>
@@ -336,7 +322,6 @@ const ListadoFichasClinicas = () => {
                 name="tipoInstitucion"
                 value={filtros.tipoInstitucion}
                 onChange={handleChangeFiltro}
-                disabled={isLoading}
               >
                 <option value="">Todos los Tipos</option>
                 {tiposInstituciones.map(tipo => (
@@ -355,7 +340,6 @@ const ListadoFichasClinicas = () => {
                 name="institucion"
                 value={filtros.institucion}
                 onChange={handleChangeFiltro}
-                disabled={!filtros.tipoInstitucion || isLoading}
               >
                 <option value="">Todas las Instituciones</option>
                 {institucionesFiltradas.map(inst => (
@@ -374,7 +358,6 @@ const ListadoFichasClinicas = () => {
                 name="tipoFicha"
                 value={filtros.tipoFicha}
                 onChange={handleChangeFiltro}
-                disabled={isLoading}
               >
                 <option value="">Todos los Tipos</option>
                 <option value="adulto">Adulto</option>
@@ -392,7 +375,6 @@ const ListadoFichasClinicas = () => {
                 value={filtros.textoBusqueda}
                 onChange={handleChangeFiltro}
                 onKeyPress={handleKeyPress}
-                disabled={isLoading}
               />
             </Form.Group>
           </Col>
@@ -403,26 +385,23 @@ const ListadoFichasClinicas = () => {
               type="submit"
               variant="primary"
               className="me-2"
-              disabled={isLoading}
             >
-              {isLoading ? 'Buscando...' : 'Buscar'}
+              {'Buscar'}
             </Button>
             {hayFiltrosActivos && (
               <Button
                 variant="secondary"
                 onClick={limpiarFiltros}
-                disabled={isLoading}
               >
                 Limpiar Filtros
               </Button>
             )}
-            <Button 
-              variant="success" 
-              onClick={exportarFichas} 
-              disabled={isLoading}
+            <Button
+              variant="success"
+              onClick={exportarFichas}
               className="ms-2"
             >
-              {isLoading ? 'Exportando...' : 'Exportar Fichas Clínicas'}
+              {'Exportar Fichas Clínicas'}
             </Button>
           </Col>
         </Row>
@@ -430,86 +409,86 @@ const ListadoFichasClinicas = () => {
 
       {/* Tabla de Fichas Clínicas */}
       <Table striped bordered hover responsive>
-          <thead>
-              <tr>
-                  <th>Fecha</th>
-                  <th>Tipo</th>
-                  <th>Paciente</th>
-                  <th>Institución</th>
-                  <th>Diagnóstico</th>
-                  <th>Reevaluaciones</th>
-                  <th>Acciones</th>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Nombre del Paciente</th>
+            <th>Institución</th>
+            <th>Diagnóstico</th>
+            <th>Reevaluaciones</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {fichas.map(ficha => {
+            const esInfantil = ficha.PacienteInfantil !== undefined;
+            const paciente = esInfantil ? ficha.PacienteInfantil : ficha.PacienteAdulto;
+            const fecha = new Date(ficha.createdAt).toLocaleDateString('es-CL');
+
+            // Lógica de diagnósticos para adultos
+            let diagnostico = 'No especificado';
+            if (!esInfantil) {
+              // Filtrar diagnósticos predefinidos
+              const diagnosticosPredefinidos = ficha.diagnosticos
+                .filter(d => !d.esOtro)
+                .map(d => d.nombre);
+
+              // Verificar si hay diagnóstico personalizado
+              const tieneOtroDiagnostico = ficha.diagnosticos.some(d => d.esOtro);
+
+              // Construir string de diagnósticos
+              diagnostico = diagnosticosPredefinidos.length > 0
+                ? diagnosticosPredefinidos.join(', ') + (tieneOtroDiagnostico ? ' y Otro' : '')
+                : (tieneOtroDiagnostico ? 'Otro' : 'No especificado');
+            } else {
+              // Mantener lógica original para fichas infantiles
+              diagnostico = ficha.diagnostico_dsm;
+            }
+
+            const cantidadReevaluaciones = ficha.reevaluaciones || 'No aplicado';
+
+            return (
+              <tr key={ficha.id}>
+                <td>{fecha}</td>
+                <td>{esInfantil ? 'Infantil' : 'Adulto'}</td>
+                <td>{`${paciente.nombres} ${paciente.apellidos}`}</td>
+                <td>{ficha.Institucion.TipoInstitucion?.tipo} {ficha.Institucion.nombre}</td>
+                <td>{diagnostico}</td>
+                <td>{cantidadReevaluaciones}</td>
+                <td>
+                  <Button variant="info" size="sm" onClick={() => verDetallesFicha(ficha.id, esInfantil ? 'infantil' : 'adulto')}>
+                    Ver Detalles
+                  </Button>
+                </td>
               </tr>
-          </thead>
-          <tbody>
-            {fichas.map(ficha => {
-                const esInfantil = ficha.PacienteInfantil !== undefined;
-                const paciente = esInfantil ? ficha.PacienteInfantil : ficha.PacienteAdulto;
-                const fecha = new Date(ficha.createdAt).toLocaleDateString('es-CL');
-                
-                // Lógica de diagnósticos para adultos
-                let diagnostico = 'No especificado';
-                if (!esInfantil) {
-                    // Filtrar diagnósticos predefinidos
-                    const diagnosticosPredefinidos = ficha.diagnosticos
-                        .filter(d => !d.esOtro)
-                        .map(d => d.nombre);
-
-                    // Verificar si hay diagnóstico personalizado
-                    const tieneOtroDiagnostico = ficha.diagnosticos.some(d => d.esOtro);
-
-                    // Construir string de diagnósticos
-                    diagnostico = diagnosticosPredefinidos.length > 0 
-                        ? diagnosticosPredefinidos.join(', ') + (tieneOtroDiagnostico ? ' y Otro' : '')
-                        : (tieneOtroDiagnostico ? 'Otro' : 'No especificado');
-                } else {
-                    // Mantener lógica original para fichas infantiles
-                    diagnostico = ficha.diagnostico_dsm;
-                }
-
-                const cantidadReevaluaciones = ficha.reevaluaciones || 'No aplicado';
-
-                return (
-                    <tr key={ficha.id}>
-                        <td>{fecha}</td>
-                        <td>{esInfantil ? 'Infantil' : 'Adulto'}</td>
-                        <td>{`${paciente.nombres} ${paciente.apellidos}`}</td>
-                        <td>{ficha.Institucion.nombre}</td>
-                        <td>{diagnostico}</td>
-                        <td>{cantidadReevaluaciones}</td>
-                        <td>
-                            <Button variant="info" size="sm" onClick={() => verDetallesFicha(ficha.id, esInfantil ? 'infantil' : 'adulto')}>
-                                Ver Detalles
-                            </Button>
-                        </td>
-                    </tr>
-                );
-            })}
-          </tbody>
+            );
+          })}
+        </tbody>
       </Table>
 
       {/* Paginación */}
-      <Row className="mt-4">
-        <Col className="d-flex justify-content-between align-items-center">
-          <Button
-            variant="secondary"
+      <div className="asignar-estudiantes__pagination d-flex justify-content-between align-items-center mb-3">
+        <Pagination size="sm" className="m-0">
+          <Pagination.Prev
+            disabled={paginaActual === 1}
             onClick={() => cambiarPagina(paginaActual - 1)}
-            disabled={paginaActual === 1 || isLoading}
-          >
-            Anterior
-          </Button>
-          <span>
-            Página {paginaActual} de {totalPaginas}
-          </span>
-          <Button
-            variant="secondary"
+          />
+          {[...Array(totalPaginas)].map((_, index) => (
+            <Pagination.Item
+              key={index}
+              active={paginaActual === index + 1}
+              onClick={() => cambiarPagina(index + 1)}
+            >
+              {index + 1}
+            </Pagination.Item>
+          ))}
+          <Pagination.Next
+            disabled={paginaActual === totalPaginas}
             onClick={() => cambiarPagina(paginaActual + 1)}
-            disabled={paginaActual === totalPaginas || isLoading}
-          >
-            Siguiente
-          </Button>
-        </Col>
-      </Row>
+          />
+        </Pagination>
+      </div>
     </Container>
   );
 };

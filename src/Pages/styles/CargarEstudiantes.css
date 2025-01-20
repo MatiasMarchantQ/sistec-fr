@@ -1,8 +1,7 @@
 .cargar-estudiantes {
     background-color: #fff; /* Color de fondo suave */
     font-family: Arial, sans-serif;
-    padding: 50px; /* Espaciado interno */
-    border-radius: 0.5rem; /* Bordes redondeados */
+    padding: 20px;
   }
   
   .cargar-estudiantes h2 {
@@ -34,22 +33,20 @@
   }
   
   .cargar-estudiantes .table {
-    margin-top: 20px;
-    border-radius: 0.5rem; /* Bordes redondeados para la tabla */
     overflow: hidden; /* Para que los bordes redondeados se apliquen a las celdas */
   }
   
-  .cargar-estudiantes .table thead th {
+  .table thead th {
     background-color: #343a40; /* Color de fondo para el encabezado */
     color: #ffffff; /* Color del texto del encabezado */
     text-align: center;
   }
   
-  .cargar-estudiantes .table tbody tr {
+  .table tbody tr {
     transition: background-color 0.3s; /* Transición suave para el hover */
   }
   
-  .cargar-estudiantes .table tbody tr:hover {
+  .table tbody tr:hover {
     background-color: #f1f1f1; /* Color de fondo al pasar el mouse */
   }
   

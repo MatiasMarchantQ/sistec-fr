@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Button } from 'react-bootstrap';
+import { Button, Spinner } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
@@ -581,7 +581,11 @@ const Reevaluacion = () => {
   };
 
   if (loading) {
-    return <div>Cargando...</div>;
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
+        <Spinner animation="border" variant="primary" />
+      </div>
+    );
   }
 
   return (
@@ -599,8 +603,8 @@ const Reevaluacion = () => {
           <i className="fas fa-arrow-left me-8 pr-1"></i>Volver
         </Button>
       </div>
-      <h2 className="text-center mb-4" style={{ 'color': 'var(--color-accent)' }}>
-        Reevaluación - {tipoFicha === 'adulto' ? 'Adulto' : 'Infantil'}
+      <h2 className="text-center mb-4" style={{ 'color': 'var(--color-accent)', 'fontWeight': 'bold' }}>
+        Reevaluación {tipoFicha === 'adulto' ? 'Adulto' : 'Infantil'} - {datosIniciales.nombres} {datosIniciales.apellidos}
       </h2>
 
       {tipoFicha === 'adulto' ? (

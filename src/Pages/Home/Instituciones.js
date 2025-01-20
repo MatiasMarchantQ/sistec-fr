@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Spinner, Pagination } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import '../styles/Instituciones.css';
@@ -8,6 +9,7 @@ import '../styles/Instituciones.css';
 const Instituciones = () => {
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  const [loading, setLoading] = useState(true);
   const [instituciones, setInstituciones] = useState([]);
   const [tipo, setTipo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,7 +27,7 @@ const Instituciones = () => {
   });
   const [tipos, setTipos] = useState([]);
   const [estadoFiltro, setEstadoFiltro] = useState('activas');
-  const limit = 10;
+  const limit = 15;
   const totalPages = Math.ceil(totalElements / limit);
   const [isFiltered, setIsFiltered] = useState(false);
 
@@ -67,6 +69,8 @@ const Instituciones = () => {
       setTotalElements(response.data.total);
     } catch (error) {
       console.error('Error al obtener instituciones:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -310,24 +314,6 @@ const Instituciones = () => {
     }
   };
 
-  const handleRemoveReceptor = (receptorId) => {
-    if (window.confirm('¿Está seguro de eliminar este receptor?')) {
-      setEditedFields(prevFields => {
-        const newReceptores = prevFields.receptores.map(receptor =>
-          receptor.id === receptorId ? { ...receptor, _delete: true } : receptor
-        );
-        // Si todos los receptores están marcados para eliminar, añade uno nuevo
-        if (newReceptores.every(r => r._delete)) {
-          newReceptores.push({ nombre: '', cargo: '' });
-        }
-        return {
-          ...prevFields,
-          receptores: newReceptores
-        };
-      });
-    }
-  };
-
   const handleSaveChanges = async (institucionId) => {
     try {
       const token = getToken();
@@ -449,178 +435,181 @@ const Instituciones = () => {
       </div>
 
       {/* Tabla de instituciones */}
-      <div className="instituciones__card card">
-        <div className="instituciones__card-header card-header custom-card text-light">
-          <h3 className="instituciones__card-title card-title">Lista de Instituciones</h3>
+      {loading ? (
+        <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
+          <Spinner animation="border" variant="primary" />
         </div>
-        <div className="instituciones__card-body card-body">
-          <table className="instituciones__table table table-bordered table-striped">
-            <thead>
-              <tr>
-                <th>Tipo</th>
-                <th>Nombre</th>
-                <th>Receptores</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {instituciones.map(institucion => (
-                <tr key={institucion.id}>
-                  <td>
-                    {editingId === institucion.id ? (
-                      <select
-                        className="form-control"
-                        defaultValue={institucion.tipo_id}
-                        onChange={(e) => handleFieldChange(institucion.id, 'tipo_id', e.target.value)}
-                      >
-                        {tipos.map(tipo => (
-                          <option key={tipo.id} value={tipo.id}>
-                            {tipo.tipo}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      tipos.find(tipo => tipo.id === institucion.tipo_id)?.tipo
-                    )}
-                  </td>
-                  <td>
-                    {editingId === institucion.id ? (
-                      <input
-                        type="text"
-                        className="form-control"
-                        defaultValue={institucion.nombre}
-                        onChange={(e) => handleFieldChange(institucion.id, 'nombre', e.target.value)}
-                      />
-                    ) : (
-                      institucion.nombre
-                    )}
-                  </td>
-                  <td>
-                    {editingId === institucion.id ? (
-                      <div>
-                        {editedFields.receptores?.filter(receptor => !receptor._delete).map((receptor, index) => (
-                          <div key={index} className="mb-2 row">
-                            <div className="col-4">
-                              <input
-                                type="text"
-                                className="form-control mb-1"
-                                placeholder="Nombre del receptor"
-                                value={receptor.nombre || ''}
-                                onChange={(e) => handleReceptorChange(index, 'nombre', e.target.value)} // Aquí está el cambio
-                                required
-                              />
-                            </div>
-                            <div className="col-4">
-                              <select
-                                className="form-control"
-                                value={receptor.cargo || ''}
-                                onChange={(e) => handleReceptorChange(index, 'cargo', e.target.value)} // Aquí está el cambio
-                                required
-                              >
-                                <option value="">Seleccione cargo</option>
-                                <option value="Encargada de la RAD">Encargada de la RAD</option>
-                                <option value="ENF">ENF</option>
-                              </select>
-                            </div>
-                            <div className="col-1">
-                              <div className="custom-control custom-switch">
+      ) : (
+        <div className="instituciones__card">
+          <div>
+            <table className="instituciones__table table table-bordered table-striped">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Nombre</th>
+                  <th>Receptores</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {instituciones.map(institucion => (
+                  <tr key={institucion.id}>
+                    <td>
+                      {editingId === institucion.id ? (
+                        <select
+                          className="form-control"
+                          defaultValue={institucion.tipo_id}
+                          onChange={(e) => handleFieldChange(institucion.id, 'tipo_id', e.target.value)}
+                        >
+                          {tipos.map(tipo => (
+                            <option key={tipo.id} value={tipo.id}>
+                              {tipo.tipo}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        tipos.find(tipo => tipo.id === institucion.tipo_id)?.tipo
+                      )}
+                    </td>
+                    <td>
+                      {editingId === institucion.id ? (
+                        <input
+                          type="text"
+                          className="form-control"
+                          defaultValue={institucion.nombre}
+                          onChange={(e) => handleFieldChange(institucion.id, 'nombre', e.target.value)}
+                        />
+                      ) : (
+                        institucion.nombre
+                      )}
+                    </td>
+                    <td>
+                      {editingId === institucion.id ? (
+                        <div>
+                          {editedFields.receptores?.filter(receptor => !receptor._delete).map((receptor, index) => (
+                            <div key={index} className="mb-2 row">
+                              <div className="col-4">
                                 <input
-                                  type="checkbox"
-                                  className="custom-control-input"
-                                  id={`receptorSwitch${receptor.id}`} // Asegúrate de que el ID sea único
-                                  checked={receptor.estado} // El estado del receptor
-                                  onChange={() => {
-                                    // Cambia el estado localmente
-                                    receptor.estado = !receptor.estado;
-                                    // Actualiza el estado en editedFields
-                                    handleReceptorChange(index, 'estado', receptor.estado);
-                                  }}
+                                  type="text"
+                                  className="form-control mb-1"
+                                  placeholder="Nombre del receptor"
+                                  value={receptor.nombre || ''}
+                                  onChange={(e) => handleReceptorChange(index, 'nombre', e.target.value)} // Aquí está el cambio
+                                  required
                                 />
-                                <label className="custom-control-label" htmlFor={`receptorSwitch${receptor.id}`}>
-                                  {receptor.estado ? 'Activo' : 'Inactivo'}
-                                </label>
                               </div>
-                            </div>
-                            {/* <button
+                              <div className="col-4">
+                                <select
+                                  className="form-control"
+                                  value={receptor.cargo || ''}
+                                  onChange={(e) => handleReceptorChange(index, 'cargo', e.target.value)} // Aquí está el cambio
+                                  required
+                                >
+                                  <option value="">Seleccione cargo</option>
+                                  <option value="Encargada de la RAD">Encargada de la RAD</option>
+                                  <option value="ENF">ENF</option>
+                                </select>
+                              </div>
+                              <div className="col-1">
+                                <div className="custom-control custom-switch">
+                                  <input
+                                    type="checkbox"
+                                    className="custom-control-input"
+                                    id={`receptorSwitch${receptor.id}`} // Asegúrate de que el ID sea único
+                                    checked={receptor.estado} // El estado del receptor
+                                    onChange={() => {
+                                      // Cambia el estado localmente
+                                      receptor.estado = !receptor.estado;
+                                      // Actualiza el estado en editedFields
+                                      handleReceptorChange(index, 'estado', receptor.estado);
+                                    }}
+                                  />
+                                  <label className="custom-control-label" htmlFor={`receptorSwitch${receptor.id}`}>
+                                    {receptor.estado ? 'Activo' : 'Inactivo'}
+                                  </label>
+                                </div>
+                              </div>
+                              {/* <button
                                 type="button"
                                 className="btn btn-danger btn-sm"
                                 onClick={() => handleRemoveReceptor(receptor.id)}
                               >
                                 <i className="fas fa-trash"></i>
                               </button> */}
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={handleAddReceptor}
-                        >
-                          <i className="fas fa-plus"></i> Añadir Receptor
-                        </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={handleAddReceptor}
+                          >
+                            <i className="fas fa-plus"></i> Añadir Receptor
+                          </button>
+                        </div>
+                      ) : (
+                        <div>
+                          {institucion.receptores?.map((receptor, index) => (
+                            <div key={index}>
+                              <strong>{receptor.cargo}:</strong> {receptor.nombre} ({receptor.estado ? 'Activo' : 'Inactivo'})
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div className="custom-control custom-switch">
+                        <input
+                          type="checkbox"
+                          className="custom-control-input"
+                          id={`customSwitch${institucion.id}`}
+                          checked={editingId === institucion.id ? editedFields.estado ?? institucion.estado : institucion.estado}
+                          onChange={(e) => {
+                            if (editingId === institucion.id) {
+                              handleFieldChange(institucion.id, 'estado', e.target.checked);
+                            }
+                          }}
+                          disabled={editingId !== institucion.id}
+                        />
+                        <label className="custom-control-label" htmlFor={`customSwitch${institucion.id}`}>
+                          {editingId === institucion.id ? (editedFields.estado ?? institucion.estado ? 'Activa' : 'Inactiva') : (institucion.estado ? 'Activa' : 'Inactiva')}
+                        </label>
                       </div>
-                    ) : (
-                      <div>
-                        {institucion.receptores?.map((receptor, index) => (
-                          <div key={index}>
-                            <strong>{receptor.cargo}:</strong> {receptor.nombre} ({receptor.estado ? 'Activo' : 'Inactivo'})
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <div className="custom-control custom-switch">
-                      <input
-                        type="checkbox"
-                        className="custom-control-input"
-                        id={`customSwitch${institucion.id}`}
-                        checked={editingId === institucion.id ? editedFields.estado ?? institucion.estado : institucion.estado}
-                        onChange={(e) => {
-                          if (editingId === institucion.id) {
-                            handleFieldChange(institucion.id, 'estado', e.target.checked);
-                          }
-                        }}
-                        disabled={editingId !== institucion.id}
-                      />
-                      <label className="custom-control-label" htmlFor={`customSwitch${institucion.id}`}>
-                        {editingId === institucion.id ? (editedFields.estado ?? institucion.estado ? 'Activa' : 'Inactiva') : (institucion.estado ? 'Activa' : 'Inactiva')}
-                      </label>
-                    </div>
-                  </td>
-                  <td>
-                    {editingId === institucion.id ? (
-                      <>
-                        <button
-                          className="instituciones__btn instituciones__btn--success btn btn-xs mr-1"
-                          onClick={() => handleSaveChanges(institucion.id)}
-                        >
-                          <i className="fas fa-save"></i><br/>Guardar
-                        </button>
-                        <button
-                          className="instituciones__btn instituciones__btn--secondary btn btn-sm"
-                          onClick={handleCancelEdit}
-                        >
-                          <i className="fas fa-times"></i><br/>Cancelar
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          className="instituciones__btn instituciones__btn--warning instituciones__btn--spacing btn btn-sm text-dark"
-                          onClick={() => handleEdit(institucion)}
-                        >
-                          <i className="fas fa-edit"></i> Editar
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                    <td>
+                      {editingId === institucion.id ? (
+                        <>
+                          <button
+                            className="instituciones__btn instituciones__btn--success btn btn-xs mr-1"
+                            onClick={() => handleSaveChanges(institucion.id)}
+                          >
+                            <i className="fas fa-save"></i><br />Guardar
+                          </button>
+                          <button
+                            className="instituciones__btn instituciones__btn--secondary btn btn-sm"
+                            onClick={handleCancelEdit}
+                          >
+                            <i className="fas fa-times"></i><br />Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            className="instituciones__btn instituciones__btn--warning instituciones__btn--spacing btn btn-sm text-dark"
+                            onClick={() => handleEdit(institucion)}
+                          >
+                            <i className="fas fa-edit"></i> Editar
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {modalOpen && (
         <div className="modal show" style={{ display: 'block' }}>
@@ -719,45 +708,57 @@ const Instituciones = () => {
       )}
 
       {/* Paginación */}
-      <div className="instituciones__pagination d-flex justify-content-between align-items-center mb-3">
-        <nav aria-label="Page navigation">
-          <ul className="pagination pagination-sm">
-            {/* Botón de página anterior */}
-            <li className={`page-item ${isFirstPage ? 'disabled' : ''}`}>
-              <button
-                className="page-link"
-                onClick={() => !isFirstPage && goToPage(currentPage - 1)}
-              >
-                Anterior
-              </button>
-            </li>
+      <div className="asignar-estudiantes__pagination d-flex justify-content-between align-items-center mb-3">
+        <Pagination size="sm" className="m-0 mb-2 mb-md-0">
+          <Pagination.Prev
+            disabled={isFirstPage}
+            onClick={() => !isFirstPage && setCurrentPage(currentPage - 1)}
+          />
 
-            {/* Páginas */}
-            {[...Array(totalPages)].map((_, index) => (
-              <li
-                key={index}
-                className={`page-item ${currentPage === index + 1 ? 'active' : ''}`}
-              >
-                <button
-                  className="page-link"
-                  onClick={() => goToPage(index + 1)}
-                >
-                  {index + 1}
-                </button>
-              </li>
-            ))}
+          {/* Lógica para mostrar los números de página */}
+          {totalPages > 5 ? (
+            <>
+              {currentPage > 2 && <Pagination.Item onClick={() => setCurrentPage(1)}>1</Pagination.Item>}
+              {currentPage > 3 && <Pagination.Ellipsis />}
 
-            {/* Botón de página siguiente */}
-            <li className={`page-item ${isLastPage ? 'disabled' : ''}`}>
-              <button
-                className="page-link"
-                onClick={() => !isLastPage && goToPage(currentPage + 1)}
+              {Array.from({ length: Math.min(3, totalPages) }, (_, index) => {
+                const page = Math.max(2, currentPage - 1) + index; // Muestra las páginas alrededor de la página actual
+                if (page <= totalPages) {
+                  return (
+                    <Pagination.Item
+                      key={page}
+                      active={currentPage === page}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </Pagination.Item>
+                  );
+                }
+                return null;
+              })}
+
+              {currentPage < totalPages - 2 && <Pagination.Ellipsis />}
+              {currentPage < totalPages - 1 && (
+                <Pagination.Item onClick={() => setCurrentPage(totalPages)}>{totalPages}</Pagination.Item>
+              )}
+            </>
+          ) : (
+            Array.from({ length: totalPages }, (_, index) => (
+              <Pagination.Item
+                key={index + 1}
+                active={currentPage === index + 1}
+                onClick={() => setCurrentPage(index + 1)}
               >
-                Siguiente
-              </button>
-            </li>
-          </ul>
-        </nav>
+                {index + 1}
+              </Pagination.Item>
+            ))
+          )}
+
+          <Pagination.Next
+            disabled={isLastPage}
+            onClick={() => !isLastPage && setCurrentPage(currentPage + 1)}
+          />
+        </Pagination>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Tab, Container, Button } from 'react-bootstrap';
+import { Tabs, Tab, Container, Button, Spinner } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import _ from 'lodash';
@@ -465,6 +465,7 @@ const FichaClinica = () => {
 
   // Definición de fetchFichaClinica como función
   const fetchFichaClinica = async () => {
+    setLoading(true);
     try {
       setLoading(true);
       const token = getToken();
@@ -769,7 +770,11 @@ const FichaClinica = () => {
   };
 
   if (loading) {
-    return <div className="text-center">Cargando...</div>;
+    return (
+      <div className="text-center">
+        <Spinner animation="border" variant="primary" />
+      </div>
+    );
   }
 
   if (error) {
@@ -779,10 +784,10 @@ const FichaClinica = () => {
   return (
     <Container fluid className="mt-4">
       <Button
-        variant=""
         onClick={handleVolver}
         style={{
           border: 'none',
+          backgroundColor: 'transparent',
           boxShadow: 'none',
           color: 'black'
         }}
@@ -807,7 +812,7 @@ const FichaClinica = () => {
         />
       ) : null}
 
-      <h2 className="text-center mb-0 pb-2" style={{ 'color': 'var(--color-accent)' }}>
+      <h2 className="text-center mb-1 pb-2" style={{ 'color': 'var(--color-accent)', 'fontWeight':'bold' }}>
         Ficha Clínica {tipo === 'adulto' ? 'Adulto' : 'Infantil'} - {fichaClinica.paciente?.nombres} {fichaClinica.paciente?.apellidos}
       </h2>
       <Tabs
@@ -818,15 +823,15 @@ const FichaClinica = () => {
       >
         <Tab eventKey="informacion" title="Información del Paciente">
           <div className="card mb-4">
-            <div className="card-header text-white bg-primary">
+            <div className="card-header custom-card text-light">
               <i className="fas fa-user-circle me-2"></i>Información del Paciente
             </div>
             <div className="card-body">
               {fichaClinica && esEditable && (
                 <Button
-                  variant="outline-primary"
+                  variant="primary"
                   onClick={() => setMostrarModalEdicion(true)}
-                  className="mb-3"
+                  className="mb-3 custom-card text-light"
                 >
                   <i className="fas fa-edit me-2"></i>Editar Ficha
                 </Button>
@@ -857,7 +862,7 @@ const FichaClinica = () => {
 
         <Tab eventKey="reevaluacion" title="Reevaluación">
           <div className="card mb-4">
-            <div className="card-header text-white bg-primary">
+            <div className="card-header custom-card text-light">
               <i className="fas fa-refresh me-2"></i>Reevaluación del Paciente
             </div>
             <div className="card-body">
@@ -922,7 +927,7 @@ const FichaClinica = () => {
                     return (
                       <div key={reevaluacion.id} className="card mb-3">
                         <div
-                          className="card-header d-flex justify-content-between align-items-center bg-primary"
+                          className="card-header d-flex justify-content-between align-items-center custom-card text-light"
                           onClick={() => setExpandido(index === expandido ? null : index)}
                           style={{ cursor: 'pointer' }}
                         >

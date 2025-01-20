@@ -28,7 +28,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
   const [conQuienVive, setConQuienVive] = useState('');
   const [tipoFamilia, setTipoFamilia] = useState('');
   const [cicloVitalFamiliar, setCicloVitalFamiliar] = useState('');
-  const [factoresRiesgo, setFactoresRiesgo] = useState('');
   const [localidad, setLocalidad] = useState('');
 
   // Lista de factores de riesgo disponibles
@@ -42,7 +41,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
   });
 
   const [otraTipoFamilia, setOtraTipoFamilia] = useState('');
-  const [otraCicloVital, setOtraCicloVital] = useState('');
   const [nivelesEscolaridad, setNivelesEscolaridad] = useState([]);
   const [ciclosVitalesFamiliares, setCiclosVitalesFamiliares] = useState([]);
   const [tiposFamilia, setTiposFamilia] = useState([]);
@@ -526,6 +524,9 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
           telefonoSecundario: ''
         });
 
+        // Mostrar mensaje de éxito
+        toast.success('Reevaluación actualizada exitosamente');
+
         setPuntajeDPM('');
         setDiagnosticoDSM('');
 
@@ -555,9 +556,9 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         setErrores({});
       } else {
         setSubmitError('Error al actualizar la reevaluación');
+        toast.error('Error al actualizar la reevaluación');
       }
     } catch (error) {
-      console.error('Error completo:', error);
       toast.error(error.response?.data?.message || 'Error al actualizar la reevaluación');
       setSubmitError(error.message);
     } finally {
@@ -639,6 +640,9 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
           telefonoSecundario: ''
         });
 
+        // Mostrar mensaje de éxito
+        toast.success('Ficha clínica infantil creada exitosamente');
+
         setPuntajeDPM('');
         setDiagnosticoDSM('');
 
@@ -666,15 +670,11 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         setFactoresRiesgoFamiliares(resetFactoresFamiliares);
 
         setErrores({});
-
-        // Mostrar mensaje de éxito
-        setSuccessMessage('Ficha clínica infantil creada exitosamente');
         onIngresar(response.data.data);
       } else {
         toast.error('Error al crear la ficha clínica infantil');
       }
     } catch (error) {
-      console.error('Error al crear la ficha clínica infantil:', error);
       toast.error(error.response?.data?.message || 'Error al crear la ficha clínica infantil');
     } finally {
       setIsSubmitting(false);

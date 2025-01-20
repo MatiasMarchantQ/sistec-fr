@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Modal, Form, Tooltip, InputGroup, FormControl, Card, Alert, Col, Row, OverlayTrigger, Popover, Badge } from 'react-bootstrap';
+import { Table, Button, Modal, Form, Tooltip, InputGroup, FormControl, Card, Alert, Col, Row, OverlayTrigger, Popover, Badge, Spinner, Pagination } from 'react-bootstrap';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'react-toastify'; // Importa toast
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../styles/AsignarEstudiantes.css';
 
@@ -14,11 +14,11 @@ const getCurrentYear = () => {
 const AsignarEstudiantes = () => {
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  const [loading, setLoading] = useState(true);
   const [estudiantes, setEstudiantes] = useState([]);
   const [tiposInstituciones, setTiposInstituciones] = useState([]);
   const [instituciones, setInstituciones] = useState([]);
   const [receptores, setReceptores] = useState([]);
-  const [asignaciones, setAsignaciones] = useState([]);
   const [showAsignarModal, setShowAsignarModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEstudiantes, setSelectedEstudiantes] = useState([]);
@@ -34,12 +34,11 @@ const AsignarEstudiantes = () => {
   const [fechaFin, setFechaFin] = useState('');
   const [showEditarModal, setShowEditarModal] = useState(false);
   const [asignacionParaEditar, setAsignacionParaEditar] = useState(null);
-  const [totalAsignaciones, setTotalAsignaciones] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const [anoSeleccionado, setAnoSeleccionado] = useState(getCurrentYear().toString());
   const [filtroJustificacion, setFiltroJustificacion] = useState(false);
-  const limit = 10;
+  const limit = 15;
   const [totalPages, setTotalPages] = useState(0);
   const [estadoFiltro, setEstadoFiltro] = useState('todos');
   const [showJustificacionModal, setShowJustificacionModal] = useState(false);
@@ -177,6 +176,8 @@ const AsignarEstudiantes = () => {
       console.error("Error fetching data:", error);
       setErrorMessage("Error al cargar los datos. Por favor, intente de nuevo.");
       setEstudiantes([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -870,11 +871,10 @@ const AsignarEstudiantes = () => {
           <i className="fas fa-arrow-left"></i> Volver
         </button>
       </div>
-      <h2>Asignación de Estudiantes</h2>
+      <h2 className='mb-4'>Asignación de Estudiantes</h2>
       <Row className="mb-3 align-items-end g-2">
         <Col xs={12} md={1}>
           <Form.Group>
-            <Form.Label>Año Cursado</Form.Label>
             <Form.Select
               onChange={(e) => setAnoSeleccionado(e.target.value)}
               value={anoSeleccionado}
@@ -910,10 +910,10 @@ const AsignarEstudiantes = () => {
           />
         </Col>
 
-        <Col xs={12} md={7}>
+        <Col xs={12} md={5}>
           <InputGroup>
             <FormControl
-              placeholder="Buscar estudiante"
+              placeholder="Buscar estudiante por nombre o apellido"
               aria-label="Buscar estudiante"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -922,176 +922,180 @@ const AsignarEstudiantes = () => {
         </Col>
       </Row>
 
-      <Card>
-        <Card.Header className="position-relative custom-header text-light">
-          <Card.Title className="mb-0">Lista de Estudiantes</Card.Title>
-          <Button
-            variant="light"
-            className="position-absolute top-50 end-0 translate-middle-y"
-            onClick={() => setShowAsignarModal(true)}
-            disabled={selectedEstudiantes.length === 0}
-            style={{ 'width': 150 }}
-          >
-            Asignar ({selectedEstudiantes.length})
-          </Button>
-        </Card.Header>
-        <Table striped bordered hover onMouseUp={handleMouseUp} style={{ userSelect: 'none' }}>
-          <thead>
-            <tr>
-              <th>
-                <Form.Check
-                  type="checkbox"
-                  checked={selectedEstudiantes.length === estudiantesFiltrados.length}
-                  onChange={() => {
-                    setSelectedEstudiantes(prev =>
-                      prev.length === estudiantesFiltrados.length
-                        ? []
-                        : [...estudiantesFiltrados]
-                    );
-                  }}
-                />
-              </th>
-              <th>Nombre</th>
-              <th>Apellidos</th>
-              <th>Correo</th>
-              <th>Asignaciones</th>
-              <th>Cursado(s)</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {estudiantesFiltrados.map((estudiante, index) => (
-              <tr
-                key={index}
-                onMouseDown={(e) => handleMouseDown(estudiante, e)}
-                onMouseEnter={(e) => handleMouseEnter(estudiante, e)}
-                onMouseUp={handleMouseUp}
-                className={`
+      {loading ? (
+        <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
+          <Spinner animation="border" variant="primary" />
+        </div>
+      ) : (
+        <Card>
+          <Card.Header className="position-relative custom-header text-light">
+            <Card.Title className="mb-0">Lista de Estudiantes</Card.Title>
+            <Button
+              variant="light"
+              className="position-absolute top-50 end-0 translate-middle-y"
+              onClick={() => setShowAsignarModal(true)}
+              disabled={selectedEstudiantes.length === 0}
+              style={{ 'width': 150 }}
+            >
+              Asignar ({selectedEstudiantes.length})
+            </Button>
+          </Card.Header>
+          <div className="table-responsive">
+            <Table striped bordered hover onMouseUp={handleMouseUp} style={{ userSelect: 'none' }}>
+              <thead>
+                <tr>
+                  <th className="checkbox-column">
+                    <Form.Check
+                      type="checkbox"
+                      checked={selectedEstudiantes.length === estudiantesFiltrados.length}
+                      onChange={() => {
+                        setSelectedEstudiantes(prev =>
+                          prev.length === estudiantesFiltrados.length
+                            ? []
+                            : [...estudiantesFiltrados]
+                        );
+                      }}
+                    />
+                  </th>
+                  <th>Nombre</th>
+                  <th>Correo</th>
+                  <th>Asignaciones</th>
+                  <th>Cursado(s)</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {estudiantesFiltrados.map((estudiante, index) => (
+                  <tr
+                    key={index}
+                    onMouseDown={(e) => handleMouseDown(estudiante, e)}
+                    onMouseEnter={(e) => handleMouseEnter(estudiante, e)}
+                    onMouseUp={handleMouseUp}
+                    className={`
                 ${selectedEstudiantes.some(e => e.correo === estudiante.correo) ? 'selected' : ''}
                 ${filtroEstado === 'todos' && !estudiante.estado ? 'text-muted' : ''}
               `}
-                style={{
-                  userSelect: 'none',
-                  cursor: 'pointer',
-                  backgroundColor: selectedEstudiantes.some(e => e.correo === estudiante.correo)
-                    ? 'rgba(0, 123, 255, 0.1)'
-                    : 'transparent'
-                }}
-              >
-                <td onClick={(e) => {
-                  const checkbox = e.currentTarget.querySelector('input[type="checkbox"]');
-                  if (checkbox && e.target !== checkbox) {
-                    checkbox.click();
-                  }
-                }}>
-                  <Form.Check
-                    type="checkbox"
-                    checked={selectedEstudiantes.some(e => e.correo === estudiante.correo)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      toggleEstudianteSelection(estudiante, e);
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  />
-                </td>
-                <td>
-                  <div className="d-flex align-items-center">
-                    {filtroEstado === 'todos' && !estudiante.estado && (
-                      <OverlayTrigger
-                        placement="right"
-                        overlay={
-                          <Tooltip>
-                            Estudiante Inactivo
-                          </Tooltip>
-                        }
-                      >
-                        <span
-                          className="mr-2"
-                          style={{
-                            width: '10px',
-                            height: '10px',
-                            borderRadius: '50%',
-                            backgroundColor: 'red',
-                            display: 'inline-block',
-                            marginRight: '8px'
-                          }}
-                        ></span>
-                      </OverlayTrigger>
-                    )}
-                    {estudiante.nombres}
-                  </div>
-                </td>
-                <td>{estudiante.apellidos}</td>
-                <td>{estudiante.correo}</td>
-                <td>
-                  {estudiante.asignaciones && estudiante.asignaciones.length > 0 ? (
-                    estudiante.asignaciones.map((asignacion, idx) => (
-                      <div key={idx} className="asignacion-item">
-                        <div>
-                          {asignacion.institucion?.nombre || 'Institución no especificada'} -
-                          {asignacion.receptor?.nombre || 'Receptor no especificado'} <br />
-                          {formatDate(asignacion.fecha_inicio)} a {formatDate(asignacion.fecha_fin)}<br />
-                          {asignacion.justificacion_excepcional && (
-                            <OverlayTrigger
-                              trigger="click"
-                              placement="bottom"
-                              overlay={
-                                <Popover>
-                                  <Popover.Header as="h3">Justificación Excepcional</Popover.Header>
-                                  <Popover.Body>
-                                    {asignacion.justificacion_excepcional}
-                                  </Popover.Body>
-                                </Popover>
-                              }
-                            >
-                              <Badge bg="warning" role="button">
-                                Justificado
-                              </Badge>
-                            </OverlayTrigger>
-                          )}
-                        </div>
-                        <div>
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => handleEditarAsignacion(asignacion)}
-                            className="me-2"
-                          >
-                            <i className="fas fa-edit"></i>
-                          </Button>
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() => handleEliminarAsignacion(asignacion.id)}
-                          >
-                            <i className="fas fa-trash"></i>
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div>Sin asignaciones</div>
-                  )}
-                </td>
-                <td>{estudiante.anos_cursados}</td>
-                <td>
-                  <Button
-                    variant="success"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedEstudiantes([]);
-                      setSelectedEstudiantes([estudiante]);
-                      setShowAsignarModal(true);
+                    style={{
+                      userSelect: 'none',
+                      cursor: 'pointer',
+                      backgroundColor: selectedEstudiantes.some(e => e.correo === estudiante.correo)
+                        ? 'rgba(0, 123, 255, 0.1)'
+                        : 'transparent'
                     }}
                   >
-                    Agregar Asignación
-                  </Button>
-                </td>
-              </tr>
-            ))}
-            <style jsx>{`
+                    <td className="checkbox-column" onClick={(e) => {
+                      const checkbox = e.currentTarget.querySelector('input[type="checkbox"]');
+                      if (checkbox && e.target !== checkbox) {
+                        checkbox.click();
+                      }
+                    }}>
+                      <Form.Check
+                        type="checkbox"
+                        checked={selectedEstudiantes.some(e => e.correo === estudiante.correo)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleEstudianteSelection(estudiante, e);
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <div className="d-flex align-items-center">
+                        {filtroEstado === 'todos' && !estudiante.estado && (
+                          <OverlayTrigger
+                            placement="right"
+                            overlay={
+                              <Tooltip>
+                                Estudiante Inactivo
+                              </Tooltip>
+                            }
+                          >
+                            <span
+                              className="mr-2"
+                              style={{
+                                width: '10px',
+                                height: '10px',
+                                borderRadius: '50%',
+                                backgroundColor: 'red',
+                                display: 'inline-block',
+                                marginRight: '8px'
+                              }}
+                            ></span>
+                          </OverlayTrigger>
+                        )}
+                        {estudiante.nombres} {estudiante.apellidos}
+                      </div>
+                    </td>
+                    <td>{estudiante.correo}</td>
+                    <td>
+                      {estudiante.asignaciones && estudiante.asignaciones.length > 0 ? (
+                        estudiante.asignaciones.map((asignacion, idx) => (
+                          <div key={idx} className="asignacion-item">
+                            <div>
+                              {asignacion.institucion?.nombre || 'Institución no especificada'} -
+                              {asignacion.receptor?.nombre || 'Receptor no especificado'} <br />
+                              {formatDate(asignacion.fecha_inicio)} a {formatDate(asignacion.fecha_fin)}<br />
+                              {asignacion.justificacion_excepcional && (
+                                <OverlayTrigger
+                                  trigger="click"
+                                  placement="bottom"
+                                  overlay={
+                                    <Popover>
+                                      <Popover.Header as="h3">Justificación Excepcional</Popover.Header>
+                                      <Popover.Body>
+                                        {asignacion.justificacion_excepcional}
+                                      </Popover.Body>
+                                    </Popover>
+                                  }
+                                >
+                                  <Badge bg="warning" role="button">
+                                    Justificado
+                                  </Badge>
+                                </OverlayTrigger>
+                              )}
+                            </div>
+                            <div>
+                              <Button
+                                variant="outline-primary"
+                                size="sm"
+                                onClick={() => handleEditarAsignacion(asignacion)}
+                                className="me-2"
+                              >
+                                <i className="fas fa-edit"></i>
+                              </Button>
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() => handleEliminarAsignacion(asignacion.id)}
+                              >
+                                <i className="fas fa-trash"></i>
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div>Sin asignaciones</div>
+                      )}
+                    </td>
+                    <td>{estudiante.anos_cursados}</td>
+                    <td>
+                      <Button
+                        variant="success"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedEstudiantes([]);
+                          setSelectedEstudiantes([estudiante]);
+                          setShowAsignarModal(true);
+                        }}
+                      >
+                        Agregar Asignación
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                <style jsx>{`
               .text-muted {
                 color: #6c757d !important;
               }
@@ -1109,45 +1113,65 @@ const AsignarEstudiantes = () => {
                 margin-bottom: 0;
               }
             `}</style>
-          </tbody>
-        </Table>
-      </Card>
+              </tbody>
+            </Table>
+          </div>
+        </Card>
+      )}
+
 
       {/* Paginación */}
       <div className="asignar-estudiantes__pagination d-flex justify-content-between align-items-center mb-3">
-        <nav aria-label="Page navigation">
-          <ul className="pagination pagination-sm">
-            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-              <button
-                className="page-link"
-                onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+        <Pagination size="sm" className="m-0">
+          <Pagination.Prev
+            disabled={currentPage === 1}
+            onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+          />
+
+          {/* Lógica para mostrar los números de página */}
+          {totalPages > 5 ? (
+            <>
+              {currentPage > 2 && <Pagination.Item onClick={() => setCurrentPage(1)}>1</Pagination.Item>}
+              {currentPage > 3 && <Pagination.Ellipsis />}
+
+              {Array.from({ length: Math.min(3, totalPages) }, (_, index) => {
+                const page = Math.max(2, currentPage - 1) + index; // Muestra las páginas alrededor de la página actual
+                if (page <= totalPages) {
+                  return (
+                    <Pagination.Item
+                      key={page}
+                      active={currentPage === page}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </Pagination.Item>
+                  );
+                }
+                return null;
+              })}
+
+              {currentPage < totalPages - 2 && <Pagination.Ellipsis />}
+              {currentPage < totalPages - 1 && (
+                <Pagination.Item onClick={() => setCurrentPage(totalPages)}>{totalPages}</Pagination.Item>
+              )}
+            </>
+          ) : (
+            Array.from({ length: totalPages }, (_, index) => (
+              <Pagination.Item
+                key={index + 1}
+                active={currentPage === index + 1}
+                onClick={() => setCurrentPage(index + 1)}
               >
-                Anterior
-              </button>
-            </li>
-            {[...Array(totalPages)].map((_, index) => (
-              <li
-                key={index}
-                className={`page-item ${currentPage === index + 1 ? 'active' : ''}`}
-              >
-                <button
-                  className="page-link"
-                  onClick={() => setCurrentPage(index + 1)}
-                >
-                  {index + 1}
-                </button>
-              </li>
-            ))}
-            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-              <button
-                className="page-link"
-                onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
-              >
-                Siguiente
-              </button>
-            </li>
-          </ul>
-        </nav>
+                {index + 1}
+              </Pagination.Item>
+            ))
+          )}
+
+          <Pagination.Next
+            disabled={currentPage === totalPages}
+            onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
+          />
+        </Pagination>
       </div>
 
       <JustificacionModal />

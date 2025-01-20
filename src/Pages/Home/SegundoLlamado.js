@@ -237,7 +237,7 @@ const SegundoLlamado = ({
         );
       }
 
-      pdf.save(`${paciente.rut}_${getFormattedDate()}_seguimiento_2.pdf`);
+      pdf.save(`${paciente.rut}_${getFormattedDate()}_seguimiento_adulto_2.pdf`);
     } catch (error) {
       console.error('Error al exportar PDF:', error);
       toast.error('Hubo un problema al exportar el PDF.');

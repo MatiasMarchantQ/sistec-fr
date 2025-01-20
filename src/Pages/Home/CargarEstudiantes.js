@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Modal, Button, Form, Alert } from 'react-bootstrap';
+import { Table, Modal, Button, Form, Alert, Card, Pagination } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
@@ -23,10 +23,9 @@ const CargarEstudiantes = () => {
   });
   const [alertMessage, setAlertMessage] = useState('');
   const [year, setYear] = useState(new Date().getFullYear());
-  const [semester, setSemester] = useState(1);
   const [studentsWithErrors, setStudentsWithErrors] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [studentsPerPage] = useState(10); // Cambia este valor según lo que necesites
+  const [studentsPerPage] = useState(15); // Cambia este valor según lo que necesites
 
   const indexOfLastStudent = currentPage * studentsPerPage;
   const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
@@ -37,23 +36,23 @@ const CargarEstudiantes = () => {
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
-  
+
     // Guardamos una referencia al input para limpiarlo después
     const fileInput = event.target;
-  
+
     if (!file) {
       toast.warning('Por favor, seleccione un archivo.');
       return;
     }
-  
+
     if (!file.type.match('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet|application/vnd.ms-excel')) {
       toast.warning('Por favor, seleccione un archivo Excel válido (.xlsx o .xls).');
       fileInput.value = ''; // Limpiar el input después de la validación
       return;
     }
-  
+
     const reader = new FileReader();
-  
+
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target.result);
@@ -61,13 +60,13 @@ const CargarEstudiantes = () => {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
-  
+
         // Limpiar el estado de estudiantes y errores antes de cargar nuevos datos
         setStudents([]);
         setFailedStudents(new Set());
         setStudentsWithErrors([]);
         setAlertMessage(null); // Limpiar mensaje de alerta anterior
-  
+
         // Normalizar los nombres de los campos
         const normalizedFields = jsonData.map(row => {
           return Object.keys(row).reduce((acc, key) => {
@@ -75,27 +74,28 @@ const CargarEstudiantes = () => {
             return acc;
           }, {});
         });
-  
+
         // Verificar que los campos requeridos existan
-        const requiredFields = ['rut', 'nombres', 'apellidos', 'correo'];
-        const invalidRows = normalizedFields.filter((row, index) => {
+        const requiredFields = ['rut', 'nombre', 'apellidos', 'correo'];
+        const invalidRows = normalizedFields.filter((row) => {
           return requiredFields.some(field => !row[field] || row[field].toString().trim() === '');
         });
-  
+
         if (invalidRows.length > 0) {
-          const errorMessage = `Las siguientes filas tienen campos requeridos vacíos: ${invalidRows.map((_, index) => index + 1).join(', ')}`;
+          // Mensaje de error compacto
+          const errorMessage = `Hay errores en el formato de las columnas. Asegúrate de incluir los siguientes campos: ${requiredFields.join(', ')}.`;
           setStudentsWithErrors(invalidRows);
           toast.error(errorMessage);
           fileInput.value = ''; // Limpiar el input después del error
           return;
         }
-  
+
         // Detectar duplicados
         const duplicates = {
           rut: {},
           correo: {}
         };
-  
+
         const processRUT = (rut) => {
           if (rut == null) return '';
           const rutString = String(rut).trim();
@@ -105,23 +105,23 @@ const CargarEstudiantes = () => {
             ? cleanRut.split('-')[0].replace(/\D/g, '')
             : cleanRut.replace(/\D/g, '');
         };
-  
+
         // Primer paso: identificar duplicados
         const processedStudents = normalizedFields.map((student, index) => {
           const formattedRut = processRUT(student['rut']);
           const correo = student['correo'] ? student['correo'].toString().trim() : '';
-  
+
           // Rastrear duplicados de RUT
           if (!duplicates.rut[formattedRut]) {
             duplicates.rut[formattedRut] = [];
           }
           duplicates.rut[formattedRut].push({
             index,
-            nombres: student['nombres'],
+            nombres: student['nombre'],
             apellidos: student['apellidos'],
             correo: correo
           });
-  
+
           // Rastrear duplicados de correo
           if (!duplicates.correo[correo]) {
             duplicates.correo[correo] = [];
@@ -129,18 +129,18 @@ const CargarEstudiantes = () => {
           duplicates.correo[correo].push({
             index,
             rut: formattedRut,
-            nombres: student['nombres'],
+            nombres: student['nombre'],
             apellidos: student['apellidos']
           });
-  
+
           const symbols = '!#$%&*+?';
           const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-  
+
           const contrasena = `UCM${formattedRut}${randomSymbol}`;
-  
+
           return {
             id: index + 1,
-            nombres: student['nombres'] || '',
+            nombres: student['nombre'] || '',
             apellidos: student['apellidos'] || '',
             rut: formattedRut,
             correo: correo,
@@ -153,16 +153,16 @@ const CargarEstudiantes = () => {
             hasError: false // Inicialmente sin errores
           };
         });
-  
+
         // Filtrar duplicados
         const rutDuplicates = Object.entries(duplicates.rut)
           .filter(([_, entries]) => entries.length > 1)
           .map(([rut, entries]) => ({ rut, entries }));
-  
+
         const correoDuplicates = Object.entries(duplicates.correo)
           .filter(([correo, entries]) => entries.length > 1 && correo !== '')
           .map(([correo, entries]) => ({ correo, entries }));
-  
+
         // Si hay duplicados, mostrar alerta
         if (rutDuplicates.length > 0 || correoDuplicates.length > 0) {
           const duplicateMessage = (
@@ -186,7 +186,7 @@ const CargarEstudiantes = () => {
                   </ul>
                 </>
               )}
-  
+
               {correoDuplicates.length > 0 && (
                 <>
                   <p className="text-danger">Duplicados de Correo encontrados:</p>
@@ -209,9 +209,9 @@ const CargarEstudiantes = () => {
               <p>Por favor, revise y corrija los duplicados antes de cargar.</p>
             </div>
           );
-  
+
           setAlertMessage(duplicateMessage);
-  
+
           // Marcar estudiantes con duplicados
           const rutsDuplicados = new Set(rutDuplicates.flatMap(d =>
             d.entries.map(entry => entry.rut)
@@ -219,18 +219,18 @@ const CargarEstudiantes = () => {
           const correosDuplicados = new Set(correoDuplicates.flatMap(d =>
             d.entries.map(entry => entry.correo)
           ));
-  
+
           const studentsWithErrors = processedStudents.map(student => ({
             ...student,
             hasError: rutsDuplicados.has(student.rut) || correosDuplicados.has(student.correo)
           }));
-  
+
           setStudents(studentsWithErrors);
           setFailedStudents(new Set([...rutsDuplicados, ...correosDuplicados]));
           fileInput.value = ''; // Limpiar el input después de procesar duplicados
           return;
         }
-  
+
         // Si no hay duplicados, cargar normalmente
         setStudents(processedStudents);
         setStudentsWithErrors([]);
@@ -287,7 +287,7 @@ const CargarEstudiantes = () => {
     }
 
     if (!nombreApellidoRegex.test(newStudent.nombres)) {
-      toast.error('Nombres solo pueden contener letras');
+      toast.error('Nombre solo pueden contener letras');
       return;
     }
 
@@ -362,7 +362,7 @@ const CargarEstudiantes = () => {
         rut: [],
         correo: []
       };
-  
+
       // Buscar duplicados
       students.forEach((student, index) => {
         // Verificar RUT duplicado
@@ -382,7 +382,7 @@ const CargarEstudiantes = () => {
         } else {
           rutMap.set(student.rut, index);
         }
-  
+
         // Verificar correo duplicado
         if (correoMap.has(student.correo)) {
           const duplicadoExistente = duplicados.correo.find(d => d.correo === student.correo);
@@ -401,34 +401,34 @@ const CargarEstudiantes = () => {
           correoMap.set(student.correo, index);
         }
       });
-  
+
       // Si hay duplicados, mostrar mensaje y detener el proceso
       if (duplicados.rut.length > 0 || duplicados.correo.length > 0) {
         toast.error('Se encontraron estudiantes duplicados en el archivo');
-  
+
         setAlertMessage(
-                <div>
-                    <p className="text-danger">Se encontraron estudiantes duplicados:</p>
-                    <ul>
-                        {duplicados.map((info, index) => (
-                            <li key={index}>{info}</li>
-                        ))}
-                    </ul>
-                    <p>Por favor, corrija los estudiantes duplicados y luego haga clic en el botón "Ingresar" para volver a intentar la carga.</p>
-                </div>
-            );
-  
+          <div>
+            <p className="text-danger">Se encontraron estudiantes duplicados:</p>
+            <ul>
+              {duplicados.map((info, index) => (
+                <li key={index}>{info}</li>
+              ))}
+            </ul>
+            <p>Por favor, corrija los estudiantes duplicados y luego haga clic en el botón "Ingresar" para volver a intentar la carga.</p>
+          </div>
+        );
+
         // Marcar estudiantes duplicados como fallidos
-        const rutsFallidos = new Set(duplicados.rut.flatMap(d => 
+        const rutsFallidos = new Set(duplicados.rut.flatMap(d =>
           d.estudiantes.map(e => e.rut)
         ));
-        const correosFallidos = new Set(duplicados.correo.flatMap(d => 
+        const correosFallidos = new Set(duplicados.correo.flatMap(d =>
           d.estudiantes.map(e => e.rut)
         ));
         setFailedStudents(new Set([...rutsFallidos, ...correosFallidos]));
         return;
       }
-  
+
       // Si no hay duplicados, proceder con la carga
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/estudiantes/carga-masiva`,
@@ -440,17 +440,17 @@ const CargarEstudiantes = () => {
           }
         }
       );
- 
+
       // Aquí utilizamos el resumen que viene en la respuesta
       const resumen = response.data.resumen; // Esto es un string
-  
+
       // Mostrar resumen
       setAlertMessage(
         <div>
           <h4 className="mb-4">Resumen de la carga:</h4>
           {response.data.errores.length === 0 ? (
-            <div className ="alert alert-success">
-              <p>{resumen}</p><br/>
+            <div className="alert alert-success">
+              <p>{resumen}</p><br />
               Todos los estudiantes fueron cargados exitosamente.
             </div>
           ) : (
@@ -460,7 +460,7 @@ const CargarEstudiantes = () => {
           )}
         </div>
       );
-  
+
       // Actualizar estado final
       if (response.data.errores.length === 0) {
         setStudents([]);
@@ -470,12 +470,12 @@ const CargarEstudiantes = () => {
         setFailedStudents(new Set(response.data.errores.map(e => e.rut)));
         toast.error(`${response.data.errores.length} estudiantes no pudieron ser cargados`);
       }
-  
+
     } catch (error) {
       console.error('Error al guardar estudiantes:', error);
-      
+
       toast.error('Error al procesar la carga de estudiantes');
-      
+
       setAlertMessage(
         <div className="alert alert-danger">
           <h5>❌ Error al procesar la carga:</h5>
@@ -527,14 +527,14 @@ const CargarEstudiantes = () => {
         </button>
       </div>
       <div className="container mt-4">
-        <h2 className="mb-4 font-weight-bold">Cargar Estudiantes</h2>
+        <h2 className="mb-4 font-weight-bold">Carga masiva de Estudiantes</h2>
         <div className="card">
           <div className="card-header custom-card text-light">
             <h3 className="card-title">Cargar archivo Excel</h3>
           </div>
           <div className="card-footer">
             <div className="alert alert-warning mt-1 mb-0">
-              <i className="fas fa-exclamation-triangle"></i> <strong>Importante:</strong> La plantilla debe contener: RUT, Nombres, Apellidos y Correo.
+              <i className="fas fa-exclamation-triangle"></i> <strong>Importante:</strong> La plantilla debe contener las columnas: RUT, Nombre, Apellidos y Correo.
             </div>
           </div>
           <div className="card-body">
@@ -572,56 +572,57 @@ const CargarEstudiantes = () => {
               <Button variant="danger" className="ml-2" onClick={handleClearStudents}>Limpiar</Button>
               <Button variant="primary" onClick={() => setShowModal(true)} className="ml-2">Agregar Manualmente</Button>
             </div>
-            <Table striped bordered hover responsive>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>RUT</th>
-                  <th>Nombres</th>
-                  <th>Apellidos</th>
-                  <th>Correo</th>
-                  <th>Año a cursar</th>
-                  <th>Contraseña</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-  {currentStudents.map((student) => {
-    const hasError = failedStudents.has(student.rut) || student.hasError;
-    return (
-      <tr key={student.id} className={hasError ? 'table-danger' : 'table-success'}>
-        <td>{student.id}</td>
-        <td>{student.rut}</td>
-        <td>{student.nombres}</td>
-        <td>{student.apellidos}</td>
-        <td>{student.correo}</td>
-        <td>{student.anos_cursados}</td>
-        <td>{student.contrasena}</td>
-        <td>{hasError ? <span className="text-danger">Error</span> : <span className="text-success">Cargado</span>}</td>
-        <td>
-          <Button variant="warning" onClick={() => handleEditStudent(student)} className="mr-2">
-            <i className="fas fa-edit" style={{ color: 'white' }}></i>
-          </Button>
-          <Button variant="danger" onClick={() => handleDeleteStudent(student.id)}>
-            <i className="fas fa-trash"></i>
-          </Button>
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
-            </Table>
+            <Card>
+              <Card.Header className='custom-card text-light'>Vista Previa</Card.Header>
+              <Table striped bordered hover responsive>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>RUT</th>
+                    <th>Nombre</th>
+                    <th>Apellidos</th>
+                    <th>Correo</th>
+                    <th>Año a cursar</th>
+                    <th>Contraseña</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentStudents.map((student) => {
+                    const hasError = failedStudents.has(student.rut) || student.hasError;
+                    return (
+                      <tr key={student.id} className={hasError ? 'table-danger' : 'table-success'}>
+                        <td>{student.id}</td>
+                        <td>{student.rut}</td>
+                        <td>{student.nombres}</td>
+                        <td>{student.apellidos}</td>
+                        <td>{student.correo}</td>
+                        <td>{student.anos_cursados}</td>
+                        <td>{student.contrasena}</td>
+                        <td>{hasError ? <span className="text-danger">Error</span> : <span className="text-success">Cargado</span>}</td>
+                        <td>
+                          <Button variant="warning" onClick={() => handleEditStudent(student)} className="mr-2">
+                            <i className="fas fa-edit" style={{ color: 'white' }}></i>
+                          </Button>
+                          <Button variant="danger" onClick={() => handleDeleteStudent(student.id)}>
+                            <i className="fas fa-trash"></i>
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </Table>
+            </Card>
             <nav>
-              <ul className="pagination">
+              <Pagination>
                 {pageNumbers.map(number => (
-                  <li key={number} className="page-item">
-                    <button onClick={() => paginate(number)} className="page-link">
-                      {number}
-                    </button>
-                  </li>
+                  <Pagination.Item key={number} onClick={() => paginate(number)} active={currentPage === number}>
+                    {number}
+                  </Pagination.Item>
                 ))}
-              </ul>
+              </Pagination>
             </nav>
             <div className="d-flex justify-content-end mt-2">
               <Button variant="success" onClick={handleSaveStudents}>Ingresar</Button>
@@ -633,6 +634,7 @@ const CargarEstudiantes = () => {
             <Button variant="primary" onClick={() => setShowModal(true)}>Agregar Manualmente</Button>
           </div>
         )}
+
 
         <Modal show={showModal} onHide={handleCloseModal}>
           <Modal.Header closeButton>
@@ -660,10 +662,10 @@ const CargarEstudiantes = () => {
                 </Form.Text>
               </Form.Group>
               <Form.Group controlId="formNombres">
-                <Form.Label>Nombres</Form.Label>
+                <Form.Label>Nombre</Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="Ingresa los nombres"
+                  placeholder="Ingrese el nombre"
                   value={newStudent.nombres}
                   onChange={(e) => setNewStudent({ ...newStudent, nombres: e.target.value })}
                   required

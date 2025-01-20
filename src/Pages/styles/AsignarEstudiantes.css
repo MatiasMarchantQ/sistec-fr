@@ -38,6 +38,56 @@
     cursor: pointer;
 }
 
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .checkbox-column {
+    position: relative;
+    min-width: 40px;
+    width: 40px;
+    max-width: 40px;
+    padding: 0.5rem !important;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  /* Asegurarse de que el checkbox esté centrado */
+  .checkbox-column .form-check {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Ajustar el tamaño del input del checkbox */
+  .checkbox-column .form-check-input {
+    margin: 0;
+    position: static;
+  }
+
+  /* Evitar que el checkbox se desborde */
+  .table td.checkbox-column,
+  .table th.checkbox-column {
+    position: relative;
+    z-index: 1;
+    overflow: visible;
+  }
+
+  @media (max-width: 768px) {
+    .checkbox-column {
+      position: static;
+      min-width: 40px;
+      width: 40px;
+    }
+    
+    .table-responsive {
+      border: 1px solid #dee2e6;
+    }
+  }
+
 /* Resto de los estilos */
 .asignar-estudiantes .btn {
     margin-right: 10px;

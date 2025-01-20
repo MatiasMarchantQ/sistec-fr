@@ -1,6 +1,6 @@
 /* Estilos para el bloque instituciones */
 .instituciones {
-    margin: 20px;
+    padding: 20px;
 }
 
 /* Título */
@@ -32,11 +32,6 @@
 /* Tarjeta del bloque */
 .instituciones__card {
     margin-bottom: 20px;
-}
-
-/* Título de la tarjeta */
-.instituciones__card-title {
-    font-size: 1.5rem;
 }
 
 /* Tabla */

@@ -187,7 +187,7 @@ const IngresarFichaClinica = () => {
   const puedeSeleccionarTipoFicha = user?.rol_id !== 3;
 
   return (
-    <div className="container mt-4">
+    <div className="container mt-3 p-4">
       <Button 
         variant="" 
         onClick={handleVolver}
@@ -199,7 +199,7 @@ const IngresarFichaClinica = () => {
       >
         <i className="fas fa-arrow-left me-8 pr-1"></i>Volver
       </Button>
-      <h2 className="text-center font-weight-bold mb-4" style={{ color: 'var(--color-accent)' }}>Ficha Clínica</h2>
+      <h2 className="text-center font-weight-bold mb-4" style={{ color: 'var(--color-accent)' }}>Ingreso de Ficha Clínica</h2>
 
       {!isFromAgenda && (
         <>
