@@ -6,21 +6,43 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 const sectionStyles = {
-  backgroundColor: '#f8f9fa', // Color de fondo suave
+  backgroundColor: '#f8f9fa',
   borderRadius: '8px',
-  padding: '20px',
+  padding: '15px',
   marginBottom: '20px',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+  width: '100%',
+  overflowX: 'hidden'
 };
 
 const headingStyles = {
-  backgroundColor: '#007bff', // Color de fondo para los encabezados
+  backgroundColor: '#007bff',
   color: 'white',
   padding: '10px 15px',
   borderRadius: '6px',
   marginBottom: '20px',
   display: 'flex',
-  alignItems: 'center'
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  width: '100%'
+};
+
+const responsiveFormGroupStyle = {
+  marginBottom: '1.5rem',
+  '@media (max-width: 768px)': {
+    marginBottom: '1rem'
+  }
+};
+
+const responsiveOptionsStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  flexWrap: 'wrap',
+  gap: '10px',
+  '@media (max-width: 768px)': {
+    flexDirection: 'column',
+    gap: '8px'
+  }
 };
 
 const TercerLlamado = ({
@@ -34,6 +56,18 @@ const TercerLlamado = ({
   const { user } = useAuth();
   const [puntajesDepresion, setPuntajesDepresion] = useState(Array(9).fill(0));
   const [nivelDificultad, setNivelDificultad] = useState(0);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+        setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+        window.removeEventListener('resize', handleResize);
+    };
+}, []);
 
   const preguntasDepresion = [
     "Tener poco interés o placer en hacer las cosas",
@@ -219,25 +253,15 @@ const TercerLlamado = ({
       <div id="exportable-content3">
         <div data-pdf-section>
           <div style={sectionStyles}>
-            <h5 style={{
-              ...headingStyles,
-              backgroundColor: '#007bff' // Azul para primera sección
-            }}>
-              <i className="fas fa-brain mr-3"></i>
-              V. Necesidad de Estima, Autoestima y Realización
+            <h5 style={headingStyles}>
+              <i className="fas fa-brain me-2"></i>
+              <span style={{ flex: 1, wordBreak: 'break-word' }}>
+                V. Necesidad de Estima, Autoestima y Realización
+              </span>
             </h5>
 
-            <div style={{
-              backgroundColor: 'white',
-              padding: '15px',
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-            }}>
-              <h6 style={{
-                borderBottom: '2px solid #007bff',
-                paddingBottom: '10px',
-                marginBottom: '20px'
-              }}>
+            <div className="bg-white p-3 rounded">
+              <h6 className="border-bottom border-primary pb-2 mb-4">
                 Detección de Síntomas Depresivos (PHQ-9)
               </h6>
 
@@ -246,30 +270,36 @@ const TercerLlamado = ({
               </p>
 
               {preguntasDepresion.map((pregunta, index) => (
-                <Form.Group key={index} className="mb-3">
-                  <Form.Label>{index + 1}. {pregunta}</Form.Label>
-                  <div className="d-flex justify-content-between">
+                <Form.Group key={index} style={responsiveFormGroupStyle}>
+                  <Form.Label className="d-block mb-2">{index + 1}. {pregunta}</Form.Label>
+                  <div style={responsiveOptionsStyle}>
                     {opcionesFrecuencia.map((opcion) => (
                       <Form.Check
                         key={opcion.value}
                         type="radio"
+                        id={`depresion-${index}-${opcion.value}`}
                         name={`depresion-${index}`}
                         label={opcion.label}
                         checked={puntajesDepresion[index] === opcion.value}
                         onChange={() => handleCambioPuntajeDepresion(index, opcion.value)}
+                        className="mb-2 mb-md-0"
                       />
                     ))}
                   </div>
                 </Form.Group>
               ))}
 
-              <Form.Group className="mb-3">
-                <Form.Label>Si se identificó con algún problema, ¿cuán difícil se le ha hecho cumplir con su trabajo, atender su casa, o relacionarse con otras personas?</Form.Label>
-                <div className="d-flex justify-content-between">
+              <Form.Group style={responsiveFormGroupStyle}>
+                <Form.Label className="d-block mb-2">
+                  Si se identificó con algún problema, ¿cuán difícil se le ha hecho cumplir con su trabajo, 
+                  atender su casa, o relacionarse con otras personas?
+                </Form.Label>
+                <div style={responsiveOptionsStyle}>
                   {nivelesDificultad.map((nivel, index) => (
                     <Form.Check
                       key={index}
                       type="radio"
+                      id={`dificultad-${index}`}
                       name="nivelDificultad"
                       label={nivel}
                       checked={nivelDificultad === index}
@@ -283,37 +313,26 @@ const TercerLlamado = ({
                           }
                         }));
                       }}
+                      className="mb-2 mb-md-0"
                     />
                   ))}
                 </div>
               </Form.Group>
 
-              {/* Alerta de puntuación con estilo mejorado */}
               <Alert
                 variant={
                   puntajeTotal >= 10 ? "danger" :
                     puntajeTotal >= 5 ? "warning" : "success"
                 }
-                style={{
-                  marginTop: '20px',
-                  borderRadius: '8px',
-                  padding: '15px'
-                }}
+                className="mt-4"
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
                   <div>
                     <strong>Puntuación Total: {puntajeTotal}</strong>
                     <p className="mb-0">Categoría: {obtenerCategoriaDepresion(puntajeTotal)}</p>
                   </div>
                   {puntajeTotal >= 10 && (
-                    <div
-                      style={{
-                        backgroundColor: '#dc3545',
-                        color: 'white',
-                        padding: '8px 12px',
-                        borderRadius: '6px'
-                      }}
-                    >
+                    <div className="mt-2 mt-md-0 bg-danger text-white p-2 rounded">
                       Derivar a médico del CESFAM
                     </div>
                   )}
@@ -347,15 +366,18 @@ const TercerLlamado = ({
                   Información Adicional de Síntomas
                 </h6>
 
+                <div className="mt-4 bg-light p-3 rounded">
                 <Form.Group className="mb-3">
                   <Form.Label>¿Qué otro síntoma o molestia ha presentado?</Form.Label>
                   <Form.Control
                     as="textarea"
+                    rows={3}
                     value={seguimiento.otrosSintomas}
                     onChange={(e) => setSeguimiento(prev => ({
                       ...prev,
                       otrosSintomas: e.target.value
                     }))}
+                    className="w-100"
                   />
                 </Form.Group>
 
@@ -363,11 +385,13 @@ const TercerLlamado = ({
                   <Form.Label>¿Cómo lo ha manejado o superado?</Form.Label>
                   <Form.Control
                     as="textarea"
+                    rows={3}
                     value={seguimiento.manejoSintomas}
                     onChange={(e) => setSeguimiento(prev => ({
                       ...prev,
                       manejoSintomas: e.target.value
                     }))}
+                    className="w-100"
                   />
                 </Form.Group>
               </div>
@@ -376,14 +400,12 @@ const TercerLlamado = ({
         </div>
 
         <div data-pdf-section>
-          {/* Sección de Autoeficacia */}
           <div style={sectionStyles}>
-            <h5 style={{
-              ...headingStyles,
-              backgroundColor: '#17a2b8' // Cyan para esta sección
-            }}>
-              <i className="fas fa-chart-line mr-3"></i>
-              Evaluación de Autoeficacia en Diabetes Tipo 2
+            <h5 style={{...headingStyles, backgroundColor: '#17a2b8'}}>
+              <i className="fas fa-chart-line me-2"></i>
+              <span style={{ flex: 1, wordBreak: 'break-word' }}>
+                Evaluación de Autoeficacia en Diabetes Tipo 2
+              </span>
             </h5>
 
             <p className="text-muted mb-4">
@@ -391,10 +413,10 @@ const TercerLlamado = ({
             </p>
 
             {preguntasAutoeficacia.map((pregunta, index) => (
-              <Form.Group key={index} className="mb-3">
-                <Form.Label>{pregunta.label}</Form.Label>
-                <div className="d-flex align-items-center">
-                  <span className="mr-2">Muy inseguro(a)</span>
+              <Form.Group key={index} className="mb-4">
+                <Form.Label className="d-block mb-2">{pregunta.label}</Form.Label>
+                <div className="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
+                  <span className="text-nowrap">Muy inseguro(a)</span>
                   <Form.Control
                     type="range"
                     min="1"
@@ -407,63 +429,44 @@ const TercerLlamado = ({
                         [pregunta.key]: parseInt(e.target.value)
                       }
                     }))}
+                    className="mx-2 flex-grow-1"
                   />
-                  <span className="ml-2">Seguro(a)</span>
+                  <span className="text-nowrap">Seguro(a)</span>
                 </div>
-                <div className="text-center">{seguimiento.autoeficacia[pregunta.key]}</div>
+                <div className="text-center mt-1">
+                  {seguimiento.autoeficacia[pregunta.key]}
+                </div>
               </Form.Group>
             ))}
           </div>
-          <Alert variant="info" style={{ borderRadius: '8px', marginTop: '20px' }}>
-            <p>
+
+          <Alert variant="info" className="my-4">
+            <p className="mb-0">
               Para finalizar este llamado, recuerde registrar todos los síntomas, dudas y/o comentarios que presente.
               Además, respete las indicaciones de su médico y del equipo de salud.
               Muchas gracias por su colaboración, ¡Hasta pronto!
             </p>
           </Alert>
 
-          {/* Sección de Comentarios */}
-          <div style={{
-            backgroundColor: 'white',
-            padding: '15px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-            marginBottom: '20px',
-          }}>
+          <div className="bg-white p-3 rounded shadow-sm">
             <Form.Group className="mb-3">
               <Form.Label>Comentarios</Form.Label>
               <Form.Control
                 as="textarea"
-                style={{
-                  width: '100%',  // Ocupa todo el ancho disponible
-                  resize: 'vertical', // Permite redimensionar verticalmente
-                  whiteSpace: 'pre-wrap', // Respeta saltos de línea
-                  wordWrap: 'break-word' // Rompe palabras largas si es necesario
-                }}
+                rows={4}
                 value={seguimiento.comentario_tercer_llamado}
                 onChange={(e) => setSeguimiento(prev => ({
                   ...prev,
                   comentario_tercer_llamado: e.target.value
                 }))}
-                rows={4} // Número inicial de filas
+                className="w-100"
               />
             </Form.Group>
           </div>
         </div>
       </div>
-    )
-  };
-
-  const formatFecha = (fechaString) => {
-    if (!fechaString) return 'No disponible';
-    try {
-      // Remover la parte del timestamp si existe
-      const fecha = fechaString.split('T')[0];
-      const [year, month, day] = fecha.split('-');
-      return `${day}-${month}-${year}`;
-    } catch {
-      return 'Formato inválido';
-    }
+      </div>
+    );
   };
 
   const getFormattedDate = () => {
@@ -530,6 +533,9 @@ const TercerLlamado = ({
     const sections = input.querySelectorAll('[data-pdf-section]');
 
     try {
+      // Detectar si es móvil
+      const isMobile = window.innerWidth <= 768;
+
       for (let pageIndex = 0; pageIndex < sections.length; pageIndex++) {
         if (pageIndex > 0) {
           pdf.addPage();
@@ -580,7 +586,7 @@ const TercerLlamado = ({
         const sectionImgData = sectionCanvas.toDataURL('image/jpeg', 1.0);
 
         const pageWidth = pdf.internal.pageSize.width;
-        const imgWidth = pageWidth - 90;
+        const imgWidth = pageWidth - (isMobile ? 180 : 40); // Ajustar el ancho de la imagen según el margen
         const imgHeight = (sectionCanvas.height * imgWidth) / sectionCanvas.width;
 
         const xPosition = (pageWidth - imgWidth) / 2;
@@ -645,20 +651,32 @@ const TercerLlamado = ({
       <Card.Body>
         <Form onSubmit={handleSubmit}>
           {renderContent()}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-            <Button type="submit" disabled={disabled}>Ingresar</Button>
+          <div className="d-flex flex-column flex-md-row justify-content-between gap-2 mt-4">
+            <Button 
+              type="submit" 
+              variant="success"
+              disabled={disabled}
+              className="w-100 w-md-auto"
+            >
+              Ingresar
+            </Button>
             {seguimiento.id && esEditable && (
               <Button
-                variant="success"
-                onClick={() => {
-                  guardarSeguimiento(3, true);
-                }}
+                variant="primary"
+                onClick={() => guardarSeguimiento(3, true)}
+                className="w-100 w-md-auto"
               >
                 Actualizar
               </Button>
             )}
-            {puntajesDepresion && (
-              <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
+            {puntajesDepresion && !isMobile && (
+              <Button 
+                variant="warning" 
+                onClick={exportarPDF}
+                className="w-100 w-md-auto"
+              >
+                Exportar PDF
+              </Button>
             )}
           </div>
         </Form>

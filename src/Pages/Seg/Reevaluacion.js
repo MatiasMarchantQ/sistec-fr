@@ -4,8 +4,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import FichaClinicaAdulto from './FichaClinicaAdulto';
-import FichaClinicaInfantil from './FichaClinicaInfantil';
+import FichaClinicaAdulto from '../FC/FichaClinicaAdulto';
+import FichaClinicaInfantil from '../FC/FichaClinicaInfantil';
 import _ from 'lodash';
 
 const Reevaluacion = () => {
@@ -260,10 +260,6 @@ const Reevaluacion = () => {
     }
 
     const { fichaId, tipo, reevaluacionId, modoEdicion } = location.state;
-
-    console.log('location.state:', location.state);
-    console.log('Ficha ID:', fichaId);
-    console.log('Tipo:', tipo);
 
     // Solo navegar si realmente necesitamos hacerlo
     if (fichaId && tipo) {

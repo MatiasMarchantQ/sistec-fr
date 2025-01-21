@@ -7,18 +7,16 @@
     font-size: 2rem;
     color: var(--color-accent);
     font-weight: bold;
-  }
-  
+}
+
 .asignar-estudiantes .card {
     margin-bottom: 20px;
 }
-
 
 .asignar-estudiantes .table {
     margin-bottom: 0;
 }
 
-/* Estilos para la columna de selección y checkboxes */
 .asignar-estudiantes .table td:first-child,
 .asignar-estudiantes .table th:first-child {
     width: 50px;
@@ -41,9 +39,9 @@
 .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-  }
+}
 
-  .checkbox-column {
+.checkbox-column {
     position: relative;
     min-width: 40px;
     width: 40px;
@@ -51,94 +49,102 @@
     padding: 0.5rem !important;
     text-align: center;
     vertical-align: middle;
-  }
+}
 
-  /* Asegurarse de que el checkbox esté centrado */
-  .checkbox-column .form-check {
+.checkbox-column .form-check {
     display: flex;
     justify-content: center;
     align-items: center;
     margin: 0;
     padding: 0;
-  }
+}
 
-  /* Ajustar el tamaño del input del checkbox */
-  .checkbox-column .form-check-input {
+.checkbox-column .form-check-input {
     margin: 0;
     position: static;
-  }
+}
 
-  /* Evitar que el checkbox se desborde */
-  .table td.checkbox-column,
-  .table th.checkbox-column {
+.table td.checkbox-column,
+.table th.checkbox-column {
     position: relative;
     z-index: 1;
     overflow: visible;
-  }
+}
 
-  @media (max-width: 768px) {
+@media (max-width: 768px) {
     .checkbox-column {
-      position: static;
-      min-width: 40px;
-      width: 40px;
+        position: static;
+        min-width: 40px;
+        width: 40px;
     }
-    
-    .table-responsive {
-      border: 1px solid #dee2e6;
-    }
-  }
 
-/* Resto de los estilos */
+    .table-responsive {
+        border: 1px solid #dee2e6;
+    }
+}
+
 .asignar-estudiantes .btn {
     margin-right: 10px;
 }
-  
+
 .asignar-estudiantes .pagination {
     margin-bottom: 0;
 }
-  
+
 .asignar-estudiantes .modal-body .form-group {
     margin-bottom: 15px;
 }
-  
+
 .asignar-estudiantes .fas {
     margin-right: 5px;
 }
-  
+
 .asignar-estudiantes .btn-warning {
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
 }
-  
+
 .asignar-estudiantes .mr-2 {
     margin-right: 0.5rem;
 }
-  
+
 .asignar-estudiantes .mt-4 {
     margin-top: 1.5rem;
 }
-  
+
 .asignar-estudiantes .d-flex {
     display: flex;
 }
-  
+
 .asignar-estudiantes .justify-content-between {
     justify-content: space-between;
 }
-  
+
 .asignar-estudiantes .align-items-center {
     align-items: center;
 }
-  
+
+.asignacion-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.asignacion-item:last-child {
+    margin-bottom: 0;
+}
+
 .asignar-estudiantes .mb-3 {
     margin-bottom: 1rem;
 }
-  
+
 .asignar-estudiantes .text-center {
     text-align: center;
 }
 
-/* Estilos para las filas seleccionadas */
 .asignar-estudiantes .table tr.selected {
     background-color: #e3f2fd;
 }
@@ -147,7 +153,6 @@
     background-color: #f5f5f5;
 }
 
-/* Estilos para mejorar la apariencia de los checkboxes */
 .asignar-estudiantes .form-check-input:checked {
     background-color: #0d6efd;
     border-color: #0d6efd;
@@ -158,9 +163,7 @@
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 
-/* Media queries para diferentes tamaños de pantalla */
 @media screen and (max-width: 576px) {
-    /* Móviles */
     .asignar-estudiantes {
         padding: 10px;
     }
@@ -171,64 +174,61 @@
     }
 
     .asignar-estudiantes .usuarios__controls {
-        flex-direction: column; /* Apilar controles verticalmente */
+        flex-direction: column;
     }
 
     .asignar-estudiantes .usuarios__select,
     .asignar-estudiantes .form-control,
     .asignar-estudiantes .usuarios__btn {
-        width: 100%; /* Ocupar todo el ancho */
-        margin-bottom: 10px; /* Espaciado entre controles */
+        width: 100%;
+        margin-bottom: 10px;
     }
 
     .asignar-estudiantes .table {
         display: block;
-        overflow-x: auto; /* Permitir scroll horizontal en tablas */
+        overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
 
     .asignar-estudiantes .table th,
     .asignar-estudiantes .table td {
-        padding: 8px 5px; /* Ajustar padding */
-        min-width: 100px; /* Ancho mínimo para celdas */
+        padding: 8px 5px;
+        min-width: 100px;
     }
 }
 
 @media screen and (min-width: 577px) and (max-width: 768px) {
-    /* Tablets */
     .asignar-estudiantes {
         padding: 15px;
     }
 
     .asignar-estudiantes .usuarios__controls {
-        flex-wrap: nowrap; /* Mantener en una sola línea */
-        justify-content: space-between; /* Espaciado entre controles */
+        flex-wrap: nowrap;
+        justify-content: space-between;
     }
 
     .asignar-estudiantes .usuarios__select,
     .asignar-estudiantes .form-control {
-        flex: 1; /* Permitir que crezcan */
-        margin-right: 10px; /* Espaciado entre controles */
+        flex: 1;
+        margin-right: 10px;
     }
 
     .asignar-estudiantes .usuarios__btn {
-        flex: 0 0 auto; /* Mantener el tamaño del botón */
+        flex: 0 0 auto;
     }
 }
 
 @media screen and (min-width: 769px) and (max-width: 1024px) {
-    /* Tablets grandes */
     .asignar-estudiantes .usuarios__controls {
-        justify-content: flex-start; /* Alinear a la izquierda */
+        justify-content: flex-start;
     }
 
     .asignar-estudiantes .usuarios__select,
     .asignar-estudiantes .form-control {
-        max-width: 250px; /* Ancho máximo */
+        max-width: 250px;
     }
 }
 
-/* Modal responsivo */
 @media screen and (max-width: 576px) {
     .asignar-estudiantes .modal-dialog {
         margin: 10px;
@@ -249,8 +249,7 @@
     }
 }
 
-/* Paginación responsiva */
-@media screen and (max-width: 576px ) {
+@media screen and (max-width: 576px) {
     .asignar-estudiantes .pagination {
         justify-content: center;
         flex-wrap: wrap;

@@ -40,7 +40,6 @@ const Usuarios = () => {
 
   const handleModalOpen = () => setModalOpen(true);
   const handleModalClose = () => {
-    // Limpiar todos los campos del nuevo usuario
     setNuevoUsuario({
       nombres: '',
       apellidos: '',
@@ -50,10 +49,7 @@ const Usuarios = () => {
       contrasena: ''
     });
 
-    // Restablecer otros estados relacionados
     setShowPassword(false);
-
-    // Cerrar el modal
     setModalOpen(false);
   };
 
@@ -183,7 +179,6 @@ const Usuarios = () => {
         }
       });
 
-      // Suponiendo que `contrasenaFinal` es la contraseña que deseas mostrar
       alert(`Usuario creado. RUT: ${nuevoUsuario.rut}, Contraseña: ${contrasenaFinal}`);
 
       setNuevoUsuario({
@@ -195,14 +190,12 @@ const Usuarios = () => {
         contrasena: ''
       });
 
-      // Restablecer otros estados relacionados
       setShowPassword(false);
 
       obtenerPersonal();
       handleModalClose();
     } catch (error) {
       console.error('Error al crear usuario:', error);
-      // Mostrar toast de error
       toast.error(
         error.response?.data?.error || 'Error al crear usuario. Por favor, intente nuevamente.',
         {
@@ -220,7 +213,7 @@ const Usuarios = () => {
 
   const handleEdit = (usuarioId) => {
     setEditingId(usuarioId);
-    setEditedFields({}); // Limpiar campos editados anteriormente
+    setEditedFields({});
   };
 
   const handleCancelEdit = () => {
@@ -239,7 +232,6 @@ const Usuarios = () => {
     try {
       const token = getToken();
 
-      // Solo enviar los campos que fueron modificados
       if (Object.keys(editedFields).length === 0) {
         handleCancelEdit();
         return;
@@ -255,13 +247,11 @@ const Usuarios = () => {
         }
       );
 
-      // Actualizar la lista de usuarios
       obtenerPersonal();
       handleCancelEdit();
     } catch (error) {
       console.error('Error al actualizar usuario:', error);
 
-      // Mostrar toast de error
       toast.error(
         error.response?.data?.error || 'Error al actualizar el usuario. Por favor, intente nuevamente.',
         {
@@ -364,12 +354,10 @@ const Usuarios = () => {
         draggable: true,
       });
 
-      // Cerrar modal
       setPasswordModalOpen(false);
     } catch (error) {
       console.error('Error al cambiar contraseña:', error);
 
-      // Mostrar mensaje de error
       toast.error(
         error.response?.data?.error || 'No se pudo cambiar la contraseña',
         {
@@ -545,7 +533,7 @@ const Usuarios = () => {
                           className="btn btn-outline-secondary"
                           type="button"
                           onClick={() => {
-                            // Generar contraseña automáticamente cuando se hace clic
+                            // Generar contraseña automáticamente
                             const contrasenaGenerada = generarContrasena(nuevoUsuario.rut || '12345');
                             setNuevoUsuario(prev => ({ ...prev, contrasena: contrasenaGenerada }));
                           }}
@@ -747,7 +735,7 @@ const Usuarios = () => {
               {currentPage > 3 && <Pagination.Ellipsis />}
 
               {Array.from({ length: Math.min(3, totalPages) }, (_, index) => {
-                const page = Math.max(2, currentPage - 1) + index; // Muestra las páginas alrededor de la página actual
+                const page = Math.max(2, currentPage - 1) + index;
                 if (page <= totalPages) {
                   return (
                     <Pagination.Item

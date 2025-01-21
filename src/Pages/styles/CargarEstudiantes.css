@@ -1,71 +1,70 @@
 .cargar-estudiantes {
-    background-color: #fff; /* Color de fondo suave */
-    font-family: Arial, sans-serif;
-    padding: 20px;
-  }
-  
-  .cargar-estudiantes h2 {
-    text-align: center;
-    color: var(--color-accent);
-  }
-  
-  .cargar-estudiantes input[type="file"] {
-    margin: 20px auto;
-    display: block;
-  }
-  
-  .cargar-estudiantes input[type="text"] {
-    width: 100%;
-    padding: 10px;
-    margin: 5px 0;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    transition: border-color 0.3s;
-  }
-  
-  .cargar-estudiantes input[type="text"]:focus {
-    border-color: #80bdff;
-    outline: none;
-  }
-  
-  .cargar-estudiantes button {
-    margin: 5px;
-  }
-  
-  .cargar-estudiantes .table {
-    overflow: hidden; /* Para que los bordes redondeados se apliquen a las celdas */
-  }
-  
-  .table thead th {
-    background-color: #343a40; /* Color de fondo para el encabezado */
-    color: #ffffff; /* Color del texto del encabezado */
-    text-align: center;
-  }
-  
-  .table tbody tr {
-    transition: background-color 0.3s; /* Transición suave para el hover */
-  }
-  
-  .table tbody tr:hover {
-    background-color: #f1f1f1; /* Color de fondo al pasar el mouse */
-  }
-  
-  .cargar-estudiantes .modal-header {
-    background-color: #343a40; /* Color de fondo para el encabezado del modal */
-    color: #ffffff; /* Color del texto del encabezado del modal */
-  }
-  
-  .cargar-estudiantes .modal-footer {
-    display: flex;
-    justify-content: space-between; /* Espaciado entre botones */
-  }
-  
-  .cargar-estudiantes .btn-success {
-    background-color: #28a745; /* Color verde para el botón de exportar */
-    border: none; /* Sin borde */
-  }
-  
-  .cargar-estudiantes .btn-success:hover {
-    background-color: #218838; /* Color verde oscuro al pasar el mouse */
-  }
-  
+  background-color: #fff;
+  font-family: Arial, sans-serif;
+  padding: 20px;
+}
+
+.cargar-estudiantes h2 {
+  text-align: center;
+  color: var(--color-accent);
+}
+
+.cargar-estudiantes input[type="file"] {
+  margin: 20px auto;
+  display: block;
+}
+
+.cargar-estudiantes input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  transition: border-color 0.3s;
+}
+
+.cargar-estudiantes input[type="text"]:focus {
+  border-color: #80bdff;
+  outline: none;
+}
+
+.cargar-estudiantes button {
+  margin: 5px;
+}
+
+.cargar-estudiantes .table {
+  overflow: hidden;
+}
+
+.table thead th {
+  background-color: #343a40;
+  color: #ffffff;
+  text-align: center;
+}
+
+.table tbody tr {
+  transition: background-color 0.3s;
+}
+
+.table tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+.cargar-estudiantes .modal-header {
+  background-color: #343a40;
+  color: #ffffff;
+}
+
+.cargar-estudiantes .modal-footer {
+  display: flex;
+  justify-content: space-between;
+}
+
+.cargar-estudiantes .btn-success {
+  background-color: #28a745;
+  border: none;
+}
+
+.cargar-estudiantes .btn-success:hover {
+  background-color: #218838;
+}

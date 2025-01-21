@@ -29,12 +29,8 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
   const [tipoFamilia, setTipoFamilia] = useState('');
   const [cicloVitalFamiliar, setCicloVitalFamiliar] = useState('');
   const [localidad, setLocalidad] = useState('');
-
-  // Lista de factores de riesgo disponibles
   const [factoresRiesgoNinoDisponibles, setFactoresRiesgoNinoDisponibles] = useState([]);
   const [factoresRiesgoFamiliaresDisponibles, setFactoresRiesgoFamiliaresDisponibles] = useState([]);
-
-  // Estados para las selecciones de factores de riesgo
   const [factoresRiesgoNino, setFactoresRiesgoNino] = useState({});
   const [factoresRiesgoFamiliares, setFactoresRiesgoFamiliares] = useState({
     otras: ''
@@ -130,7 +126,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         }
     }
 
-    // Último intento: extraer números de la cadena
+    // Extraer números de la cadena
     const numeros = edadString.match(/\d+/g);
     if (numeros) {
         return {
@@ -148,20 +144,15 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
 }, []);
 
   useEffect(() => {
-    // Priorizar ultimaReevaluacion sobre datosIniciales
     const datosBase = reevaluacionSeleccionada || ultimaReevaluacion || datosIniciales;
-    console.log('Datos base:', datosBase);
     
     if (datosBase) {
-      // Datos personales del niño
       setDatosNino(prev => {
-        // Verificar si tenemos valores individuales de edad
         const tieneValoresIndividuales = 
           datosBase.edadAnios !== undefined || 
           datosBase.edadMeses !== undefined || 
           datosBase.edadDias !== undefined;
 
-        // Determinar la edad a parsear
         let edadParseada;
         if (tieneValoresIndividuales) {
           edadParseada = parseEdad(null, 
@@ -170,12 +161,9 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
             datosBase.edadDias || null
           );
         } else {
-          // Si no hay valores individuales, intentar con el string completo
           const edadString = datosBase.edad || datosBase.paciente?.edad;
           edadParseada = parseEdad(edadString);
         }
-
-        console.log(edadParseada);
 
         return {
           ...prev,
@@ -323,7 +311,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
   useEffect(() => {
     const cargarDatos = async () => {
       if (!user) return;
-      if (datosCargados) return; // Evitar llamadas múltiples
+      if (datosCargados) return;
       try {
         const token = getToken();
         const [
@@ -354,7 +342,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         setCiclosVitalesFamiliares(ciclosRes.data);
         setTiposFamilia(tiposRes.data);
 
-        // Configurar factores de riesgo del niño
+        //  Factores de riesgo del niño
         const factoresNino = factoresNinoRes.data;
         setFactoresRiesgoNinoDisponibles(factoresNino);
         const inicialFactoresNino = {};
@@ -363,7 +351,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         });
         setFactoresRiesgoNino(inicialFactoresNino);
 
-        // Configurar factores de riesgo familiares
+        // Factores de riesgo familiares
         const factoresFamiliar = factoresFamiliarRes.data;
         setFactoresRiesgoFamiliaresDisponibles(factoresFamiliar);
         const inicialFactoresFamiliar = { otras: '' };
@@ -376,7 +364,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         setDatosCargados(true);
       } catch (error) {
         if (error.response && error.response.status === 401) {
-          // Manejar sesión expirada
           handleSessionExpired();
         } else {
           console.error(error);
@@ -455,16 +442,16 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       edad += `${datosNino.edadAnios} años`;
     }
     if (datosNino.edadMeses) {
-      if (edad) edad += ', '; // Añadir coma si ya hay años
+      if (edad) edad += ', ';
       edad += `${datosNino.edadMeses} meses`;
     }
     if (datosNino.edadDias) {
-      if (edad) edad += ', '; // Añadir coma si ya hay años o meses
+      if (edad) edad += ', ';
       edad += `${datosNino.edadDias} días`;
     }
 
     const datosParaEnviar = {
-      tipo: 'infantil', // Asegúrate de que el tipo se envíe correctamente
+      tipo: 'infantil',
       fechaNacimiento: datosNino.fechaNacimiento,
       nombres: datosNino.nombres,
       apellidos: datosNino.apellidos,
@@ -509,9 +496,8 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       });
 
       if (response.data.success) {
-        onIngresar(response.data.data); // Refresh the data
+        onIngresar(response.data.data);
 
-        // Limpiar el formulario
         setDatosNino({
           fechaNacimiento: '',
           nombres: '',
@@ -524,7 +510,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
           telefonoSecundario: ''
         });
 
-        // Mostrar mensaje de éxito
         toast.success('Reevaluación actualizada exitosamente');
 
         setPuntajeDPM('');
@@ -581,11 +566,11 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       edad += `${datosNino.edadAnios} años`;
     }
     if (datosNino.edadMeses) {
-      if (edad) edad += ', '; // Añadir coma si ya hay años
+      if (edad) edad += ', ';
       edad += `${datosNino.edadMeses} meses`;
     }
     if (datosNino.edadDias) {
-      if (edad) edad += ', '; // Añadir coma si ya hay años o meses
+      if (edad) edad += ', ';
       edad += `${datosNino.edadDias} días`;
     }
 
@@ -627,7 +612,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
 
       if (response.data.success) {
         onIngresar(response.data.data);
-        // Limpiar el formulario
         setDatosNino({
           fechaNacimiento: '',
           nombres: '',
@@ -640,7 +624,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
           telefonoSecundario: ''
         });
 
-        // Mostrar mensaje de éxito
         toast.success('Ficha clínica infantil creada exitosamente');
 
         setPuntajeDPM('');
@@ -758,7 +741,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
             <div className="col-md-4">
               <div className="form-group">
                 <label>Edad</label>
-                <snippet> (Años, meses o días)</snippet>
+                  <span> (Años, meses o días)</span>
                 <div className="row">
                   <div className="col-md-4">
                     <div className="form-group">
@@ -771,8 +754,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
                         value={datosNino.edadAnios || ''}
                         onInput={(e) => {
                           const valor = Math.abs(parseInt(e.target.value) || 0);
-
-                          // Permite escribir y valida
                           setDatosNino({
                             ...datosNino,
                             edadAnios: valor > 5 ? 5 : valor
@@ -800,7 +781,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
                         onInput={(e) => {
                           const valor = Math.abs(parseInt(e.target.value) || 0);
 
-                          // Permite escribir y valida
                           setDatosNino({
                             ...datosNino,
                             edadMeses: valor > 23 ? 23 : valor
@@ -828,7 +808,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
                         onInput={(e) => {
                           const valor = Math.abs(parseInt(e.target.value) || 0);
 
-                          // Permite escribir y valida
                           setDatosNino({
                             ...datosNino,
                             edadDias: valor > 31 ? 31 : valor
@@ -889,7 +868,6 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
                   value={puntajeDPM}
                   onChange={(e) => {
                     setPuntajeDPM(e.target.value);
-                    // Actualizar el diagnóstico DSM basado en la selección
                     switch (e.target.value) {
                       case "Menor a 30":
                         setDiagnosticoDSM("Retraso");

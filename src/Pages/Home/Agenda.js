@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
@@ -25,7 +25,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
         page: 1,
         totalPages: 0,
         totalRegistros: 0,
-        registrosPorPagina: 10
+        registrosPorPagina: 15
     });
 
     // Añadir nuevos estados al inicio del componente
@@ -36,7 +36,8 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
         page: 1,
         totalPages: 0,
         totalRegistros: 0,
-        registrosPorPagina: 5
+        registrosPorPagina: 15,
+        currentInstitucionId: null
     });
 
     // Funciones auxiliares
@@ -131,6 +132,21 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
 
         return resultado;
     };
+
+    const fetchTipoInstitucion = useCallback(async (institucionId) => {
+        const token = getToken();
+        const apiUrl = process.env.REACT_APP_API_URL;
+
+        try {
+            const response = await axios.get(`${apiUrl}/instituciones/${institucionId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data.tipo_id; // Asegúrate de que esto sea el campo correcto
+        } catch (error) {
+            console.error("Error al obtener el tipo de institución:", error);
+            throw new Error("No se pudo obtener el tipo de institución");
+        }
+    }, [getToken]);
 
     // Actualiza la función fetchAsignaciones para manejar mejor los datos
     const fetchAsignaciones = async () => {
@@ -238,16 +254,22 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
         }
     };
 
-    const handleIngresarFicha = (institucionId) => {
-        navigate('/home', {
-            state: {
-                component: 'ingresar-ficha-clinica',
-                usuarioId: user.id,
-                estudianteId: user.estudiante_id,
-                institucionId: institucionId
-            }
-        });
-    };
+    const handleIngresarFicha = useCallback(async (institucionId) => {
+        try {
+            const tipoInstitucion = await fetchTipoInstitucion(institucionId);
+            navigate('/home', {
+                state: {
+                    component: 'ingresar-ficha-clinica',
+                    usuarioId: user.id,
+                    estudianteId: user.estudiante_id,
+                    institucionId,
+                    tipoInstitucion // Agregar el tipo de institución aquí
+                }
+            });
+        } catch (error) {
+            console.error("Error al ingresar ficha:", error);
+        }
+    }, [navigate, user, fetchTipoInstitucion]);
 
     // Manejo de fichas
     const handleFichaClick = (fichaId, tipo) => {
@@ -261,59 +283,24 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
     };
 
     const handleVerMasFichas = async (fichas, institucionId) => {
-        // Verificar que institucionId existe
         if (!institucionId) {
             console.error('ID de institución no definido');
             return;
         }
-
-        // Guardar el ID de la institución actual para usarlo en las peticiones del modal
-        const currentInstitucionId = institucionId;
-
-        // Resetear estados del modal
+    
+        // Reiniciar estados del modal
         setModalSearchTerm('');
         setModalFechasFiltro({ fechaInicio: '', fechaFin: '' });
         setModalFiltroReevaluacion('');
+        
+        // Actualizar el estado de paginación antes de la petición
         setModalPaginationInfo(prev => ({
             ...prev,
-            page: 1
+            page: 1,
+            currentInstitucionId: institucionId
         }));
-
-        setLoading(true);
-        try {
-            const token = getToken();
-            const apiUrl = process.env.REACT_APP_API_URL;
-
-            const response = await axios.get(
-                `${apiUrl}/fichas-clinicas/institucion/${currentInstitucionId}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                    params: {
-                        page: 1,
-                        limit: modalPaginationInfo.registrosPorPagina,
-                        search: '',
-                        fechaInicio: '',
-                        fechaFin: '',
-                        isReevaluacion: ''
-                    }
-                }
-            );
-
-            setAllFichas(response.data.data);
-            setModalPaginationInfo(prev => ({
-                ...prev,
-                currentInstitucionId,
-                page: response.data.pagination.paginaActual,
-                totalPages: response.data.pagination.totalPaginas,
-                totalRegistros: response.data.pagination.totalRegistros,
-                registrosPorPagina: modalPaginationInfo.registrosPorPagina
-            }));
-            setShowAllFichasModal(true);
-        } catch (error) {
-            console.error('Error al cargar fichas:', error);
-        } finally {
-            setLoading(false);
-        }
+    
+        setShowAllFichasModal(true);
     };
 
     const handleSearchChange = async (e) => {
@@ -372,6 +359,69 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
         }
     };
 
+    const handlePaginationModal = (direction) => {
+        setModalPaginationInfo(prev => {
+            const newPage = direction === 'next' ? prev.page + 1 : prev.page - 1;
+            if (newPage < 1 || newPage > prev.totalPages) return prev; // Evitar páginas fuera de rango
+            return { ...prev, page: newPage };
+        });
+    };
+
+    const handlePaginationClickModal = (page) => {
+        setModalPaginationInfo(prev => ({ ...prev, page }));
+    };
+
+    useEffect(() => {
+        const loadModalData = async () => {
+            if (!showAllFichasModal || !modalPaginationInfo.currentInstitucionId) {
+                return;
+            }
+    
+            setLoading(true);
+            try {
+                const token = getToken();
+                const apiUrl = process.env.REACT_APP_API_URL;
+    
+                const response = await axios.get(
+                    `${apiUrl}/fichas-clinicas/institucion/${modalPaginationInfo.currentInstitucionId}`,
+                    {
+                        headers: { Authorization: `Bearer ${token}` },
+                        params: {
+                            page: modalPaginationInfo.page,
+                            limit: modalPaginationInfo.registrosPorPagina,
+                            search: modalSearchTerm,
+                            fechaInicio: modalFechasFiltro.fechaInicio,
+                            fechaFin: modalFechasFiltro.fechaFin,
+                            isReevaluacion: modalFiltroReevaluacion
+                        }
+                    }
+                );
+    
+                setAllFichas(response.data.data);
+                setModalPaginationInfo(prev => ({
+                    ...prev,
+                    totalPages: response.data.pagination.totalPaginas,
+                    totalRegistros: response.data.pagination.totalRegistros
+                }));
+            } catch (error) {
+                console.error('Error al cargar fichas:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+    
+        loadModalData();
+    }, [
+        showAllFichasModal,
+        modalPaginationInfo.page,
+        modalPaginationInfo.currentInstitucionId,
+        modalSearchTerm,
+        modalFechasFiltro.fechaInicio,
+        modalFechasFiltro.fechaFin,
+        modalFiltroReevaluacion,
+        getToken
+    ]);
+
     //Modal
     const fetchFichasParaModal = async () => {
         setLoading(true);
@@ -379,7 +429,6 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
             const token = getToken();
             const apiUrl = process.env.REACT_APP_API_URL;
 
-            // Usar el ID de la institución guardado en el estado
             const institucionId = modalPaginationInfo.currentInstitucionId;
 
             if (!institucionId) {
@@ -415,6 +464,21 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleCloseModal = () => {
+        setShowAllFichasModal(false);
+        setModalSearchTerm('');
+        setModalFechasFiltro({ fechaInicio: '', fechaFin: '' });
+        setModalFiltroReevaluacion('');
+        setAllFichas([]);
+        // No reiniciamos currentInstitucionId aquí para mantener el contexto
+        setModalPaginationInfo(prev => ({
+            ...prev,
+            page: 1,
+            totalPages: 0,
+            totalRegistros: 0
+        }));
     };
 
     // Renderizado
@@ -600,22 +664,9 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
             {/* Modal para mostrar todas las fichas clínicas */}
             <Modal
                 show={showAllFichasModal}
-                onHide={() => {
-                    setShowAllFichasModal(false);
-                    setModalSearchTerm('');
-                    setModalFechasFiltro({ fechaInicio: '', fechaFin: '' });
-                    setModalFiltroReevaluacion('');
-                    setModalPaginationInfo({
-                        page: 1,
-                        totalPages: 0,
-                        totalRegistros: 0,
-                        registrosPorPagina: 15,
-                        currentInstitucionId: null
-                    });
-                    setAllFichas([]);
-                }}
+                onHide={handleCloseModal}
                 size="lg"
-                className="ficha-modal" // Agregamos una clase para estilos específicos
+                className="ficha-modal"
             >
                 <Modal.Header closeButton className="flex-wrap">
                     <Modal.Title className="w-100">
@@ -627,8 +678,8 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                         </div>
                     </Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
-                    {/* Filtros */}
+                <Modal.Body className="modal-body-scroll">
+                    Filtros
                     <div className="mb-4">
                         <Form>
                             <Row>
@@ -651,7 +702,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                                         />
                                     </InputGroup>
                                 </Col>
-                                <Col xs={12} sm={6}>
+                                {/* <Col xs={12} sm={6}>
                                     <Form.Group className="mb-3">
                                         <Form.Label>Fecha Inicio</Form.Label>
                                         <Form.Control
@@ -678,7 +729,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                                             }}
                                         />
                                     </Form.Group>
-                                </Col>
+                                </Col> */}
                             </Row>
                         </Form>
                     </div>
@@ -727,38 +778,38 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                                 ))}
                             </div>
 
-                            {paginationInfo.totalPages > 1 && (
+                            {modalPaginationInfo.totalPages > 1 && (
                                 <div className="d-flex justify-content-center mt-3 pagination-container">
                                     <nav>
                                         <ul className="pagination flex-wrap">
-                                            <li className={`page-item ${paginationInfo.page === 1 ? 'disabled' : ''}`}>
+                                            <li className={`page-item ${modalPaginationInfo.page === 1 ? 'disabled' : ''}`}>
                                                 <button
                                                     className="page-link"
-                                                    onClick={() => handlePagination('prev')}
-                                                    disabled={paginationInfo.page === 1}
+                                                    onClick={() => handlePaginationModal('prev')}
+                                                    disabled={modalPaginationInfo.page === 1}
                                                 >
                                                     <span className="d-none d-sm-inline">Anterior</span>
                                                     <span className="d-inline d-sm-none">&lt;</span>
                                                 </button>
                                             </li>
-                                            {[...Array(paginationInfo.totalPages)].map((_, index) => (
+                                            {[...Array(modalPaginationInfo.totalPages)].map((_, index) => (
                                                 <li
                                                     key={index}
-                                                    className={`page-item ${index + 1 === paginationInfo.page ? 'active' : ''} ${paginationInfo.totalPages > 5 ? 'd-none d-sm-block' : ''}`}
+                                                    className={`page-item ${index + 1 === modalPaginationInfo.page ? 'active' : ''}`}
                                                 >
                                                     <button
                                                         className="page-link"
-                                                        onClick={() => handlePaginationClick(index + 1)}
+                                                        onClick={() => handlePaginationClickModal(index + 1)}
                                                     >
                                                         {index + 1}
                                                     </button>
                                                 </li>
                                             ))}
-                                            <li className={`page-item ${paginationInfo.page === paginationInfo.totalPages ? 'disabled' : ''}`}>
+                                            <li className={`page-item ${modalPaginationInfo.page === modalPaginationInfo.totalPages ? 'disabled' : ''}`}>
                                                 <button
                                                     className="page-link"
-                                                    onClick={() => handlePagination('next')}
-                                                    disabled={paginationInfo.page === paginationInfo.totalPages}
+                                                    onClick={() => handlePaginationModal('next')}
+                                                    disabled={modalPaginationInfo.page === modalPaginationInfo.totalPages}
                                                 >
                                                     <span className="d-none d-sm-inline">Siguiente</span>
                                                     <span className="d-inline d-sm-none">&gt;</span>

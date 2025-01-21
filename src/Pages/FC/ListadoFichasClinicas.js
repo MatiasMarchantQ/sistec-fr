@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Table, Form, Row, Col, Button, Pagination } from 'react-bootstrap';
+import { Container, Table, Form, Row, Col, Button, Pagination, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -8,14 +8,11 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 const ListadoFichasClinicas = () => {
   const { getToken } = useAuth();
   const navigate = useNavigate();
-
-  // Estados
+  const [loading, setLoading] = useState(true);
   const [fichas, setFichas] = useState([]);
   const [tiposInstituciones, setTiposInstituciones] = useState([]);
   const [instituciones, setInstituciones] = useState([]);
   const [institucionesFiltradas, setInstitucionesFiltradas] = useState([]);
-
-  // Estados de filtros y paginación
   const estadoInicialFiltros = {
     tipoInstitucion: '',
     institucion: '',
@@ -29,7 +26,6 @@ const ListadoFichasClinicas = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
 
-  // Efecto para cargar datos iniciales
   useEffect(() => {
     const cargarDatosIniciales = async () => {
       try {
@@ -62,8 +58,6 @@ const ListadoFichasClinicas = () => {
   const exportarFichas = async () => {
     try {
       const token = getToken();
-
-      // Asegurarse de que tipoFicha tenga un valor
       const filtrosParaExportar = {
         ...filtros,
         tipoFicha: filtros.tipoFicha || ''
@@ -85,7 +79,6 @@ const ListadoFichasClinicas = () => {
         responseType: 'blob' // Para manejar la descarga del archivo
       });
 
-      // Verificar si la respuesta contiene datos
       if (response.data.size === 0) {
         alert('No hay datos para exportar con los filtros seleccionados.');
         return;
@@ -168,6 +161,7 @@ const ListadoFichasClinicas = () => {
   };
 
   const buscarFichas = async (pagina = paginaActual) => {
+    setLoading(true);
     try {
       const token = getToken();
       const params = new URLSearchParams({
@@ -186,7 +180,6 @@ const ListadoFichasClinicas = () => {
         params: params
       });
 
-      // Add validation for the response data
       if (response.data?.success && Array.isArray(response.data?.fichas)) {
         setFichas(response.data.fichas);
         setTotalPaginas(Math.ceil(response.data.total / response.data.limite));
@@ -200,6 +193,8 @@ const ListadoFichasClinicas = () => {
       console.error('Error al buscar fichas:', error);
       setFichas([]);
       setTotalPaginas(1);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -408,64 +403,70 @@ const ListadoFichasClinicas = () => {
       </Form>
 
       {/* Tabla de Fichas Clínicas */}
-      <Table striped bordered hover responsive>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Tipo</th>
-            <th>Nombre del Paciente</th>
-            <th>Institución</th>
-            <th>Diagnóstico</th>
-            <th>Reevaluaciones</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {fichas.map(ficha => {
-            const esInfantil = ficha.PacienteInfantil !== undefined;
-            const paciente = esInfantil ? ficha.PacienteInfantil : ficha.PacienteAdulto;
-            const fecha = new Date(ficha.createdAt).toLocaleDateString('es-CL');
+      {loading ? (
+        <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
+          <Spinner animation="border" variant="primary" />
+        </div>
+      ) : (
+        <Table striped bordered hover responsive>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Nombre del Paciente</th>
+              <th>Institución</th>
+              <th>Diagnóstico</th>
+              <th>Reevaluaciones</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fichas.map(ficha => {
+              const esInfantil = ficha.PacienteInfantil !== undefined;
+              const paciente = esInfantil ? ficha.PacienteInfantil : ficha.PacienteAdulto;
+              const fecha = new Date(ficha.createdAt).toLocaleDateString('es-CL');
 
-            // Lógica de diagnósticos para adultos
-            let diagnostico = 'No especificado';
-            if (!esInfantil) {
-              // Filtrar diagnósticos predefinidos
-              const diagnosticosPredefinidos = ficha.diagnosticos
-                .filter(d => !d.esOtro)
-                .map(d => d.nombre);
+              // Lógica de diagnósticos para adultos
+              let diagnostico = 'No especificado';
+              if (!esInfantil) {
+                // Filtrar diagnósticos predefinidos
+                const diagnosticosPredefinidos = ficha.diagnosticos
+                  .filter(d => !d.esOtro)
+                  .map(d => d.nombre);
 
-              // Verificar si hay diagnóstico personalizado
-              const tieneOtroDiagnostico = ficha.diagnosticos.some(d => d.esOtro);
+                // Verificar si hay diagnóstico personalizado
+                const tieneOtroDiagnostico = ficha.diagnosticos.some(d => d.esOtro);
 
-              // Construir string de diagnósticos
-              diagnostico = diagnosticosPredefinidos.length > 0
-                ? diagnosticosPredefinidos.join(', ') + (tieneOtroDiagnostico ? ' y Otro' : '')
-                : (tieneOtroDiagnostico ? 'Otro' : 'No especificado');
-            } else {
-              // Mantener lógica original para fichas infantiles
-              diagnostico = ficha.diagnostico_dsm;
-            }
+                // Construir string de diagnósticos
+                diagnostico = diagnosticosPredefinidos.length > 0
+                  ? diagnosticosPredefinidos.join(', ') + (tieneOtroDiagnostico ? ' y Otro' : '')
+                  : (tieneOtroDiagnostico ? 'Otro' : 'No especificado');
+              } else {
+                // Mantener lógica original para fichas infantiles
+                diagnostico = ficha.diagnostico_dsm;
+              }
 
-            const cantidadReevaluaciones = ficha.reevaluaciones || 'No aplicado';
+              const cantidadReevaluaciones = ficha.reevaluaciones || 'No aplicado';
 
-            return (
-              <tr key={ficha.id}>
-                <td>{fecha}</td>
-                <td>{esInfantil ? 'Infantil' : 'Adulto'}</td>
-                <td>{`${paciente.nombres} ${paciente.apellidos}`}</td>
-                <td>{ficha.Institucion.TipoInstitucion?.tipo} {ficha.Institucion.nombre}</td>
-                <td>{diagnostico}</td>
-                <td>{cantidadReevaluaciones}</td>
-                <td>
-                  <Button variant="info" size="sm" onClick={() => verDetallesFicha(ficha.id, esInfantil ? 'infantil' : 'adulto')}>
-                    Ver Detalles
-                  </Button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </Table>
+              return (
+                <tr key={ficha.id}>
+                  <td>{fecha}</td>
+                  <td>{esInfantil ? 'Infantil' : 'Adulto'}</td>
+                  <td>{`${paciente.nombres} ${paciente.apellidos}`}</td>
+                  <td>{ficha.Institucion.TipoInstitucion?.tipo} {ficha.Institucion.nombre}</td>
+                  <td>{diagnostico}</td>
+                  <td>{cantidadReevaluaciones}</td>
+                  <td>
+                    <Button variant="info" size="sm" onClick={() => verDetallesFicha(ficha.id, esInfantil ? 'infantil' : 'adulto')}>
+                      Ver Detalles
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </Table>
+      )}
 
       {/* Paginación */}
       <div className="asignar-estudiantes__pagination d-flex justify-content-between align-items-center mb-3">

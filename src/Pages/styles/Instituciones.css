@@ -1,232 +1,211 @@
-/* Estilos para el bloque instituciones */
 .instituciones {
-    padding: 20px;
+  padding: 20px;
 }
 
-/* Título */
 .instituciones__title {
-    color: var(--color-accent);
+  color: var(--color-accent);
 }
 
-/* Controles del bloque */
 .instituciones__controls {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .instituciones__select {
-    border: 1px solid #ccc;
-    font-size: 0.875rem; 
-    padding: 5px; /* Menos padding */
-    height: auto;
+  border: 1px solid #ccc;
+  font-size: 0.875rem;
+  padding: 5px;
+  height: auto;
 }
 
 .instituciones__btn {
-    padding: 8px 12px;
-    font-size: 0.875rem;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
 }
 
-/* Tarjeta del bloque */
 .instituciones__card {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
-/* Tabla */
 .instituciones__table {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
-/* Botones */
 .instituciones__btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer; /* Cambia el cursor al pasar sobre el botón */
-    transition: background-color 0.3s ease; /* Suaviza la transición del color de fondo */
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
-/* Modificadores de botones */
 .instituciones__btn--primary {
-    background-color: #007bff;
-    color: white;
+  background-color: #007bff;
+  color: white;
 }
 
 .instituciones__btn--primary:hover {
-    background-color: #0056b3; /* Color de fondo al pasar el cursor */
+  background-color: #0056b3;
 }
 
 .instituciones__btn--warning {
-    background-color: #ffc107;
-    color: white;
+  background-color: #ffc107;
+  color: white;
 }
 
 .instituciones__btn--warning:hover {
-    background-color: #e0a800; /* Color de fondo al pasar el cursor */
+  background-color: #e0a800;
 }
 
 .instituciones__btn--spacing {
-    margin-right: 10px;
+  margin-right: 10px;
 }
 
 .instituciones__btn--danger {
-    background-color: #dc3545;
-    color: white;
+  background-color: #dc3545;
+  color: white;
 }
 
 .instituciones__btn--danger:hover {
-    background-color: #c82333; /* Color de fondo al pasar el cursor */
+  background-color: #c82333;
 }
 
 .instituciones__btn--success {
-    background-color: #28a745;
-    color: white;
+  background-color: #28a745;
+  color: white;
 }
 
 .instituciones__btn--success:hover {
-    background-color: #218838; /* Color de fondo al pasar el cursor */
+  background-color: #218838;
 }
 
 .instituciones__btn--secondary {
-    background-color: #6c757d;
-    color: white;
+  background-color: #6c757d;
+  color: white;
 }
 
 .instituciones__btn--secondary:hover {
-    background-color: #5a6268; /* Color de fondo al pasar el cursor */
+  background-color: #5a6268;
 }
 
 .instituciones__btn--info {
-    background-color: #17a2b8;
-    color: white;
+  background-color: #17a2b8;
+  color: white;
 }
 
 .instituciones__btn--back {
-    border: none;
-    background-color: white;
+  border: none;
+  background-color: white;
 }
 
 .instituciones__btn--info:hover {
-    background-color: #138496; /* Color de fondo al pasar el cursor */
+  background-color: #138496;
 }
 
 .instituciones__btn--spacing {
-    margin-right: 10px;
+  margin-right: 10px;
 }
 
-/* Paginación */
 .instituciones__pagination {
-    margin-top: 20px;
+  margin-top: 20px;
 }
 
-/* Sección de volver */
 .instituciones__back {
-    margin-top: 20px;
+  margin-top: 20px;
 }
 
-
-/* Modal Registrar Inst */
 .modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1050;
-  }
-  
-  .modal-dialog {
-    position: relative;
-    margin: 10% auto;
-    max-width: 500px;
-  }
-  
-  .modal-content {
-    background-color: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 0.3rem;
-  }
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1050;
+}
 
+.modal-dialog {
+  position: relative;
+  margin: 10% auto;
+  max-width: 500px;
+}
 
-/* Controles responsivos */
+.modal-content {
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 0.3rem;
+}
+
 @media screen and (max-width: 768px) {
-    .instituciones__controls {
-      flex-direction: column;
-      gap: 10px;
-    }
+  .instituciones__controls {
+    flex-direction: column;
+    gap: 10px;
+  }
 
-    .instituciones__controls select[style*="width"],
-    .instituciones__controls .instituciones__select,
-    .instituciones__controls .form-select {
-        width: 100% !important; /* Sobrescribe el estilo inline */
-        max-width: none;
-    }
+  .instituciones__controls select[style*="width"],
+  .instituciones__controls .instituciones__select,
+  .instituciones__controls .form-select {
+    width: 100% !important;
+    max-width: none;
+  }
 
-      /* Ajuste específico para el campo de búsqueda */
-      .instituciones__controls input[type="text"],
-      .instituciones__controls .form-control {
-          width: 100% !important;
-          flex: none !important; /* Evita que flex afecte el ancho */
-          max-width: none;
-      }
-  
-    /* Ajuste específico para el botón de limpiar y añadir institución */
-    .instituciones__btn--secondary,
-    .instituciones__btn--primary {
-      margin-top: 5px;
-    }
+  .instituciones__controls input[type="text"],
+  .instituciones__controls .form-control {
+    width: 100% !important;
+    flex: none !important;
+    max-width: none;
   }
-  
-  /* Ajustes específicos para móviles pequeños */
-  @media screen and (max-width: 576px) {
-    .instituciones {
-      margin: 10px;
-    }
-  
-    /* Ajuste para la tabla en móviles */
-    .instituciones__table {
-      display: block;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-  
-    /* Ajustes para los botones en la tabla */
-    .instituciones__btn {
-      padding: 6px 10px;
-      font-size: 0.8rem;
-      margin-bottom: 5px;
-      width: 100%;
-    }
-  
-    /* Ajuste para el modal en móviles */
-    .modal-dialog {
-      margin: 10px;
-      padding: 10px;
-    }
-  
-    .modal-content {
-      padding: 10px;
-    }
-  
-    /* Ajustes para los campos del formulario en el modal */
-    .form-control,
-    .form-select {
-      font-size: 0.9rem;
-      padding: 6px;
-    }
+
+  .instituciones__btn--secondary,
+  .instituciones__btn--primary {
+    margin-top: 5px;
   }
-  
-  /* Ajustes para tablets */
-  @media screen and (min-width: 577px) and (max-width: 768px) {
-    .instituciones__controls {
-      gap: 15px;
-    }
-  
-    .instituciones__btn {
-      padding: 8px 12px;
-    }
-    
+}
+
+@media screen and (max-width: 576px) {
+  .instituciones {
+    margin: 10px;
   }
+
+  .instituciones__table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .instituciones__btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    margin-bottom: 5px;
+    width: 100%;
+  }
+
+  .modal-dialog {
+    margin: 10px;
+    padding: 10px;
+  }
+
+  .modal-content {
+    padding: 10px;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 0.9rem;
+    padding: 6px;
+  }
+}
+
+@media screen and (min-width: 577px) and (max-width: 768px) {
+  .instituciones__controls {
+    gap: 15px;
+  }
+
+  .instituciones__btn {
+    padding: 8px 12px;
+  }
+
+}

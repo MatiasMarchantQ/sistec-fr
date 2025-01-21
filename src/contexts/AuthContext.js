@@ -367,6 +367,7 @@ export const AuthProvider = ({ children }) => {
                 value={renewCredentials.rut}
                 onChange={handleInputChange}
                 required
+                placeholder='Ingrese su RUT (Sin puntos, ni guion, ni dígito verificador)'
               />
             </Form.Group>
             <Form.Group className="mt-3">
@@ -378,6 +379,7 @@ export const AuthProvider = ({ children }) => {
                   value={renewCredentials.contrasena}
                   onChange={handleInputChange}
                   required
+                  placeholder='Ingrese su contraseña'
                 />
                 <Button
                   variant="outline-secondary"

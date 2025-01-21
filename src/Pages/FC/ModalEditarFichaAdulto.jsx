@@ -6,14 +6,10 @@ import { toast } from 'react-toastify';
 
 const ModalEditarFichaAdulto = ({ show, onHide, fichaClinica, onActualizar }) => {
   const { user, getToken } = useAuth();
-
-  // Estados para catálogos
   const [diagnosticos, setDiagnosticos] = useState([]);
   const [nivelesEscolaridad, setNivelesEscolaridad] = useState([]);
   const [tiposFamilia, setTiposFamilia] = useState([]);
   const [ciclosVitales, setCiclosVitales] = useState([]);
-
-  // Estados del formulario
   const [datosAdulto, setDatosAdulto] = useState({
     nombres: '',
     apellidos: '',
@@ -42,7 +38,6 @@ const ModalEditarFichaAdulto = ({ show, onHide, fichaClinica, onActualizar }) =>
     otros: ''
   });
 
-  // Cargar catálogos
   useEffect(() => {
     const cargarCatalogos = async () => {
       try {
@@ -99,7 +94,7 @@ const ModalEditarFichaAdulto = ({ show, onHide, fichaClinica, onActualizar }) =>
   
       // Precargar diagnósticos seleccionados con validación
       const diagnosticosIds = (fichaClinica.diagnosticos || [])
-        .filter(d => d && d.id) // Asegurarse de que el diagnóstico y su ID existen
+        .filter(d => d && d.id)
         .map(d => d.id.toString());
       setDiagnosticosSeleccionados(diagnosticosIds);
   

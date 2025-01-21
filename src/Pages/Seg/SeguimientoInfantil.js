@@ -6,6 +6,7 @@ import {
 import axios from 'axios';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -761,8 +762,6 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
       pdf.text('Información del Paciente', startX, 20);
       pdf.setFontSize(12);
 
-      console.log(seguimiento);
-
       // Datos del paciente
       const pacienteInfo = [
         { label: 'Nombre', value: `${seguimiento.paciente_infantil?.nombres || 'N/A'} ${seguimiento.paciente_infantil?.apellidos || ''}` },
@@ -788,48 +787,52 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
     addInfoTable();
     pdf.addPage();
 
-    const input = document.getElementById('exportable-content4'); // Asegúrate de que este ID coincida con el contenedor del contenido que deseas exportar
+    const input = document.getElementById('exportable-content4');
     const sections = input.querySelectorAll('[data-pdf-section]');
 
     try {
-      for (let pageIndex = 0; pageIndex < sections.length; pageIndex++) {
-        if (pageIndex > 0) {
-          pdf.addPage();
-        }
+      // Detectar si es móvil
+      const isMobile = window.innerWidth <= 768;
 
-        const section = sections[pageIndex];
+      // Función auxiliar para procesar cada sección
+      const procesarSeccion = async (section) => {
+        const originalStyle = {
+          width: section.style.width,
+          height: section.style.height,
+          maxWidth: section.style.maxWidth,
+          overflow: section.style.overflow
+        };
 
-        // Modificar textareas antes de capturar
+        // Ajustar el contenedor para la captura
+        section.style.width = '100%';
+        section.style.maxWidth = 'none';
+        section.style.overflow = 'visible';
+
+        // Procesar textareas
         const textareas = section.querySelectorAll('textarea');
         textareas.forEach(textarea => {
-          // Guardar referencia al textarea original
-          originalTextareas.push({
+          const originalTextarea = {
             element: textarea,
             parent: textarea.parentNode,
-            value: textarea.value
-          });
+            value: textarea.value,
+            style: textarea.style.cssText
+          };
+          originalTextareas.push(originalTextarea);
 
-          // Crear un div temporal que reemplace el textarea
           const tempDiv = document.createElement('div');
-          tempDiv.style.width = textarea.style.width || '100%';
-          tempDiv.style.border = textarea.style.border;
-          tempDiv.style.padding = textarea.style.padding;
+          tempDiv.style.width = '100%';
+          tempDiv.style.padding = '10px';
           tempDiv.style.whiteSpace = 'pre-wrap';
           tempDiv.style.wordBreak = 'break-word';
           tempDiv.textContent = textarea.value;
 
-          // Almacenar referencia al div temporal
-          tempDivs.push({
-            div: tempDiv,
-            parent: textarea.parentNode
-          });
-
-          // Reemplazar textarea con div
+          tempDivs.push({ div: tempDiv, parent: textarea.parentNode });
           textarea.parentNode.replaceChild(tempDiv, textarea);
         });
 
+        // Configurar html2canvas
         const sectionCanvas = await html2canvas(section, {
-          scale: window.devicePixelRatio,
+          scale: isMobile ? 2 : window.devicePixelRatio,
           useCORS: true,
           logging: false,
           width: section.scrollWidth,
@@ -839,26 +842,122 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
           imageTimeout: 0
         });
 
-        const sectionImgData = sectionCanvas.toDataURL('image/jpeg', 1.0);
-
+        // Calcular dimensiones para el PDF
         const pageWidth = pdf.internal.pageSize.width;
-        const imgWidth = pageWidth - 120; // Ajustar el ancho de la imagen
-        const imgHeight = (sectionCanvas.height * imgWidth) / sectionCanvas.width;
+        const pageHeight = pdf.internal.pageSize.height;
+        const margin = isMobile ? 80 : 60; // Menos margen en móvil
 
-        const xPosition = (pageWidth - imgWidth) / 2;
-        const yPosition = 15;
+        const imgWidth = pageWidth - (margin * 2);
+        let imgHeight = (sectionCanvas.height * imgWidth) / sectionCanvas.width;
 
-        pdf.addImage(
-          sectionImgData,
-          'JPEG',
-          xPosition,
-          yPosition,
-          imgWidth,
-          imgHeight,
-          undefined,
-          'FAST'
-        );
-      }
+        // Si la altura es mayor que el espacio disponible en la página,
+        // dividir en múltiples páginas
+        const maxHeight = pageHeight - 5; // 30mm de margen total (15 arriba + 15 abajo)
+
+        if (imgHeight > maxHeight) {
+          let remainingHeight = sectionCanvas.height;
+          let yOffset = 0;
+
+          while (remainingHeight > 0) {
+            const canvasChunkHeight = (maxHeight * sectionCanvas.width) / imgWidth;
+            const sourceY = yOffset;
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = sectionCanvas.width;
+            tempCanvas.height = Math.min(canvasChunkHeight, remainingHeight);
+
+            const ctx = tempCanvas.getContext('2d');
+            ctx.drawImage(
+              sectionCanvas,
+              0, sourceY, sectionCanvas.width, tempCanvas.height,
+              0, 0, sectionCanvas.width, tempCanvas.height
+            );
+
+            const chunkImgData = tempCanvas.toDataURL('image/jpeg', 0.95);
+            const chunkImgHeight = (tempCanvas.height * imgWidth) / sectionCanvas.width;
+
+            pdf.addImage(
+              chunkImgData,
+              'JPEG',
+              margin,
+              15,
+              imgWidth,
+              chunkImgHeight,
+              undefined,
+              'FAST'
+            );
+
+            remainingHeight -= canvasChunkHeight;
+            yOffset += canvasChunkHeight;
+
+            if (remainingHeight > 0) {
+              pdf.addPage();
+            }
+          }
+        } else {
+          pdf.addImage(
+            sectionCanvas.toDataURL('image/jpeg', 0.95),
+            'JPEG',
+            margin,
+            15,
+            imgWidth,
+            imgHeight,
+            undefined,
+            'FAST'
+          );
+        }
+
+        // Restaurar estilos originales
+        Object.assign(section.style, originalStyle);
+      };
+
+      const procesarRecomendaciones = async (recomendaciones) => {
+        // Dividir las recomendaciones en dos grupos
+        const primeraParte = [
+          { label: 'Área Motora', key: 'areaMotora' },
+          { label: 'Área de Lenguaje', key: 'areaLenguaje' }
+        ];
+
+        const segundaParte = [
+          { label: 'Área Socioemocional', key: 'areaSocioemocional' },
+          { label: 'Área Cognitiva', key: 'areaCognitiva' }
+        ];
+
+        // Procesar la primera parte
+        pdf.addPage();
+        await procesarParteRecomendaciones(primeraParte, recomendaciones);
+        pdf.addPage(); // Agregar nueva página para la segunda parte
+        // Procesar la segunda parte
+        await procesarParteRecomendaciones(segundaParte, recomendaciones);
+      };
+
+      const procesarParteRecomendaciones = async (parte, recomendaciones) => {
+        const rows = parte.map(({ label, key }) => {
+          const contenido = recomendaciones?.[key] || 'No hay recomendaciones específicas';
+          return [label, contenido];
+        });
+
+        // Usar autoTable para crear la tabla
+        pdf.autoTable({
+          head: [['Recomendación', 'Descripción']],
+          body: rows,
+          startY: 30,
+          margin: { horizontal: 10 },
+          theme: 'grid'
+        });
+      };
+
+      // En tu función principal, donde procesas las secciones
+      for (let i = 0; i < sections.length; i++) {
+        const sectionHeader = sections[i].querySelector('h5');
+
+        if (sectionHeader && sectionHeader.textContent === 'Recomendaciones') {
+            await procesarRecomendaciones(selectedSeguimiento.recomendaciones);
+        } else {
+            await procesarSeccion(sections[i]);
+        }
+    }
+
       const fechaActual = obtenerFechaActual();
       pdf.save(`${seguimiento.paciente_infantil?.rut}_${fechaActual}_seguimiento_infantil_${seguimiento.numero_llamado || 'detalles'}.pdf`);
     } catch (error) {
@@ -866,18 +965,16 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
       toast.error('Hubo un problema al exportar el PDF.');
     } finally {
       // Restaurar textareas y eliminar divs temporales
-      originalTextareas.forEach(({ element, parent, value }) => {
+      originalTextareas.forEach(({ element, parent, value, style }) => {
         const restoredTextarea = document.createElement('textarea');
         restoredTextarea.className = element.className;
-        restoredTextarea.style.cssText = element.style.cssText;
+        restoredTextarea.style.cssText = style;
         restoredTextarea.value = value;
 
-        // Copiar todos los event listeners y atributos
         for (let attr of element.attributes) {
           restoredTextarea.setAttribute(attr.name, attr.value);
         }
 
-        // Restaurar evento onChange
         restoredTextarea.addEventListener('change', (e) => {
           setSeguimiento(prev => ({
             ...prev,

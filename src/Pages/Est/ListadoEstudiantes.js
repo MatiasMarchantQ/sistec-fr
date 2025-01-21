@@ -266,7 +266,7 @@ const Estudiantes = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validaciones exhaustivas
+    // Validaciones
     const rutRegex = /^\d{7,8}$/;
     const nombreRegex = /^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+$/;
     const correoRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -318,27 +318,19 @@ const Estudiantes = () => {
         }
       );
 
-      // Éxito al crear estudiante
       toast.success(`Estudiante ${nuevoEstudiante.nombres} ${nuevoEstudiante.apellidos} creado exitosamente`);
-
-      // Actualizar lista de estudiantes
       obtenerEstudiantes();
-
-      // Cerrar modal y resetear formulario
       handleCloseNuevoEstudianteModal();
 
     } catch (error) {
       // Manejar errores específicos
       if (error.response) {
-        // El servidor respondió con un error
         const errorMessage = error.response.data.error || 'Error al crear estudiante';
         toast.error(errorMessage);
         console.error('Error detallado:', error.response.data);
       } else if (error.request) {
-        // La solicitud fue hecha pero no hubo respuesta
         toast.error('No se recibió respuesta del servidor');
       } else {
-        // Algo sucedió al configurar la solicitud
         toast.error('Error al procesar la solicitud');
       }
       console.error('Error al crear estudiante:', error);
@@ -400,38 +392,6 @@ const Estudiantes = () => {
     });
   };
 
-  const enviarCredencialesMasivoPorAno = async () => {
-    try {
-      const token = getToken();
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/estudiantes/enviar-credenciales-masivo`,
-        { ano_cursado: ano }, // Usar el año del filtro actual
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      // Mostrar resumen de envío
-      const { total_procesados, exitosos, fallidos, resultados, errores } = response.data;
-
-      // Usar toast para notificaciones
-      toast.success(`Envío de credenciales completado.`);
-
-      // Si hay errores, mostrar en consola o en un modal
-      if (errores && errores.length > 0) {
-        console.error('Errores en envío masivo:', errores);
-        toast.warn('Algunos correos no pudieron ser enviados');
-      }
-
-    } catch (error) {
-      console.error('Error al enviar credenciales masivamente:', error);
-      toast.error('No se pudieron enviar las credenciales masivamente');
-    }
-  };
-
   // Función para enviar credenciales a estudiantes seleccionados
   const enviarCredencialesSeleccionados = async () => {
     if (estudiantesSeleccionados.length === 0) {
@@ -453,7 +413,7 @@ const Estudiantes = () => {
       );
 
       // Mostrar resumen de envío
-      const { total_procesados, exitosos, fallidos, errores } = response.data;
+      const { errores } = response.data;
 
       toast.success(`Envío de credenciales completado.`);
 
@@ -474,13 +434,13 @@ const Estudiantes = () => {
       const cambios = {};
 
       // Manejo específico para el semestre
-      if (edicionMasiva.semestre !== '') {  // Cambiado de if (edicionMasiva.semestre) a if (edicionMasiva.semestre !== '')
+      if (edicionMasiva.semestre !== '') { 
         cambios.semestre = parseInt(edicionMasiva.semestre);
       }
 
       // Manejo específico para el estado
       if (edicionMasiva.estado !== '') {
-        cambios.estado = edicionMasiva.estado === 'true';  // Esto convertirá el string 'true'/'false' a boolean
+        cambios.estado = edicionMasiva.estado === 'true';
       }
 
       // Verificar que hay cambios para aplicar
@@ -504,7 +464,7 @@ const Estudiantes = () => {
       );
 
       if (response.data.mensaje) {
-        // Aquí podrías mostrar un mensaje de éxito
+        toast.success('Estudiantes actualizados exitosamente')
       }
 
       obtenerEstudiantes();
@@ -515,22 +475,11 @@ const Estudiantes = () => {
 
     } catch (error) {
       console.error('Error en la edición masiva:', error);
-      // Aquí podrías mostrar un mensaje de error al usuario
+      toast.error('Error en la edición masiva', error)
     }
   };
 
-  // Función para determinar si hay filtros aplicados
-  // Función para determinar si hay filtros aplicados
-  const hayFiltrosAplicados = () => {
-    return (
-      ano !== getCurrentYear().toString() || // Verifica si el año es diferente al actual
-      (semestre !== '') || // Verifica si el semestre no está vacío
-      (estadoFiltro !== 'activos') || // Verifica si el estado no es "activos"
-      (searchTerm !== '') // Verifica si hay un término de búsqueda
-    );
-  };
-
-  // Nueva función para manejar el envío individual de credenciales
+  // Función para manejar el envío individual de credenciales
   const enviarCredencialIndividual = async (estudiante) => {
     try {
       const token = getToken();
@@ -589,15 +538,12 @@ const Estudiantes = () => {
     } catch (error) {
       // Manejar errores específicos
       if (error.response) {
-        // El servidor respondió con un error
         const errorMessage = error.response.data.error || 'Error al cambiar contraseña';
         toast.error(errorMessage);
         console.error('Error detallado:', error.response.data);
       } else if (error.request) {
-        // La solicitud fue hecha pero no hubo respuesta
         toast.error('No se recibió respuesta del servidor');
       } else {
-        // Algo sucedió al configurar la solicitud
         toast.error('Error al procesar la solicitud');
       }
       console.error('Error al cambiar contraseña:', error);
@@ -850,7 +796,7 @@ const Estudiantes = () => {
               {currentPage > 3 && <Pagination.Ellipsis />}
 
               {Array.from({ length: Math.min(3, totalPages) }, (_, index) => {
-                const page = Math.max(2, currentPage - 1) + index; // Muestra las páginas alrededor de la página actual
+                const page = Math.max(2, currentPage - 1) + index;
                 if (page <= totalPages) {
                   return (
                     <Pagination.Item

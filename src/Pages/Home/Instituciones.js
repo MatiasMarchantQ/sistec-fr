@@ -41,7 +41,7 @@ const Instituciones = () => {
       receptores: [{ nombre: '', cargo: '' }]
     });
   };
-  const goToPage = (page) => setCurrentPage(page);
+
   const isFirstPage = currentPage === 1;
   const isLastPage = currentPage === totalPages;
 
@@ -276,26 +276,6 @@ const Instituciones = () => {
     }
   };
 
-  const handleActivarDesactivarReceptor = async (receptorId) => {
-    try {
-      const token = getToken();
-      const response = await axios.put(
-        `${process.env.REACT_APP_API_URL}/instituciones/receptores/${receptorId}/activar-desactivar`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      toast.success(response.data.mensaje);
-      // Actualiza la lista de instituciones después de la acción
-      obtenerInstituciones();
-    } catch (error) {
-      console.error('Error al activar/desactivar receptor:', error);
-      toast.error('Error al activar/desactivar receptor');
-    }
-  };
-
   // Función para eliminar un receptor
   const handleDeleteReceptor = async (receptorId) => {
     try {
@@ -388,6 +368,8 @@ const Instituciones = () => {
           style={{ 'width': '11%' }}
           value={tipo}
           onChange={handleTipoChange}
+          id="tipo-institucion"
+          name="tipo"
         >
           <option value="">Todos los tipos</option>
           {tipos.map(tipo => (
@@ -414,6 +396,8 @@ const Instituciones = () => {
           placeholder="Buscar..."
           value={searchTerm}
           onChange={handleSearchChange}
+          id="search-input"
+          name="search"
         />
 
         {/* Mostrar el botón solo cuando hay algún filtro activo */}
@@ -479,6 +463,8 @@ const Instituciones = () => {
                           className="form-control"
                           defaultValue={institucion.nombre}
                           onChange={(e) => handleFieldChange(institucion.id, 'nombre', e.target.value)}
+                          id={`nombre-input-${institucion.id}`}
+                          name={`nombre-${institucion.id}`}
                         />
                       ) : (
                         institucion.nombre
@@ -497,6 +483,8 @@ const Instituciones = () => {
                                   value={receptor.nombre || ''}
                                   onChange={(e) => handleReceptorChange(index, 'nombre', e.target.value)} // Aquí está el cambio
                                   required
+                                  id={`receptor-nombre-${index}`}
+                                  name={`receptor-nombre-${index}`}
                                 />
                               </div>
                               <div className="col-4">
@@ -516,8 +504,9 @@ const Instituciones = () => {
                                   <input
                                     type="checkbox"
                                     className="custom-control-input"
-                                    id={`receptorSwitch${receptor.id}`} // Asegúrate de que el ID sea único
-                                    checked={receptor.estado} // El estado del receptor
+                                    id={`receptorSwitch${receptor.id}`}
+                                    name={`receptorSwitch${receptor.id}`}
+                                    checked={receptor.estado}
                                     onChange={() => {
                                       // Cambia el estado localmente
                                       receptor.estado = !receptor.estado;
@@ -563,6 +552,7 @@ const Instituciones = () => {
                           type="checkbox"
                           className="custom-control-input"
                           id={`customSwitch${institucion.id}`}
+                          name={`customSwitch${institucion.id}`}
                           checked={editingId === institucion.id ? editedFields.estado ?? institucion.estado : institucion.estado}
                           onChange={(e) => {
                             if (editingId === institucion.id) {
@@ -675,6 +665,8 @@ const Instituciones = () => {
                           value={receptor.nombre}
                           onChange={(e) => handleReceptorInputChange(index, 'nombre', e.target.value)}
                           required
+                          id={`receptor-nombre-${index}`}
+                          name={`receptor-nombre-${index}`}
                         />
                         {nuevaInstitucion.receptores.length > 1 && (
                           <button

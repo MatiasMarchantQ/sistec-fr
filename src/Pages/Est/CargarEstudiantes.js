@@ -12,7 +12,7 @@ const CargarEstudiantes = () => {
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [failedStudents, setFailedStudents] = useState(new Set()); // Agregamos este estado
+  const [failedStudents, setFailedStudents] = useState(new Set());
   const [newStudent, setNewStudent] = useState({
     nombres: '',
     apellidos: '',
@@ -25,7 +25,7 @@ const CargarEstudiantes = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [studentsWithErrors, setStudentsWithErrors] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [studentsPerPage] = useState(15); // Cambia este valor según lo que necesites
+  const [studentsPerPage] = useState(15);
 
   const indexOfLastStudent = currentPage * studentsPerPage;
   const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
@@ -65,7 +65,7 @@ const CargarEstudiantes = () => {
         setStudents([]);
         setFailedStudents(new Set());
         setStudentsWithErrors([]);
-        setAlertMessage(null); // Limpiar mensaje de alerta anterior
+        setAlertMessage(null);
 
         // Normalizar los nombres de los campos
         const normalizedFields = jsonData.map(row => {
@@ -82,11 +82,10 @@ const CargarEstudiantes = () => {
         });
 
         if (invalidRows.length > 0) {
-          // Mensaje de error compacto
           const errorMessage = `Hay errores en el formato de las columnas. Asegúrate de incluir los siguientes campos: ${requiredFields.join(', ')}.`;
           setStudentsWithErrors(invalidRows);
           toast.error(errorMessage);
-          fileInput.value = ''; // Limpiar el input después del error
+          fileInput.value = '';
           return;
         }
 
@@ -150,7 +149,7 @@ const CargarEstudiantes = () => {
             contador_registros: 0,
             anos_cursados: year.toString(),
             rol_id: 3,
-            hasError: false // Inicialmente sin errores
+            hasError: false
           };
         });
 
@@ -227,7 +226,7 @@ const CargarEstudiantes = () => {
 
           setStudents(studentsWithErrors);
           setFailedStudents(new Set([...rutsDuplicados, ...correosDuplicados]));
-          fileInput.value = ''; // Limpiar el input después de procesar duplicados
+          fileInput.value = '';
           return;
         }
 
@@ -235,18 +234,18 @@ const CargarEstudiantes = () => {
         setStudents(processedStudents);
         setStudentsWithErrors([]);
         toast.success('Estudiantes cargados con éxito!');
-        fileInput.value = ''; // Limpiar el input después de cargar exitosamente
+        fileInput.value = '';
       } catch (error) {
         console.error('Error al procesar el archivo:', error);
         toast.error('Error al cargar estudiantes: ' + error.message);
-        fileInput.value = ''; // Limpiar el input después de un error
+        fileInput.value = '';
       }
     };
 
     reader.onerror = (error) => {
       console.error('Error al leer el archivo:', error);
       setAlertMessage('Error al leer el archivo. Por favor, intente nuevamente.');
-      fileInput.value = ''; // Limpiar el input después de un error de lectura
+      fileInput.value = '';
     };
 
     reader.readAsArrayBuffer(file);
@@ -263,7 +262,6 @@ const CargarEstudiantes = () => {
       estado: 'Activo',
     });
 
-    // Cerrar el modal
     setShowModal(false);
   };
 
@@ -309,7 +307,7 @@ const CargarEstudiantes = () => {
       const contrasena = `UCM${formattedRut}${randomSymbol}`;
 
       if (newStudent.id) {
-        // Edición
+        // Edición estudiante
         const updatedStudents = students.map(student =>
           student.id === newStudent.id ?
             { ...newStudent, rut: formattedRut, contrasena, anos_cursados: year.toString() } :
@@ -441,8 +439,7 @@ const CargarEstudiantes = () => {
         }
       );
 
-      // Aquí utilizamos el resumen que viene en la respuesta
-      const resumen = response.data.resumen; // Esto es un string
+      const resumen = response.data.resumen;
 
       // Mostrar resumen
       setAlertMessage(

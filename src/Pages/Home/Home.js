@@ -13,15 +13,15 @@ import Footer from '../../components/Footer';
 import Sidebar from '../../components/Sidebar';
 import Content from '../../components/Content';
 import Instituciones from './Instituciones';
-import Usuarios from './Usuarios';
+import Usuarios from '../Acad/Usuarios';
 import Agenda from './Agenda';
-import CargarEstudiantes from './CargarEstudiantes';
-import AsignarEstudiantes from './AsignarEstudiantes';
-import FichaClinica from './FichaClinica';
-import IngresarFichaClinica from './IngresarFichaClinica';
-import ListadoEstudiantes from './ListadoEstudiantes';
-import ListadoFichasClinicas from './ListadoFichasClinicas';
-import Reevaluacion from './Reevaluacion';
+import CargarEstudiantes from '../Est/CargarEstudiantes';
+import AsignarEstudiantes from '../Est/AsignarEstudiantes';
+import FichaClinica from '../FC/FichaClinica';
+import IngresarFichaClinica from '../FC/IngresarFichaClinica';
+import ListadoEstudiantes from '../Est/ListadoEstudiantes';
+import ListadoFichasClinicas from '../FC/ListadoFichasClinicas';
+import Reevaluacion from '../Seg/Reevaluacion';
 import Dashboard from './Dashboard';
 
 const Home = () => {

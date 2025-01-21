@@ -5,12 +5,11 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './contexts/AuthContext';
 import Login from './components/Login';
 import Home from './Pages/Home/Home';
-import FichaClinica from './Pages/Home/FichaClinica';
+import FichaClinica from './Pages/FC/FichaClinica';
 import CambiarContrasena from './components/CambiarContrasena';
 import RestablecerContrasena from './components/RestablecerContrasena';
 import Recursos from './components/Recursos';
 
-// Componente para proteger rutas
 const ProtectedRoute = ({ children }) => {
   const hasToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
   if (!hasToken) {

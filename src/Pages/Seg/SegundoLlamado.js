@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Card, Form, Button, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,9 +8,11 @@ import jsPDF from 'jspdf';
 const sectionStyles = {
   backgroundColor: '#f8f9fa',
   borderRadius: '8px',
-  padding: '20px',
+  padding: '15px',
   marginBottom: '20px',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+  width: '100%',
+  overflowX: 'hidden'
 };
 
 const headingStyles = {
@@ -20,7 +22,9 @@ const headingStyles = {
   borderRadius: '6px',
   marginBottom: '20px',
   display: 'flex',
-  alignItems: 'center'
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  width: '100%'
 };
 
 const SegundoLlamado = ({
@@ -32,6 +36,19 @@ const SegundoLlamado = ({
   paciente
 }) => {
   const { user } = useAuth();
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  
+    useEffect(() => {
+      const handleResize = () => {
+          setIsMobile(window.innerWidth <= 768);
+      };
+  
+      window.addEventListener('resize', handleResize);
+      return () => {
+          window.removeEventListener('resize', handleResize);
+      };
+  }, []);
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -592,11 +609,12 @@ const SegundoLlamado = ({
       <Card.Body>
         <Form onSubmit={handleSubmit}>
           {renderContent()}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-            <Button type="submit" disabled={disabled}>Ingresar</Button>
+          <div className="d-flex flex-column flex-md-row justify-content-between gap-2 mt-4">
+            <Button type="submit" variant="success" className="w-100 w-md-auto" disabled={disabled}>Ingresar</Button>
             {seguimiento.id && esEditable && (
               <Button
-                variant="success"
+                variant="primary"
+                className="w-100 w-md-auto"
                 onClick={() => {
                   guardarSeguimiento(2, true);
                 }}
@@ -604,8 +622,8 @@ const SegundoLlamado = ({
                 Actualizar
               </Button>
             )}
-            {seguimiento.nutricion.comidasDia && (
-              <Button variant="primary" onClick={exportarPDF}>Exportar PDF</Button>
+            {seguimiento.nutricion.comidasDia && !isMobile && (
+              <Button variant="warning" className="w-100 w-md-auto" onClick={exportarPDF}>Exportar PDF</Button>
             )}
           </div>
         </Form>

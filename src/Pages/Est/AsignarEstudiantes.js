@@ -22,7 +22,7 @@ const AsignarEstudiantes = () => {
   const [showAsignarModal, setShowAsignarModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEstudiantes, setSelectedEstudiantes] = useState([]);
-  const [filtroEstado, setFiltroEstado] = useState('todos'); // Definir filtroEstado
+  const [filtroEstado, setFiltroEstado] = useState('todos');
   const [isSelecting, setIsSelecting] = useState(false);
   const [startEstudiante, setStartEstudiante] = useState(null);
   const [selectionMode, setSelectionMode] = useState(null);
@@ -75,7 +75,7 @@ const AsignarEstudiantes = () => {
   const getAniosOptions = () => {
     const currentYear = new Date().getFullYear();
     const years = [];
-    for (let i = 0; i <= 5; i++) { // Cambia el rango según sea necesario
+    for (let i = 0; i <= 5; i++) {
       years.push(currentYear - i);
     }
     return years;
@@ -85,7 +85,7 @@ const AsignarEstudiantes = () => {
 
   useEffect(() => {
     fetchData(currentPage);
-  }, [currentPage, searchTerm, anoSeleccionado, estadoFiltro, filtroJustificacion]); // Agregar filtroJustificacion
+  }, [currentPage, searchTerm, anoSeleccionado, estadoFiltro, filtroJustificacion]);
 
   useEffect(() => {
     // Cargar tipos de instituciones
@@ -104,7 +104,7 @@ const AsignarEstudiantes = () => {
     };
 
     fetchTiposInstituciones();
-  }, []); // Solo se ejecuta al montar el componente
+  }, []);
 
   useEffect(() => {
     // Cargar todas las instituciones cuando se selecciona un tipo
@@ -161,9 +161,9 @@ const AsignarEstudiantes = () => {
           page: page,
           limit: limit,
           search: searchTerm,
-          year: anoSeleccionado, // Asegúrate de que esto esté aquí
+          year: anoSeleccionado,
           estado: estadoFiltro,
-          tieneJustificacion: filtroJustificacion.toString() // Convertir a string
+          tieneJustificacion: filtroJustificacion.toString()
         }
       });
 
@@ -186,8 +186,8 @@ const AsignarEstudiantes = () => {
     setTipoInstitucionSeleccionado(tipoId);
     setInstitucionSeleccionada(null);
     setReceptorSeleccionado(null);
-    setInstituciones([]); // Limpiar instituciones anteriores
-    setReceptores([]); // Limpiar receptores anteriores
+    setInstituciones([]);
+    setReceptores([]);
 
     if (!tipoId) return;
 
@@ -199,7 +199,6 @@ const AsignarEstudiantes = () => {
         params: { tipoId: tipoId }
       });
 
-      // Verificar si response.data existe y no está vacío
       if (response.data && response.data.length > 0) {
         setInstituciones(response.data);
       } else {
@@ -218,7 +217,7 @@ const AsignarEstudiantes = () => {
     const institucionId = event.target.value;
     setInstitucionSeleccionada(institucionId);
     setReceptorSeleccionado(null);
-    setReceptores([]); // Limpiar receptores anteriores
+    setReceptores([]);
 
     if (!institucionId) return;
 
@@ -230,7 +229,6 @@ const AsignarEstudiantes = () => {
         params: { institucionId: institucionId }
       });
 
-      // Verificar si response.data existe y no está vacío
       if (response.data && response.data.length > 0) {
         setReceptores(response.data);
       } else {
@@ -286,18 +284,15 @@ const AsignarEstudiantes = () => {
       const token = getToken();
       const apiUrl = process.env.REACT_APP_API_URL;
 
-      // Verificar que todos los campos necesarios estén completos
       if (!institucionSeleccionada || !receptorSeleccionado || !fechaInicio || !fechaFin) {
         toast.error('Por favor complete todos los campos');
         return;
       }
 
-      // Convertir a enteros para evitar problemas de tipo
       const institucionId = parseInt(institucionSeleccionada);
       const receptorId = parseInt(receptorSeleccionado);
 
       try {
-        // Intentar crear las asignaciones
         await Promise.all(selectedEstudiantes.map(async (estudiante) => {
           await axios.post(`${apiUrl}/asignaciones`, {
             estudiante_id: estudiante.id,
@@ -310,7 +305,6 @@ const AsignarEstudiantes = () => {
           });
         }));
 
-        // Si tiene éxito, proceder normalmente
         await fetchData(currentPage);
         setShowAsignarModal(false);
         resetearFormulario();
@@ -318,12 +312,9 @@ const AsignarEstudiantes = () => {
         toast.success('Asignaciones creadas exitosamente!');
 
       } catch (error) {
-        // Destructurar error y respuesta
         const { response } = error;
 
-        // Priorizar mensajes del servidor
         if (response && response.data) {
-          // Mensajes específicos de diferentes escenarios
           if (response.data.message) {
             toast.error(response.data.message);
           } else if (response.data.error) {
@@ -352,7 +343,6 @@ const AsignarEstudiantes = () => {
               return grupos;
             }, {});
 
-            // Construir mensaje detallado
             const mensaje = Object.entries(asignacionesPorPeriodo)
               .map(([periodo, estudiantes]) =>
                 `Periodo: ${periodo}\nEstudiantes: ${estudiantes.join(', ')}`
@@ -381,19 +371,16 @@ const AsignarEstudiantes = () => {
             });
             setJustificaciones(justificacionesIniciales);
 
-            // Mostrar modal de justificaciones
             setShowJustificacionModal(true);
           }
 
         } else {
-          // Mensaje de error genérico si no hay respuesta específica
           toast.error('Error al crear las asignaciones');
         }
       }
     } catch (error) {
       console.error("Error al crear asignaciones:", error);
 
-      // Última línea de defensa para mostrar mensaje de error
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
@@ -408,7 +395,6 @@ const AsignarEstudiantes = () => {
   const JustificacionModal = () => {
     // Crear un estado local para manejar las justificaciones
     const [localJustificaciones, setLocalJustificaciones] = useState(() => {
-      // Inicializar con las justificaciones existentes o crear un objeto vacío
       const inicial = {};
       selectedEstudiantes.forEach(estudiante => {
         inicial[estudiante.id] = '';
@@ -417,7 +403,6 @@ const AsignarEstudiantes = () => {
     });
 
     const handleJustificacionChange = (estudianteId, value) => {
-      // Usar setState con función de callback para evitar problemas de asincronía
       setLocalJustificaciones(prev => ({
         ...prev,
         [estudianteId]: value
@@ -425,7 +410,6 @@ const AsignarEstudiantes = () => {
     };
 
     const handleConfirmar = async () => {
-      // Validar que todas las justificaciones estén completas
       const todasJustificaciones = selectedEstudiantes.map(est =>
         localJustificaciones[est.id]?.trim()
       );
@@ -455,14 +439,12 @@ const AsignarEstudiantes = () => {
           });
         }));
 
-        // Actualizar datos y limpiar
         await fetchData(currentPage);
         setShowJustificacionModal(false);
         setShowAsignarModal(false);
         resetearFormulario();
         setSelectedEstudiantes([]);
 
-        // Limpiar estados de conflicto
         setConflictoAsignaciones(null);
         setTempAsignacionData(null);
 
@@ -544,12 +526,10 @@ const AsignarEstudiantes = () => {
       const token = getToken();
       const apiUrl = process.env.REACT_APP_API_URL;
 
-      // Verificar y obtener el ID de la institución
       const institucionId = asignacion.institucion_id ||
         (asignacion.institucion && asignacion.institucion.id) ||
         null;
 
-      // Verificar y obtener el ID del receptor
       const receptorId = asignacion.receptor_id ||
         (asignacion.receptor && asignacion.receptor.id) ||
         null;
@@ -559,27 +539,21 @@ const AsignarEstudiantes = () => {
         return;
       }
 
-      // Agregar verificación para receptor
       if (!receptorId) {
         toast.error("No se pudo identificar el receptor");
         return;
       }
 
-      // Cargar tipos de instituciones
       const tiposInstitucionesResponse = await axios.get(`${apiUrl}/obtener/tipos-instituciones`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // Intentar obtener el tipo de institución de manera más robusta
       let tipoInstitucionId = null;
 
-      // Primero intentar desde la institución directamente
       if (asignacion.institucion && asignacion.institucion.tipo_id) {
         tipoInstitucionId = asignacion.institucion.tipo_id;
       }
-      // Si no, buscar en la lista de tipos de instituciones
       else {
-        // Buscar en la lista de tipos de instituciones basado en el ID de la institución
         const institucionResponse = await axios.get(`${apiUrl}/instituciones/${institucionId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -587,7 +561,6 @@ const AsignarEstudiantes = () => {
         tipoInstitucionId = institucionResponse.data.tipo_id;
       }
 
-      // Si aún no se encuentra el tipo de institución, mostrar error
       if (!tipoInstitucionId) {
         toast.error("No se pudo determinar el tipo de institución");
         return;
@@ -605,16 +578,13 @@ const AsignarEstudiantes = () => {
         params: { institucionId: institucionId }
       });
 
-      // Cargar detalles del receptor específico
       const receptorResponse = await axios.get(`${apiUrl}/instituciones/receptor/${receptorId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // Establecer los estados
       setTipoInstitucionSeleccionado(tipoInstitucionId);
       setInstituciones(institucionesResponse.data);
 
-      // Agregar el receptor a la lista si no existe
       setReceptores(prevReceptores => {
         const receptorExiste = prevReceptores.some(r => r.id === receptorResponse.data.id);
         return receptorExiste
@@ -627,7 +597,7 @@ const AsignarEstudiantes = () => {
       setInstitucionSeleccionada(institucionId);
       setReceptorSeleccionado(receptorId);
 
-      // Formatear fechas de manera segura
+      // Formatear fechas
       setFechaInicio(asignacion.fecha_inicio ? asignacion.fecha_inicio.split('T')[0] : '');
       setFechaFin(asignacion.fecha_fin ? asignacion.fecha_fin.split('T')[0] : '');
 
@@ -636,21 +606,16 @@ const AsignarEstudiantes = () => {
 
       setJustificacionEditable(justificacion);
 
-      // Mostrar modal de edición
       setShowEditarModal(true);
 
     } catch (error) {
       console.error("Error al cargar datos para edición:", error);
 
-      // Manejo de errores más específico
       if (error.response) {
-        // El servidor respondió con un código de estado fuera del rango 2xx
         toast.error(error.response.data.error || "Error al cargar los datos de la asignación");
       } else if (error.request) {
-        // La solicitud fue hecha pero no se recibió respuesta
         toast.error("No se pudo conectar con el servidor");
       } else {
-        // Algo sucedió al configurar la solicitud
         toast.error("Error inesperado al cargar los datos");
       }
     }
@@ -667,21 +632,17 @@ const AsignarEstudiantes = () => {
       const token = getToken();
       const apiUrl = process.env.REACT_APP_API_URL;
 
-      // Preparar datos para actualizar
       const datosActualizacion = {
         institucion_id: parseInt(institucionSeleccionada),
         receptor_id: parseInt(receptorSeleccionado),
         fecha_inicio: fechaInicio,
         fecha_fin: fechaFin,
-        // Establecer explícitamente el estado de asignación excepcional
         es_asignacion_excepcional: justificacionEditable ? true : false
       };
 
-      // Manejar la justificación de manera más robusta
       if (justificacionEditable) {
         datosActualizacion.justificacion_excepcional = justificacionEditable;
       } else {
-        // Si no hay justificación, establecer como null
         datosActualizacion.justificacion_excepcional = null;
       }
 
@@ -692,7 +653,6 @@ const AsignarEstudiantes = () => {
         }
       );
 
-      // Actualizar la lista de asignaciones
       await fetchData(currentPage);
 
       setShowEditarModal(false);
@@ -701,7 +661,6 @@ const AsignarEstudiantes = () => {
     } catch (error) {
       console.error("Error al actualizar asignación:", error);
 
-      // Mostrar detalles específicos del error
       if (error.response) {
         console.error('Detalles del error:', error.response.data);
         setErrorMessage(error.response.data.error || "Error al actualizar la asignación");
@@ -730,7 +689,6 @@ const AsignarEstudiantes = () => {
   };
 
   const toggleEstudianteSelection = (estudiante, event) => {
-    // Prevenir la selección de texto y propagación
     if (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -740,10 +698,8 @@ const AsignarEstudiantes = () => {
       const isCurrentlySelected = prev.some(e => e.correo === estudiante.correo);
 
       if (isCurrentlySelected) {
-        // Deseleccionar
         return prev.filter(e => e.correo !== estudiante.correo);
       } else {
-        // Seleccionar
         return [...prev, estudiante];
       }
     });
@@ -761,7 +717,6 @@ const AsignarEstudiantes = () => {
       return;
     }
 
-    // Prevenir la selección de texto
     event.preventDefault();
     event.stopPropagation();
 
@@ -806,9 +761,7 @@ const AsignarEstudiantes = () => {
     }
   };
 
-  // Modificar handleMouseEnter similarmente
   const handleMouseEnter = (estudiante, event) => {
-    // Prevenir selección en elementos interactivos
     if (event && (
       event.target.closest('button') ||
       event.target.closest('.popover') ||
@@ -1095,24 +1048,6 @@ const AsignarEstudiantes = () => {
                     </td>
                   </tr>
                 ))}
-                <style jsx>{`
-              .text-muted {
-                color: #6c757d !important;
-              }
-              
-              .asignacion-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-                padding: 5px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-              }
-              .asignacion-item:last-child {
-                margin-bottom: 0;
-              }
-            `}</style>
               </tbody>
             </Table>
           </div>
@@ -1135,7 +1070,7 @@ const AsignarEstudiantes = () => {
               {currentPage > 3 && <Pagination.Ellipsis />}
 
               {Array.from({ length: Math.min(3, totalPages) }, (_, index) => {
-                const page = Math.max(2, currentPage - 1) + index; // Muestra las páginas alrededor de la página actual
+                const page = Math.max(2, currentPage - 1) + index;
                 if (page <= totalPages) {
                   return (
                     <Pagination.Item
@@ -1288,7 +1223,7 @@ const AsignarEstudiantes = () => {
         <Modal.Footer>
           <Button variant="secondary" onClick={() => {
             setShowAsignarModal(false);
-            setSelectedEstudiantes([]); // Limpiar estudiantes seleccionados
+            setSelectedEstudiantes([]);
           }}>
             <i className="fas fa-times mr-2"></i>
             Cancelar
@@ -1395,21 +1330,6 @@ const AsignarEstudiantes = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-
-      <style jsx>{`
-            .asignacion-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-                padding: 5px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-            }
-            .asignacion-item:last-child {
-                margin-bottom: 0;
-            }
-        `}</style>
       {/* Renderizar el modal solo si hay conflicto de asignaciones */}
       {showJustificacionModal && <JustificacionModal />}
     </div>

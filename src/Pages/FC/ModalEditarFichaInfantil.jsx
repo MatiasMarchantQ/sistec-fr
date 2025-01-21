@@ -6,8 +6,6 @@ import { toast } from 'react-toastify';
 
 const ModalEditarFichaInfantil = ({ show, onHide, fichaClinica, onActualizar }) => {
   const { getToken } = useAuth();
-  
-  // Estados para catálogos
   const [nivelesEscolaridad, setNivelesEscolaridad] = useState([]);
   const [tiposFamilia, setTiposFamilia] = useState([]);
   const [ciclosVitalesFamiliares, setCiclosVitalesFamiliares] = useState([]);
@@ -15,7 +13,6 @@ const ModalEditarFichaInfantil = ({ show, onHide, fichaClinica, onActualizar }) 
   const [factoresRiesgoFamiliaresDisponibles, setFactoresRiesgoFamiliaresDisponibles] = useState([]);
 
   const [formData, setFormData] = useState({
-    // Datos del paciente
     fechaNacimiento: fichaClinica?.paciente?.fechaNacimiento || '',
     nombres: fichaClinica?.paciente?.nombres || '',
     apellidos: fichaClinica?.paciente?.apellidos || '',
@@ -73,7 +70,7 @@ const ModalEditarFichaInfantil = ({ show, onHide, fichaClinica, onActualizar }) 
         const primerTipoFamilia = tiposFamilia[0];
         return primerTipoFamilia.tipoFamiliaOtro || '';
       }
-      return ''; // Valor por defecto
+      return '';
     })(),
 
     // Ciclo Vital Familiar
@@ -289,11 +286,11 @@ const ModalEditarFichaInfantil = ({ show, onHide, fichaClinica, onActualizar }) 
       // Preparar datos para enviar
       const datosParaEnviar = {
         ...formData,
-        edad, // Añadir la cadena de edad
+        edad,
         
         // Manejar padres con sus IDs
         padres: formData.padres.map(padre => ({
-          id: padre.id, // Incluir ID si existe
+          id: padre.id,
           nombre: padre.nombre,
           escolaridad: padre.escolaridad || null,
           ocupacion: padre.ocupacion,

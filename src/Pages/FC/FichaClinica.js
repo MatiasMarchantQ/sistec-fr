@@ -6,16 +6,16 @@ import _ from 'lodash';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import SeguimientoInfantil from './SeguimientoInfantil';
-import SeguimientoAdulto from './SeguimientoAdulto';
-import ModalEditarFichaAdulto from './ModalEditarFichaAdulto'; // Ajusta la ruta según tu estructura
-import ModalEditarFichaInfantil from './ModalEditarFichaInfantil'; // Ajusta la ruta según tu estructura
+import SeguimientoInfantil from '../Seg/SeguimientoInfantil';
+import SeguimientoAdulto from '../Seg/SeguimientoAdulto';
+import ModalEditarFichaAdulto from './ModalEditarFichaAdulto';
+import ModalEditarFichaInfantil from './ModalEditarFichaInfantil';
 
 const FichaClinicaAdulto = ({ fichaClinica }) => {
   const navigate = useNavigate();
   const [valorHbA1c, setValorHbA1c] = useState(fichaClinica.factoresRiesgo?.valorHbac1 || '');
   if (!fichaClinica) {
-    return <div>Cargando...</div>; // O un mensaje de carga
+    return <div>Cargando...</div>;
   }
 
   return (
@@ -448,7 +448,7 @@ const FichaClinica = () => {
     setFechaInicio('');
     setFechaFin('');
     setFiltrosAplicados(false);
-    fetchReevaluaciones(); // Volver a cargar todas las reevaluaciones
+    fetchReevaluaciones();
   };
 
   const esEditable = fichaClinica && user && (
@@ -459,18 +459,16 @@ const FichaClinica = () => {
   );
 
   const handleActualizarFicha = () => {
-    // Recargar la ficha clínica después de la actualización
     fetchFichaClinica();
   };
 
-  // Definición de fetchFichaClinica como función
   const fetchFichaClinica = async () => {
     setLoading(true);
     try {
       setLoading(true);
       const token = getToken();
       if (!token) {
-        handleSessionExpired(); // Manejar sesión expirada
+        handleSessionExpired();
         return;
       }
       const response = await axios.get(
@@ -489,7 +487,7 @@ const FichaClinica = () => {
     } catch (err) {
       console.error('Error al obtener la ficha clínica:', err);
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-        handleSessionExpired(); // Manejar sesión expirada
+        handleSessionExpired();
       } else {
         setError('Error al cargar los datos de la ficha clínica');
       }
@@ -509,7 +507,6 @@ const FichaClinica = () => {
 
   // Función para volver al listado de fichas clínicas
   const handleVolver = () => {
-    // Obtener el estado de navegación original
     const estadoNavegacion = location.state;
 
     if (estadoNavegacion && estadoNavegacion.origen) {
@@ -518,7 +515,6 @@ const FichaClinica = () => {
           navigate('?component=listado-fichas-clinicas', {
             state: {
               tipo: tipo || 'adulto',
-              // Preservar cualquier otro estado relevante
               ...estadoNavegacion
             }
           });
@@ -527,7 +523,6 @@ const FichaClinica = () => {
           navigate('/home?component=dashboard');
           break;
         default:
-          // Volver al listado de fichas por defecto
           navigate('?component=listado-fichas-clinicas', {
             state: {
               tipo: tipo || 'adulto'
@@ -535,7 +530,6 @@ const FichaClinica = () => {
           });
       }
     } else {
-      // Si no hay origen específico, volver al listado de fichas
       navigate('?component=agenda', {
         state: {
           fichaId: fichaClinica.id,
@@ -562,7 +556,6 @@ const FichaClinica = () => {
         }
       );
 
-      // Verificar si hay datos
       if (response.data && response.data.data) {
         // Formatear las reevaluaciones según el tipo
         const reevaluacionesFormateadas = response.data.data.map(reevaluacion =>
@@ -587,7 +580,6 @@ const FichaClinica = () => {
   const compararDatos = (original, reevaluacion) => {
     const cambios = {};
 
-    // Campos a comparar dependiendo del tipo de ficha
     const camposComparar = tipo === 'adulto' ? [
       'diagnosticos',
       'escolaridad',
@@ -649,19 +641,14 @@ const FichaClinica = () => {
     };
 
     const formatearValor = (valor) => {
-      // Caso específico para diagnósticos
       if (Array.isArray(valor)) {
         return valor.map(diag =>
           diag.esOtro ? diag.diagnosticoOtro : diag.nombre
         ).join(', ');
       }
-      // Caso específico para diagnóstico
       if (valor && typeof valor === 'object' && ('nombre' in valor || 'diagnosticoOtro' in valor)) {
-        // Prioriza diagnosticoOtro si existe
         if (valor.diagnosticoOtro) return valor.diagnosticoOtro;
-        // Si no, usa nombre
         if (valor.nombre) return valor.nombre;
-        // Si ninguno tiene valor, retorna N/A
         return 'N/A';
       }
 
@@ -703,7 +690,6 @@ const FichaClinica = () => {
     );
   };
 
-  // En tu useEffect para reevaluaciones
   useEffect(() => {
     if (fichaClinica) {
       // 1. Comparar la ficha original con la primera reevaluación
@@ -752,17 +738,15 @@ const FichaClinica = () => {
   }
 
   const handleFiltrar = () => {
-    // Validar que la fecha de inicio no sea mayor que la fecha fin
     if (fechaInicio && fechaFin && new Date(fechaInicio) > new Date(fechaFin)) {
       alert('La fecha de inicio no puede ser mayor que la fecha fin');
       return;
     }
 
-    setFiltrosAplicados(true); // Establecer que los filtros están aplicados
+    setFiltrosAplicados(true);
     fetchReevaluaciones(1, fechaInicio, fechaFin);
   };
 
-  // En el componente FichaClinica
   const cambiarPagina = (numeroPagina) => {
     if (numeroPagina > 0 && numeroPagina <= totalPaginas) {
       fetchReevaluaciones(numeroPagina, fechaInicio, fechaFin);
@@ -771,7 +755,7 @@ const FichaClinica = () => {
 
   if (loading) {
     return (
-      <div className="text-center">
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
         <Spinner animation="border" variant="primary" />
       </div>
     );
@@ -795,7 +779,6 @@ const FichaClinica = () => {
         <i className="fas fa-arrow-left me-8 pr-1"></i>Volver
       </Button>
 
-      {/* Modal de edición condicional */}
       {tipo === 'infantil' ? (
         <ModalEditarFichaInfantil
           show={mostrarModalEdicion}
@@ -812,7 +795,7 @@ const FichaClinica = () => {
         />
       ) : null}
 
-      <h2 className="text-center mb-1 pb-2" style={{ 'color': 'var(--color-accent)', 'fontWeight':'bold' }}>
+      <h2 className="text-center mb-1 pb-2" style={{ 'color': 'var(--color-accent)', 'fontWeight': 'bold' }}>
         Ficha Clínica {tipo === 'adulto' ? 'Adulto' : 'Infantil'} - {fichaClinica.paciente?.nombres} {fichaClinica.paciente?.apellidos}
       </h2>
       <Tabs
@@ -866,7 +849,6 @@ const FichaClinica = () => {
               <i className="fas fa-refresh me-2"></i>Reevaluación del Paciente
             </div>
             <div className="card-body">
-              {/* Botón para iniciar reevaluación */}
               <div className="text-center mb-4">
                 <button
                   className="btn btn-primary"
@@ -916,7 +898,6 @@ const FichaClinica = () => {
                 </div>
               </div>
 
-              {/* Sección para mostrar reevaluaciones existentes */}
               {reevaluaciones && reevaluaciones.length > 0 ? (
                 <div>
                   <h5 className="border-bottom pb-2">Reevaluaciones Previas</h5>
@@ -932,7 +913,7 @@ const FichaClinica = () => {
                           style={{ cursor: 'pointer' }}
                         >
                           <div className="me-auto">
-                            <strong>Reevaluación {numeroReevaluacion}</strong> {/* Usar el número calculado */}
+                            <strong>Reevaluación {numeroReevaluacion}</strong>
                           </div>
                           <div className="d-flex align-items-center">
                             <span>{new Date(reevaluacion.fecha).toLocaleDateString()}</span>
@@ -977,15 +958,11 @@ const FichaClinica = () => {
                               </div>
                             )}
                             {tipo === 'adulto' ? (
-                              // Contenido para reevaluación de adulto
                               <div className="card-body">
                                 {fichaClinica && (
-                                  // Si es un estudiante, solo puede editar su propia reevaluación
                                   (user.estudiante_id ?
                                     (reevaluacion.estudiante?.id === user.estudiante_id) :
-                                    // Si es un usuario con rol de Director o Docente, puede editar cualquier reevaluación
                                     (user.rol_id === 1 || user.rol_id === 2) ||
-                                    // Si es un usuario normal, puede editar sus propias reevaluaciones
                                     (reevaluacion.usuario?.id === user.id)
                                   ) && (
                                     <button
@@ -1069,12 +1046,9 @@ const FichaClinica = () => {
                                 <div className="row m-1  mt-3">
                                   <div className="col-md-6">
                                     {fichaClinica && (
-                                      // Si es un estudiante, solo puede editar su propia reevaluación
                                       (user.estudiante_id ?
                                         (reevaluacion.estudiante?.id === user.estudiante_id) :
-                                        // Si es un usuario con rol de Director o Docente, puede editar cualquier reevaluación
                                         (user.rol_id === 1 || user.rol_id === 2) ||
-                                        // Si es un usuario normal, puede editar sus propias reevaluaciones
                                         (reevaluacion.usuario?.id === user.id)
                                       ) && (
                                         <button
@@ -1099,7 +1073,7 @@ const FichaClinica = () => {
                                     <p><strong>Diagnóstico DSM:</strong> {reevaluacion.evaluacionPsicomotora?.diagnosticoDSM || 'N/A'}</p>
                                   </div>
                                   <div className="col-md-6">
-                                    <h6 className="border-bottom pb-2">Información Familiar</h6>
+                                    <h6 className="border-bottom pb-2 mt-4" style={{ 'paddingTop': '12px' }}>Información Familiar</h6>
                                     <p><strong>Con quién vive:</strong> {reevaluacion.informacionFamiliar?.conQuienVive || 'N/A'}</p>
                                     <p><strong>Localidad:</strong> {reevaluacion.informacionFamiliar?.localidad || 'N/A'}</p>
                                   </div>
@@ -1151,13 +1125,6 @@ const FichaClinica = () => {
                               </>
                             )}
 
-                            {/* Sección común para ambos tipos */}
-                            {/* <div className="row m-1">
-                            <div className="col-12">
-                              <h6 className="border-bottom pb-2">Observaciones</h6>
-                              <p>{reevaluacion.observaciones || 'Sin observaciones'}</p>
-                            </div>
-                          </div> */}
                             <div className="row m-1">
                               <div className="col-md-6">
                                 <h6 className="border-bottom pb-2">

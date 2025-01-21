@@ -230,7 +230,6 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
           : 'RUT inválido. Formato esperado: 12345678-9';
       case 'telefonoPrincipal':
       case 'telefonoSecundario':
-        // Validación de teléfono más flexible
         return /^\d{8,12}$/.test(valor.replace(/\s/g, ''))
           ? ''
           : 'Formato de teléfono inválido. Debe contener entre 8 y 12 dígitos';
@@ -297,11 +296,11 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
     setSuccessMessage('');
 
     const datosParaEnviar = {
-      tipo: 'adulto', // Agregar tipo explícitamente
+      tipo: 'adulto',
       ...datosAdulto,
       diagnosticos_id: diagnosticosSeleccionados
         .filter(diag => diag !== 'otro')
-        .map(id => parseInt(id)),  // Convertir a número
+        .map(id => parseInt(id)),
 
       // Manejar diagnóstico otro solo si está seleccionado y tiene valor
       diagnostico_otro: diagnosticosSeleccionados.includes('otro') && diagnosticoOtro.trim()
@@ -339,8 +338,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
 
       if (response.data.success) {
         toast.success('Reevaluación actualizada exitosamente');
-        onIngresar(response.data.data); // Refresh the data
-        // No limpiar el formulario para mantener los datos actualizados
+        onIngresar(response.data.data);
       } else {
         setSubmitError('Error al actualizar la reevaluación');
       }
@@ -367,7 +365,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
       ...datosAdulto,
       diagnosticos_id: diagnosticosSeleccionados
         .filter(diag => diag !== 'otro')
-        .map(id => parseInt(id)),  // Convertir a número
+        .map(id => parseInt(id)), 
       diagnostico_otro: diagnosticosSeleccionados.includes('otro')
         ? diagnosticoOtro
         : null,
@@ -378,14 +376,11 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
       estudiante_id: user.estudiante_id,
       usuario_id: user.id,
       institucion_id: institucionId,
-      // Modificar la lógica de isReevaluacion
       isReevaluacion: !!datosIniciales // Convertir a booleano
     };
 
     try {
       const token = getToken();
-
-      // Usar una lógica más segura para determinar la URL y el método
       const url = datosIniciales?.id
         ? `${process.env.REACT_APP_API_URL}/fichas-clinicas/adulto/${datosIniciales.id}`
         : `${process.env.REACT_APP_API_URL}/fichas-clinicas/adulto`;
@@ -397,7 +392,6 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
       });
 
       if (response.data.success) {
-        // Mostrar mensaje de éxito basado en el método
         if (method === 'post') {
           toast.success('Ficha clínica creada exitosamente');
         } else {
@@ -493,20 +487,14 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   value={datosAdulto.edad}
                   onInput={(e) => {
                     const valor = e.target.value;
-
-                    // Permite escribir libremente
                     handleChange(e);
-
-                    // Validación posterior
                     const numero = parseInt(valor);
                     if (!isNaN(numero) && (numero < 18 || numero > 120)) {
-                      // Si está fuera del rango, marca el error
                       setErrores(erroresAnteriores => ({
                         ...erroresAnteriores,
                         edad: 'La edad debe estar entre 18 y 120 años'
                       }));
                     } else {
-                      // Limpia el error si está en el rango
                       setErrores(erroresAnteriores => ({
                         ...erroresAnteriores,
                         edad: ''
@@ -548,8 +536,6 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                     </label>
                   </div>
                 ))}
-
-                {/* Checkbox para "Otro" diagnóstico */}
                 <div className="form-check">
                   <input
                     type="checkbox"
@@ -573,7 +559,6 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                 </div>
               </div>
 
-              {/* Campo para diagnóstico personalizado */}
               {diagnosticosSeleccionados.includes('otro') && (
                 <input
                   type="text"
@@ -672,12 +657,10 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   onChange={(e) => {
                     const selectedValues = Array.from(e.target.selectedOptions, option => option.value);
 
-                    // Si se selecciona "Otras", agregar solo "Otras"
                     if (selectedValues.includes('Otras')) {
                       setTiposFamiliaSeleccionados(['Otras']);
                       setTipoFamiliaOtro('');
                     } else {
-                      // Filtrar "Otras" si se seleccionan otros tipos
                       const filteredValues = selectedValues.filter(val => val !== 'Otras');
                       setTiposFamiliaSeleccionados(filteredValues);
                     }
@@ -712,10 +695,10 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                 <label>Ciclo vital familiar</label>
                 <select
                   className={`form-control ${errores.ciclosVitales ? 'is-invalid' : ''}`}
-                  value={cicloVitalSeleccionado || ''} // Usa el ID directamente
+                  value={cicloVitalSeleccionado || ''}
                   onChange={(e) => {
                     const value = e.target.value;
-                    setCicloVitalSeleccionado(value); // Actualiza el estado con el ciclo seleccionado
+                    setCicloVitalSeleccionado(value);
                   }}
                 >
                   <option value="">Seleccione...</option>
@@ -763,7 +746,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
                   name="telefonoSecundario"
                   value={datosAdulto.telefonoSecundario}
                   onChange={handleChange}
-                  placeholder="912345678"
+                  placeholder="Ej: 912345678"
                 />
                 {errores.telefonoSecundario && <div className="invalid-feedback">{errores.telefonoSecundario}</div>}
               </div>
