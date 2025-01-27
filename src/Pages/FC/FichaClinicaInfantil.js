@@ -47,20 +47,20 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
   const parseEdad = useMemo(() => (edadString, edadAniosDirecto, edadMesesDirecto, edadDiasDirecto) => {
     // Caso 1: Si recibimos valores directos de años/meses/días
     if (edadAniosDirecto !== undefined || edadMesesDirecto !== undefined || edadDiasDirecto !== undefined) {
-        return {
-            edadAnios: edadAniosDirecto || null,
-            edadMeses: edadMesesDirecto || null,
-            edadDias: edadDiasDirecto || null
-        };
+      return {
+        edadAnios: edadAniosDirecto || null,
+        edadMeses: edadMesesDirecto || null,
+        edadDias: edadDiasDirecto || null
+      };
     }
 
     // Caso 2: Si no hay valor o es null, devolver objeto con null
     if (!edadString) {
-        return {
-            edadAnios: null,
-            edadMeses: null,
-            edadDias: null
-        };
+      return {
+        edadAnios: null,
+        edadMeses: null,
+        edadDias: null
+      };
     }
 
     // Convertir a string y limpiar espacios
@@ -68,96 +68,96 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
 
     // Regex para manejar formatos específicos
     const regexPatterns = [
-        // "1 años, 10 días"
-        /^(\d+)\s*años?,?\s*(\d+)\s*días?$/i,
-        // "23 meses, 1 días"
-        /^(\d+)\s*meses?,?\s*(\d+)?\s*días?$/i,
-        // "1 años, 1 meses"
-        /^(\d+)\s*años?,\s*(\d+)\s*meses?$/i,
-        // "1 años, 1 meses, 10 días"
-        /^(\d+)\s*años?,\s*(\d+)\s*meses?,\s*(\d+)\s*días?$/i,
-        // "5 años"
-        /^(\d+)\s*años?$/i,
-        // "3 meses"
-        /^(\d+)\s*meses?$/i,
-        // "10 días"
-        /^(\d+)\s*días?$/i
+      // "1 años, 10 días"
+      /^(\d+)\s*años?,?\s*(\d+)\s*días?$/i,
+      // "23 meses, 1 días"
+      /^(\d+)\s*meses?,?\s*(\d+)?\s*días?$/i,
+      // "1 años, 1 meses"
+      /^(\d+)\s*años?,\s*(\d+)\s*meses?$/i,
+      // "1 años, 1 meses, 10 días"
+      /^(\d+)\s*años?,\s*(\d+)\s*meses?,\s*(\d+)\s*días?$/i,
+      // "5 años"
+      /^(\d+)\s*años?$/i,
+      // "3 meses"
+      /^(\d+)\s*meses?$/i,
+      // "10 días"
+      /^(\d+)\s*días?$/i
     ];
 
     // Probar cada patrón de regex
     for (let regex of regexPatterns) {
-        const match = edadString.match(regex);
+      const match = edadString.match(regex);
 
-        if (match) {
-            const result = {
-                edadAnios: null,
-                edadMeses: null,
-                edadDias: null
-            };
+      if (match) {
+        const result = {
+          edadAnios: null,
+          edadMeses: null,
+          edadDias: null
+        };
 
-            // Manejar casos con años y días
-            if (regex.source.includes('años') && regex.source.includes('días')) {
-                result.edadAnios = match[1];
-                result.edadDias = match[2];
-            }
-            // Manejar caso de meses y días
-            else if (regex.source.includes('meses')) {
-                result.edadMeses = match[1];
-                if (match[2]) {
-                    result.edadDias = match[2];
-                }
-            }
-            // Manejar casos con años y meses
-            else if (regex.source.includes('años') && regex.source.includes('meses')) {
-                result.edadAnios = match[1];
-                result.edadMeses = match[2];
-                if (match[3]) {
-                    result.edadDias = match[3];
-                }
-            } else if (regex.source.includes('años')) {
-                result.edadAnios = match[1];
-            } else if (regex.source.includes('meses')) {
-                result.edadMeses = match[1];
-            } else if (regex.source.includes('días')) {
-                result.edadDias = match[1];
-            }
-
-            return result;
+        // Manejar casos con años y días
+        if (regex.source.includes('años') && regex.source.includes('días')) {
+          result.edadAnios = match[1];
+          result.edadDias = match[2];
         }
+        // Manejar caso de meses y días
+        else if (regex.source.includes('meses')) {
+          result.edadMeses = match[1];
+          if (match[2]) {
+            result.edadDias = match[2];
+          }
+        }
+        // Manejar casos con años y meses
+        else if (regex.source.includes('años') && regex.source.includes('meses')) {
+          result.edadAnios = match[1];
+          result.edadMeses = match[2];
+          if (match[3]) {
+            result.edadDias = match[3];
+          }
+        } else if (regex.source.includes('años')) {
+          result.edadAnios = match[1];
+        } else if (regex.source.includes('meses')) {
+          result.edadMeses = match[1];
+        } else if (regex.source.includes('días')) {
+          result.edadDias = match[1];
+        }
+
+        return result;
+      }
     }
 
     // Extraer números de la cadena
     const numeros = edadString.match(/\d+/g);
     if (numeros) {
-        return {
-            edadAnios: numeros[0] || null,
-            edadMeses: numeros[1] || null,
-            edadDias: numeros[2] || null
-        };
+      return {
+        edadAnios: numeros[0] || null,
+        edadMeses: numeros[1] || null,
+        edadDias: numeros[2] || null
+      };
     }
 
     return {
-        edadAnios: null,
-        edadMeses: null,
-        edadDias: null
+      edadAnios: null,
+      edadMeses: null,
+      edadDias: null
     };
-}, []);
+  }, []);
 
   useEffect(() => {
     const datosBase = reevaluacionSeleccionada || ultimaReevaluacion || datosIniciales;
-    
+
     if (datosBase) {
       setDatosNino(prev => {
-        const tieneValoresIndividuales = 
-          datosBase.edadAnios !== undefined || 
-          datosBase.edadMeses !== undefined || 
+        const tieneValoresIndividuales =
+          datosBase.edadAnios !== undefined ||
+          datosBase.edadMeses !== undefined ||
           datosBase.edadDias !== undefined;
 
         let edadParseada;
         if (tieneValoresIndividuales) {
-          edadParseada = parseEdad(null, 
-            datosBase.edadAnios || null, 
-            datosBase.edadMeses || null, 
+          edadParseada = parseEdad(null,
+            datosBase.edadAnios || null,
+            datosBase.edadMeses || null,
             datosBase.edadDias || null
           );
         } else {
@@ -404,12 +404,12 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
     switch (nombre) {
       case 'nombres':
       case 'apellidos':
-        return /^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]{2,50}$/.test(valor) ? '' : `${nombre} debe contener solo letras y tener entre 2 y 50 caracteres`;
+        return /^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]{2,50}$/.test(valor) ? '' : `Debe contener solo letras y tener entre 2 y 50 caracteres`;
       case 'rut':
-        return /^\d{1,2}\.\d{3}\.\d{3}[-][0-9kK]{1}$/.test(valor) ? '' : 'RUT inválido';
+        return /^\d{7,8}[-][0-9kK]{1}$/.test(valor) ? '' : 'RUT inválido. Debe estar en el formato XXXXXXXX-X';
       case 'telefonoPrincipal':
       case 'telefonoSecundario':
-        return /^\+56\s?9\s?\d{4}\s?\d{4}$/.test(valor) ? '' : 'Formato de teléfono inválido';
+        return /^\d{8,9}$/.test(valor) ? '' : 'Formato de teléfono inválido. Debe estar en el formato 9XXXXXXXX';
       default:
         return '';
     }
@@ -418,12 +418,20 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const error = validarCampo(name, value);
+
+    // Si el campo es el RUT, eliminar puntos
+    const sanitizedValue = name === 'rut'
+      ? value.replace(/\./g, '')
+      : (name === 'telefonoPrincipal' || name === 'telefonoSecundario')
+        ? value.replace(/^\+56\s?/, '') // Eliminar el prefijo +56
+        : value;
+
+    const error = validarCampo(name, sanitizedValue);
     setErrores(prev => ({ ...prev, [name]: error }));
 
     setDatosNino(prev => ({
       ...prev,
-      [name]: value
+      [name]: sanitizedValue
     }));
   };
 
@@ -728,11 +736,12 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
                 <input
                   type="text"
                   name="rut"
-                  className="form-control"
+                  className={`form-control ${errores.rut ? 'is-invalid' : ''}`}
                   value={datosNino.rut}
                   onChange={handleChange}
-                  placeholder="Ej: 12345678-9"
+                  placeholder="Ej: 12345678-K"
                 />
+                {errores.rut && <div className="invalid-feedback">{errores.rut}</div>}
               </div>
             </div>
           </div>
@@ -741,7 +750,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
             <div className="col-md-4">
               <div className="form-group">
                 <label>Edad</label>
-                  <span> (Años, meses o días)</span>
+                <span> (Años, meses o días)</span>
                 <div className="row">
                   <div className="col-md-4">
                     <div className="form-group">
@@ -828,28 +837,30 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
             </div>
             <div className="col-md-4">
               <div className="form-group">
-                <label>Teléfono</label>
+                <label>Teléfono Principal</label>
                 <input
-                  type="tel"
+                  type="text"
                   name="telefonoPrincipal"
-                  className="form-control"
+                  className={`form-control ${errores.telefonoPrincipal ? 'is-invalid' : ''}`}
                   value={datosNino.telefonoPrincipal}
                   onChange={handleChange}
-                  placeholder="9 1234 5678"
+                  placeholder="Ej: 912345678"
                 />
+                {errores.telefonoPrincipal && <div className="invalid-feedback">{errores.telefonoPrincipal}</div>}
               </div>
             </div>
             <div className="col-md-4">
               <div className="form-group">
-                <label>2do Teléfono (Ideal)</label>
+                <label>Teléfono Secundario (Ideal)</label>
                 <input
-                  type="tel"
+                  type="text"
                   name="telefonoSecundario"
-                  className="form-control"
+                  className={`form-control ${errores.telefonoSecundario ? 'is-invalid' : ''}`}
                   value={datosNino.telefonoSecundario}
                   onChange={handleChange}
-                  placeholder="9 8765 4321"
+                  placeholder="Ej: 912345678"
                 />
+                {errores.telefonoSecundario && <div className="invalid-feedback">{errores.telefonoSecundario}</div>}
               </div>
             </div>
           </div>

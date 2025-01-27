@@ -391,133 +391,6 @@ const AsignarEstudiantes = () => {
     }
   };
 
-  // Componente Modal de Justificaciones
-  const JustificacionModal = () => {
-    // Crear un estado local para manejar las justificaciones
-    const [localJustificaciones, setLocalJustificaciones] = useState(() => {
-      const inicial = {};
-      selectedEstudiantes.forEach(estudiante => {
-        inicial[estudiante.id] = '';
-      });
-      return inicial;
-    });
-
-    const handleJustificacionChange = (estudianteId, value) => {
-      setLocalJustificaciones(prev => ({
-        ...prev,
-        [estudianteId]: value
-      }));
-    };
-
-    const handleConfirmar = async () => {
-      const todasJustificaciones = selectedEstudiantes.map(est =>
-        localJustificaciones[est.id]?.trim()
-      );
-
-      if (todasJustificaciones.some(j => !j)) {
-        toast.error('Debe proporcionar justificación para todos los estudiantes');
-        return;
-      }
-
-      try {
-        const token = getToken();
-        const apiUrl = process.env.REACT_APP_API_URL;
-        const { institucionId, receptorId, fechaInicio, fechaFin } = tempAsignacionData;
-
-        // Intentar crear asignaciones con justificación excepcional
-        await Promise.all(selectedEstudiantes.map(async (estudiante) => {
-          await axios.post(`${apiUrl}/asignaciones`, {
-            estudiante_id: estudiante.id,
-            institucion_id: institucionId,
-            receptor_id: receptorId,
-            fecha_inicio: fechaInicio,
-            fecha_fin: fechaFin,
-            es_asignacion_excepcional: true,
-            justificacion_excepcional: localJustificaciones[estudiante.id]
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-        }));
-
-        await fetchData(currentPage);
-        setShowJustificacionModal(false);
-        setShowAsignarModal(false);
-        resetearFormulario();
-        setSelectedEstudiantes([]);
-
-        setConflictoAsignaciones(null);
-        setTempAsignacionData(null);
-
-        toast.success('Asignaciones excepcionales creadas exitosamente!');
-
-      } catch (error) {
-        console.error("Error al crear asignaciones:", error);
-        const errorMsg = error.response?.data?.error || "Error al crear las asignaciones. Por favor, intente de nuevo.";
-        toast.error(errorMsg);
-      }
-    };
-
-    return (
-      <Modal
-        show={showJustificacionModal}
-        onHide={() => {
-          setShowJustificacionModal(false);
-          setConflictoAsignaciones(null);
-          setTempAsignacionData(null);
-        }}
-        size="lg"
-      >
-        <Modal.Header closeButton className="bg-warning">
-          <Modal.Title>
-            <i className="fas fa-exclamation-triangle mr-2"></i>
-            Asignaciones Existentes
-          </Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body>
-          <Alert variant="warning">
-            <Alert.Heading>
-              <i className="icon fas fa-info-circle"></i> Conflicto de Asignaciones
-            </Alert.Heading>
-            <p>Ya existen asignaciones para este receptor en el periodo:</p>
-            <pre>{conflictoAsignaciones?.mensaje || 'Sin detalles de conflicto'}</pre>
-          </Alert>
-
-          <Form>
-            {selectedEstudiantes.map((estudiante) => (
-              <Form.Group key={estudiante.id} className="mb-3">
-                <Form.Label>
-                  Justificación para {estudiante.nombres} {estudiante.apellidos}
-                </Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  value={localJustificaciones[estudiante.id] || ''}
-                  onChange={(e) => handleJustificacionChange(estudiante.id, e.target.value)}
-                  placeholder="Ingrese la justificación para la asignación excepcional"
-                  required
-                />
-              </Form.Group>
-            ))}
-          </Form>
-        </Modal.Body>
-
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => {
-            setShowJustificacionModal(false);
-            setConflictoAsignaciones(null);
-            setTempAsignacionData(null);
-          }}>
-            Cancelar
-          </Button>
-          <Button variant="primary" onClick={handleConfirmar}>
-            Confirmar Asignaciones
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    );
-  };
-
   const handleEditarAsignacion = async (asignacion) => {
     try {
       // Establecer explícitamente el estado de asignación excepcional
@@ -646,29 +519,84 @@ const AsignarEstudiantes = () => {
         datosActualizacion.justificacion_excepcional = null;
       }
 
-      const response = await axios.put(`${apiUrl}/asignaciones/${asignacionParaEditar.id}`,
-        datosActualizacion,
-        {
-          headers: { Authorization: `Bearer ${token}` }
+      try {
+        const response = await axios.put(`${apiUrl}/asignaciones/${asignacionParaEditar.id}`,
+          datosActualizacion,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
+
+        await fetchData(currentPage);
+
+        setShowEditarModal(false);
+        resetearFormulario();
+        toast.success('Asignación actualizada exitosamente!');
+      } catch (error) {
+        const { response } = error;
+
+        if (response && response.data) {
+          // Manejar caso de asignaciones existentes
+          if (response.data.asignaciones && response.data.permitirExcepcional) {
+            // Agrupar asignaciones por periodo
+            const asignacionesPorPeriodo = response.data.asignaciones.reduce((grupos, asig) => {
+              const key = `${formatDate(asig.fecha_inicio)} - ${formatDate(asig.fecha_fin)}`;
+              if (!grupos[key]) {
+                grupos[key] = [];
+              }
+
+              const estudianteExistente = estudiantes.find(
+                est => est.id === (asig.estudiante || asig.estudiante_id)
+              );
+
+              grupos[key].push(
+                estudianteExistente
+                  ? `${estudianteExistente.nombres} ${estudianteExistente.apellidos}`
+                  : `Estudiante ID: ${asig.estudiante || asig.estudiante_id}`
+              );
+
+              return grupos;
+            }, {});
+
+            const mensaje = Object.entries(asignacionesPorPeriodo)
+              .map(([periodo, estudiantes]) =>
+                `Periodo: ${periodo}\nEstudiantes: ${estudiantes.join(', ')}`
+              )
+              .join('\n\n');
+
+            // Guardar datos temporales para la actualización
+            setTempAsignacionData({
+              id: asignacionParaEditar.id,
+              institucionId: parseInt(institucionSeleccionada),
+              receptorId: parseInt(receptorSeleccionado),
+              fechaInicio,
+              fechaFin
+            });
+
+            // Guardar detalles del conflicto
+            setConflictoAsignaciones({
+              mensaje,
+              asignaciones: response.data.asignaciones,
+              permitirExcepcional: true
+            });
+
+            // Mostrar modal de justificación
+            setShowJustificacionModal(true);
+          } else {
+            // Manejar otros tipos de errores
+            const errorMsg = response.data.error || response.data.message || "Error al actualizar la asignación";
+            setErrorMessage(errorMsg);
+            toast.error(errorMsg);
+          }
+        } else {
+          setErrorMessage("Error al actualizar la asignación. Por favor, intente de nuevo.");
+          toast.error("Error al actualizar la asignación. Por favor, intente de nuevo.");
         }
-      );
-
-      await fetchData(currentPage);
-
-      setShowEditarModal(false);
-      resetearFormulario();
-      toast.success('Asignación actualizada exitosamente!');
+      }
     } catch (error) {
       console.error("Error al actualizar asignación:", error);
-
-      if (error.response) {
-        console.error('Detalles del error:', error.response.data);
-        setErrorMessage(error.response.data.error || "Error al actualizar la asignación");
-        toast.error(error.response.data.error || "Error al actualizar la asignación");
-      } else {
-        setErrorMessage("Error al actualizar la asignación. Por favor, intente de nuevo.");
-        toast.error("Error al actualizar la asignación. Por favor, intente de nuevo.");
-      }
+      setErrorMessage("Error al actualizar la asignación. Por favor, intente de nuevo.");
+      toast.error("Error al actualizar la asignación. Por favor, intente de nuevo.");
     }
   };
 
@@ -814,6 +742,196 @@ const AsignarEstudiantes = () => {
 
   const VolverHome = () => {
     navigate('/home?component=agenda');
+  };
+
+  const handleConfirmarNuevasAsignaciones = async (justificaciones) => {
+    try {
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const { institucionId, receptorId, fechaInicio, fechaFin } = tempAsignacionData;
+
+      // Intentar crear asignaciones con justificación excepcional
+      await Promise.all(selectedEstudiantes.map(async (estudiante) => {
+        await axios.post(`${apiUrl}/asignaciones`, {
+          estudiante_id: estudiante.id,
+          institucion_id: institucionId,
+          receptor_id: receptorId,
+          fecha_inicio: fechaInicio,
+          fecha_fin: fechaFin,
+          es_asignacion_excepcional: true,
+          justificacion_excepcional: justificaciones[estudiante.id]
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }));
+
+      await fetchData(currentPage);
+      setShowJustificacionModal(false);
+      setShowAsignarModal(false);
+      resetearFormulario();
+      setSelectedEstudiantes([]);
+      setConflictoAsignaciones(null);
+      setTempAsignacionData(null);
+
+      toast.success('Asignaciones excepcionales creadas exitosamente!');
+
+    } catch (error) {
+      console.error("Error al crear asignaciones:", error);
+      const errorMsg = error.response?.data?.error || "Error al crear las asignaciones. Por favor, intente de nuevo.";
+      toast.error(errorMsg);
+    }
+  };
+
+  const handleConfirmarEdicionAsignacion = async (justificaciones) => {
+    try {
+      const token = getToken();
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const { id, institucionId, receptorId, fechaInicio, fechaFin } = tempAsignacionData;
+
+      await axios.put(`${apiUrl}/asignaciones/${id}`, {
+        institucion_id: institucionId,
+        receptor_id: receptorId,
+        fecha_inicio: fechaInicio,
+        fecha_fin: fechaFin,
+        es_asignacion_excepcional: true,
+        justificacion_excepcional: justificaciones.justificacion
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      await fetchData(currentPage);
+      setShowJustificacionModal(false);
+      setShowEditarModal(false);
+      resetearFormulario();
+      setConflictoAsignaciones(null);
+      setTempAsignacionData(null);
+
+      toast.success('Asignación actualizada como excepcional exitosamente!');
+
+    } catch (error) {
+      console.error("Error al actualizar asignación:", error);
+      const errorMsg = error.response?.data?.error || "Error al actualizar la asignación. Por favor, intente de nuevo.";
+      toast.error(errorMsg);
+    }
+  };
+
+  // Componente JustificacionModal actualizado
+  const JustificacionModal = ({
+    mode = 'create',
+    estudiantes = [],
+    onConfirm,
+    onClose,
+    initialJustificaciones = {},
+    conflictoAsignaciones,
+    showModal
+  }) => {
+    const [localJustificaciones, setLocalJustificaciones] = useState(() => {
+      if (mode === 'create') {
+        const inicial = {};
+        estudiantes.forEach(estudiante => {
+          inicial[estudiante.id] = '';
+        });
+        return inicial;
+      }
+      return { justificacion: initialJustificaciones.justificacion || '' };
+    });
+
+    const handleJustificacionChange = (estudianteId, value) => {
+      if (mode === 'create') {
+        setLocalJustificaciones(prev => ({
+          ...prev,
+          [estudianteId]: value
+        }));
+      } else {
+        setLocalJustificaciones({ justificacion: value });
+      }
+    };
+
+    const handleConfirmar = async () => {
+      if (mode === 'create') {
+        const todasJustificaciones = estudiantes.map(est =>
+          localJustificaciones[est.id]?.trim()
+        );
+
+        if (todasJustificaciones.some(j => !j)) {
+          toast.error('Debe proporcionar justificación para todos los estudiantes');
+          return;
+        }
+      } else {
+        if (!localJustificaciones.justificacion?.trim()) {
+          toast.error('Debe proporcionar una justificación');
+          return;
+        }
+      }
+
+      await onConfirm(localJustificaciones);
+    };
+
+    return (
+      <Modal
+        show={showModal}
+        onHide={onClose}
+        size="lg"
+      >
+        <Modal.Header closeButton className="bg-warning">
+          <Modal.Title>
+            <i className="fas fa-exclamation-triangle mr-2"></i>
+            Asignaciones Existentes
+          </Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <Alert variant="warning">
+            <Alert.Heading>
+              <i className="icon fas fa-info-circle"></i> Conflicto de Asignaciones
+            </Alert.Heading>
+            <p>Ya existen asignaciones para este receptor en el periodo:</p>
+            <pre>{conflictoAsignaciones?.mensaje || 'Sin detalles de conflicto'}</pre>
+          </Alert>
+
+          <Form>
+            {mode === 'create' ? (
+              estudiantes.map((estudiante) => (
+                <Form.Group key={estudiante.id} className="mb-3">
+                  <Form.Label>
+                    Justificación para {estudiante.nombres} {estudiante.apellidos}
+                  </Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    value={localJustificaciones[estudiante.id] || ''}
+                    onChange={(e) => handleJustificacionChange(estudiante.id, e.target.value)}
+                    placeholder="Ingrese la justificación para la asignación excepcional"
+                    required
+                  />
+                </Form.Group>
+              ))
+            ) : (
+              <Form.Group className="mb-3">
+                <Form.Label>Justificación Excepcional</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  value={localJustificaciones.justificacion}
+                  onChange={(e) => handleJustificacionChange(null, e.target.value)}
+                  placeholder="Ingrese la justificación para la asignación excepcional"
+                  required
+                />
+              </Form.Group>
+            )}
+          </Form>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button variant="primary" onClick={handleConfirmar}>
+            Confirmar Asignaciones
+          </Button>
+          <Button variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
   };
 
 
@@ -1221,13 +1339,6 @@ const AsignarEstudiantes = () => {
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => {
-            setShowAsignarModal(false);
-            setSelectedEstudiantes([]);
-          }}>
-            <i className="fas fa-times mr-2"></i>
-            Cancelar
-          </Button>
           <Button
             variant="primary"
             onClick={handleAsignarCentro}
@@ -1235,6 +1346,13 @@ const AsignarEstudiantes = () => {
           >
             <i className="fas fa-save mr-2"></i>
             Asignar
+          </Button>
+          <Button variant="secondary" onClick={() => {
+            setShowAsignarModal(false);
+            setSelectedEstudiantes([]);
+          }}>
+            <i className="fas fa-times mr-2"></i>
+            Cancelar
           </Button>
         </Modal.Footer>
       </Modal>
@@ -1331,7 +1449,21 @@ const AsignarEstudiantes = () => {
         </Modal.Footer>
       </Modal>
       {/* Renderizar el modal solo si hay conflicto de asignaciones */}
-      {showJustificacionModal && <JustificacionModal />}
+      {showJustificacionModal && (
+        <JustificacionModal
+          mode={asignacionParaEditar ? 'edit' : 'create'}
+          estudiantes={selectedEstudiantes}
+          onConfirm={asignacionParaEditar ? handleConfirmarEdicionAsignacion : handleConfirmarNuevasAsignaciones}
+          onClose={() => {
+            setShowJustificacionModal(false);
+            setConflictoAsignaciones(null);
+            setTempAsignacionData(null);
+          }}
+          initialJustificaciones={{ justificacion: justificacionEditable }}
+          conflictoAsignaciones={conflictoAsignaciones}
+          showModal={showJustificacionModal}
+        />
+      )}
     </div>
   );
 };

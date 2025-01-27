@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './Components.css';
 
-const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
+const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -16,7 +16,14 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
   const toggleUserMenu = () => {
     setIsUserMenuOpen(prevState => !prevState);
   };
-  
+
+  const handleLinkClick = () => {
+    // Cierra el sidebar al hacer clic en un link
+    if (isMobile) {
+      toggleSidebar();
+    }
+  };
+
   return (
     <aside 
       className={`main-sidebar sidebar-dark-primary elevation-4 ${
@@ -38,16 +45,16 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
       )}
       <div className="d-flex justify-content-center align-items-center" style={{marginTop: '5px'}}>
         <Link to="?component=home" className="brand-link">
-        <img 
-          src="/facsa.png" 
-          alt="FACSA" 
-          className="brand-image"
-          style={{ 
-            width: '100px',
-            height: '100px',
-            objectFit: 'fill'
-          }}
-        />
+          <img 
+            src="/facsa.png" 
+            alt="FACSA" 
+            className="brand-image"
+            style={{ 
+              width: '100px',
+              height: '100px',
+              objectFit: 'fill'
+            }}
+          />
         </Link>
       </div>
       <div className="sidebar">
@@ -55,16 +62,19 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
           <ul className="nav nav-sidebar flex-column" role="menu">
             {/* Menú de Agenda */}
             {(user && (user.rol_id === 1 || user.rol_id === 2 || user.rol_id === 3)) && (
-            <li className="nav-item">
-              <Link 
-                to="?component=agenda"
-                className="nav-link"
-                onClick={() => handleSetActiveComponent('agenda')}
-              >
-                <i className="nav-icon fas fa-calendar-days"></i>
-                <p>Agenda</p>
-              </Link>
-            </li>
+              <li className="nav-item">
+                <Link 
+                  to="?component=agenda"
+                  className="nav-link"
+                  onClick={() => {
+                    handleSetActiveComponent('agenda');
+                    handleLinkClick(); // Cierra el sidebar
+                  }}
+                >
+                  <i className="nav-icon fas fa-calendar-days"></i>
+                  <p>Agenda</p>
+                </Link>
+              </li>
             )}
             {/* Menú de Instituciones - Visible para rol_id 1 y 2 */}
             {(user && (user.rol_id === 1 || user.rol_id === 2)) && (
@@ -72,7 +82,10 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
                 <Link 
                   to="?component=instituciones"
                   className="nav-link"
-                  onClick={() => handleSetActiveComponent('instituciones')} 
+                  onClick={() => {
+                    handleSetActiveComponent('instituciones');
+                    handleLinkClick(); // Cierra el sidebar
+                  }} 
                 >
                   <i className="nav-icon fas fa-university"></i>
                   <p>Instituciones</p>
@@ -86,7 +99,10 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
                 <Link 
                   to="?component=usuarios"
                   className="nav-link"
-                  onClick={() => handleSetActiveComponent('usuarios')}
+                  onClick={() => {
+                    handleSetActiveComponent('usuarios');
+                    handleLinkClick(); // Cierra el sidebar
+                  }}
                 >
                   <i className="nav-icon fas fa-user-tie"></i>
                   <p>Personal Académico</p>
@@ -117,7 +133,10 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
                       <Link 
                         to="?component=cargar-estudiantes"
                         className="nav-link"
-                        onClick={() => handleSetActiveComponent('cargar-estudiantes')}
+                        onClick={() => {
+                          handleSetActiveComponent('cargar-estudiantes');
+                          handleLinkClick(); // Cierra el sidebar
+                        }}
                       >
                         <i className="far fa-circle nav-icon"></i>
                         <p>Carga Masiva</p>
@@ -127,7 +146,10 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
                       <Link 
                         to="?component=listado-estudiantes"
                         className="nav-link"
-                        onClick={() => handleSetActiveComponent('listado-estudiantes')}
+                        onClick={() => {
+                          handleSetActiveComponent('listado-estudiantes');
+                          handleLinkClick(); // Cierra el sidebar
+                        }}
                       >
                         <i className="far fa-circle nav-icon"></i>
                         <p>Gestión de estudiantes</p>
@@ -137,7 +159,10 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
                       <Link 
                         to="?component=asignar-estudiantes"
                         className="nav-link"
-                        onClick={() => handleSetActiveComponent('asignar-estudiantes')}
+                        onClick={() => {
+                          handleSetActiveComponent('asignar-estudiantes');
+                          handleLinkClick(); // Cierra el sidebar
+                        }}
                       >
                         <i className="far fa-circle nav-icon"></i>
                         <p>Asignar Estudiantes</p>
@@ -155,7 +180,10 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
                   <Link 
                     to="?component=ingresar-ficha-clinica"
                     className="nav-link"
-                    onClick={() => handleSetActiveComponent('ingresar-ficha-clinica')} 
+                    onClick={() => {
+                      handleSetActiveComponent('ingresar-ficha-clinica');
+                      handleLinkClick(); // Cierra el sidebar
+                    }} 
                   >
                     <i className="nav-icon fas fa-file-medical"></i>
                     <p>Ingresar ficha clínica</p>
@@ -165,7 +193,10 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
                   <Link 
                     to="?component=listado-fichas-clinicas"
                     className="nav-link"
-                    onClick={() => handleSetActiveComponent('listado-fichas-clinicas')} 
+                    onClick={() => {
+                      handleSetActiveComponent('listado-fichas-clinicas');
+                      handleLinkClick(); // Cierra el sidebar
+                    }} 
                   >
                     <i className="nav-icon fas fa-notes-medical"></i>
                     <p>Listado Fichas Clínicas</p>
@@ -173,12 +204,15 @@ const Sidebar = ({ setActiveComponent, isOpen, isMobile, toggleSidebar   }) => {
                 </li>
               </>
             )}
-            {(user && (user.rol_id === 1 || user.rol_id === 2)) && (
+            {(user && (user.rol_id ===  1 || user.rol_id === 2)) && (
               <li className="nav-item">
                 <Link 
                   to="?component=dashboard"
                   className="nav-link"
-                  onClick={() => handleSetActiveComponent('dashboard')} 
+                  onClick={() => {
+                    handleSetActiveComponent('dashboard');
+                    handleLinkClick(); // Cierra el sidebar
+                  }} 
                 >
                   <i className="nav-icon fas fa-chart-pie"></i>
                   <p>Dashboard</p>

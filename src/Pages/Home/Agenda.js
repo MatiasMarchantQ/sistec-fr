@@ -18,6 +18,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
     const [allFichas, setAllFichas] = useState([]);
     const [asignaciones, setAsignaciones] = useState([]);
     const [selectedCentro, setSelectedCentro] = useState(null);
+    const [fichasPorInstitucion, setFichasPorInstitucion] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
@@ -82,6 +83,22 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
         } else {
             setMonth(month + 1);
         }
+    };
+
+    const isPeriodExpired = (periodoString) => {
+        if (!periodoString) return false;
+
+        // Extract end date from the periodo string
+        const [, endDateString] = periodoString.split(' al ');
+        if (!endDateString) return false;
+
+        // Convert end date string to Date object
+        const [day, month, year] = endDateString.split('-').map(Number);
+        const endDate = new Date(year, month - 1, day);
+
+        // Compare with current date
+        const currentDate = new Date();
+        return currentDate > endDate;
     };
 
     const agruparAsignacionesPorPeriodo = (asignaciones) => {
@@ -175,6 +192,15 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
 
             if (response.data && Array.isArray(response.data.asignaciones)) {
                 const asignacionesGrupadas = agruparAsignacionesPorPeriodo(response.data.asignaciones);
+                
+                const asignacionesConFichas = asignacionesGrupadas.map(rotacion => ({
+                    ...rotacion,
+                    instituciones: rotacion.instituciones.map(inst => ({
+                        ...inst,
+                        fichasClinicas: fichasPorInstitucion[inst.id] || []
+                    }))
+                }));
+
                 setAsignaciones(asignacionesGrupadas);
                 setPaginationInfo(prev => ({
                     ...prev,
@@ -202,6 +228,11 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
         // Agregar todas las dependencias necesarias
     }, [month, year, paginationInfo.page, searchTerm, getToken]);
 
+    // Limpiar fichas cuando cambian los filtros principales
+    useEffect(() => {
+        setFichasPorInstitucion({});
+    }, [month, year, searchTerm]);
+
 
     const fetchFichasClinicas = async (institucionId) => {
         try {
@@ -227,15 +258,24 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
 
     const handleCentroClick = async (periodoId, centroId) => {
         const uniqueId = `${periodoId}-${centroId}`;
-
+    
         if (selectedCentro === uniqueId) {
             setSelectedCentro(null);
         } else {
-            setSelectedCentro(uniqueId);
             setLoading(true);
-
             try {
-                const fichas = await fetchFichasClinicas(centroId);
+                let fichas = fichasPorInstitucion[centroId];
+    
+                // Si las fichas no están cargadas, obtenerlas de forma inmediata
+                if (!fichas) {
+                    fichas = await fetchFichasClinicas(centroId);
+                    setFichasPorInstitucion(prev => ({
+                        ...prev,
+                        [centroId]: fichas
+                    }));
+                }
+    
+                // Actualizar asignaciones con las fichas obtenidas
                 setAsignaciones(prevAsignaciones =>
                     prevAsignaciones.map(rotacion => ({
                         ...rotacion,
@@ -246,6 +286,9 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                         )
                     }))
                 );
+    
+                // Actualizar el estado del centro seleccionado después de cargar
+                setSelectedCentro(uniqueId);
             } catch (error) {
                 console.error('Error al obtener fichas:', error);
             } finally {
@@ -253,6 +296,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
             }
         }
     };
+    
 
     const handleIngresarFicha = useCallback(async (institucionId) => {
         try {
@@ -287,19 +331,19 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
             console.error('ID de institución no definido');
             return;
         }
-    
+
         // Reiniciar estados del modal
         setModalSearchTerm('');
         setModalFechasFiltro({ fechaInicio: '', fechaFin: '' });
         setModalFiltroReevaluacion('');
-        
+
         // Actualizar el estado de paginación antes de la petición
         setModalPaginationInfo(prev => ({
             ...prev,
             page: 1,
             currentInstitucionId: institucionId
         }));
-    
+
         setShowAllFichasModal(true);
     };
 
@@ -376,12 +420,12 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
             if (!showAllFichasModal || !modalPaginationInfo.currentInstitucionId) {
                 return;
             }
-    
+
             setLoading(true);
             try {
                 const token = getToken();
                 const apiUrl = process.env.REACT_APP_API_URL;
-    
+
                 const response = await axios.get(
                     `${apiUrl}/fichas-clinicas/institucion/${modalPaginationInfo.currentInstitucionId}`,
                     {
@@ -396,7 +440,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                         }
                     }
                 );
-    
+
                 setAllFichas(response.data.data);
                 setModalPaginationInfo(prev => ({
                     ...prev,
@@ -409,7 +453,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                 setLoading(false);
             }
         };
-    
+
         loadModalData();
     }, [
         showAllFichasModal,
@@ -581,16 +625,18 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                                         {selectedCentro === `${rotacion.periodo}-${institucion.id}` && (
                                             <div className="institucion-actions mt-3">
                                                 {/* Botón para ingresar nueva ficha */}
-                                                <button
-                                                    className="btn btn-primary btn-sm mr-2"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleIngresarFicha(institucion.id);
-                                                    }}
-                                                >
-                                                    <i className="fas fa-plus-circle mr-1"></i>
-                                                    Ingresar Ficha
-                                                </button>
+                                                {(user.rol_id !== 3 || !isPeriodExpired(rotacion.periodo)) && (
+                                                    <button
+                                                        className="btn btn-primary btn-sm mr-2"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleIngresarFicha(institucion.id);
+                                                        }}
+                                                    >
+                                                        <i className="fas fa-plus-circle mr-1"></i>
+                                                        Ingresar Ficha
+                                                    </button>
+                                                )}
 
                                                 {/* Fichas existentes o botón para ver más */}
                                                 {institucion.fichasClinicas && institucion.fichasClinicas.length > 0 ? (

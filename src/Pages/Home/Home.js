@@ -60,57 +60,66 @@ const Home = () => {
     const searchParams = new URLSearchParams(location.search);
     const componentFromURL = searchParams.get('component');
   
+    let shouldShowErrorToast = false;
+    let componentToSet = 'agenda'; // Valor por defecto seguro
+  
+    // Verificación de permisos con lógica más específica
+    const checkComponentPermission = (component) => {
+      // Si no hay usuario, considerar sin permisos
+      if (!user) return false;
+  
+      // Si el componente no está en la lista de permisos, asumir permitido
+      if (!componentPermissions[component]) return true;
+  
+      // Verificar si el rol actual tiene permiso
+      return componentPermissions[component].includes(user.rol_id);
+    };
+  
     if (componentFromURL) {
       if (location.state && location.state.fichaId) {
-        // Si viene de un tab con state, permitir la navegación
-        if (hasPermission(componentFromURL)) {
-          setActiveComponent(componentFromURL);
+        // Manejo de tabs con state
+        if (checkComponentPermission(componentFromURL)) {
+          componentToSet = componentFromURL;
           setSelectedFichaId(location.state.fichaId);
           setSelectedTipo(location.state.tipo);
-          setLastValidComponent(componentFromURL);
         } else {
-          if (!isInitialLoad) {
-            toast.error('No tienes autorización para acceder a esta sección');
-          }
-          setActiveComponent(lastValidComponent);
+          shouldShowErrorToast = !isInitialLoad;
         }
-      } else if (hasPermission(componentFromURL)) {
-        setActiveComponent(componentFromURL);
-        setLastValidComponent(componentFromURL);
+      } else if (!checkComponentPermission(componentFromURL)) {
+        shouldShowErrorToast = !isInitialLoad;
       } else {
-        if (!isInitialLoad && lastValidComponent !== 'agenda') {
-          toast.error('No tienes autorización para acceder a esta sección');
-        }
-        setActiveComponent(lastValidComponent);
+        componentToSet = componentFromURL;
       }
     } else if (location.state && location.state.component) {
       const { component, fichaId, tipo } = location.state;
   
       if (component === 'ficha-clinica' || component === 'reevaluacion') {
         if (!fichaId || !tipo) {
-          setActiveComponent('listado-fichas-clinicas');
-        } else if (hasPermission(component)) {
-          setActiveComponent(component);
+          componentToSet = 'listado-fichas-clinicas';
+        } else if (checkComponentPermission(component)) {
+          componentToSet = component;
           setSelectedFichaId(fichaId);
           setSelectedTipo(tipo);
-          setLastValidComponent(component);
         } else {
-          if (!isInitialLoad) {
-            toast.error('No tienes autorización para acceder a esta sección');
-          }
-          setActiveComponent(lastValidComponent);
+          shouldShowErrorToast = !isInitialLoad;
         }
-      } else if (hasPermission(component)) {
-        setActiveComponent(component);
-        setLastValidComponent(component);
+      } else if (checkComponentPermission(component)) {
+        componentToSet = component;
       } else {
-        if (!isInitialLoad) {
-          toast.error('No tienes autorización para acceder a esta sección');
-        }
-        setActiveComponent(lastValidComponent);
+        shouldShowErrorToast = !isInitialLoad;
       }
     }
-
+  
+    // Mostrar toast solo una vez y no en la carga inicial
+    if (shouldShowErrorToast) {
+      toast.error('No tienes autorización para acceder a esta sección');
+    }
+  
+    // Establecer el componente activo
+    setActiveComponent(componentToSet);
+    setLastValidComponent(componentToSet);
+  
+    // Marcar carga inicial como completada
     if (isInitialLoad) {
       setIsInitialLoad(false);
     }

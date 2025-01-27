@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'admin-lte/dist/css/adminlte.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -100,6 +101,7 @@ const CambiarContrasena = () => {
       localStorage.clear();
       sessionStorage.clear();
 
+      toast.success("Contraseña actualizada exitosamente");
       navigate('/');
     } catch (error) {
       console.error('Error completo:', error);

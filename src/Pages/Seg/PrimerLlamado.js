@@ -111,7 +111,7 @@ const PrimerLlamado = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
+ 
     // Validaciones
     const validaciones = [
       {
@@ -123,19 +123,54 @@ const PrimerLlamado = ({
         mensaje: 'Debe indicar la fecha de la herida'
       },
       {
+        condicion: seguimiento.riesgoInfeccion.herida && seguimiento.riesgoInfeccion.necesitaDerivacion === undefined,
+        mensaje: 'Debe indicar si necesita derivación a Centro de Salud'
+      },
+      {
         condicion: seguimiento.riesgoInfeccion.dolorNeuropatico === undefined,
         mensaje: 'Debe indicar si ha presentado dolor neuropático'
+      },
+      {
+        condicion: seguimiento.riesgoInfeccion.dolorNeuropatico && seguimiento.riesgoInfeccion.intensidadDolor === undefined,
+        mensaje: 'Debe indicar la intensidad del dolor neuropático'
       },
       {
         condicion: seguimiento.riesgoGlicemia.hipoglicemia === undefined,
         mensaje: 'Debe indicar si ha presentado signos de hipoglicemia'
       },
       {
+        condicion: seguimiento.riesgoGlicemia.hipoglicemia && seguimiento.riesgoGlicemia.realizoIntervencionHipoglicemia === undefined,
+        mensaje: 'Debe indicar si realizó intervención para hipoglicemia'
+      },
+      {
         condicion: seguimiento.riesgoGlicemia.hiperglicemia === undefined,
         mensaje: 'Debe indicar si ha presentado signos de hiperglicemia'
       },
       {
+        condicion: seguimiento.riesgoGlicemia.hiperglicemia && seguimiento.riesgoGlicemia.realizoIntervencionHiperglicemia === undefined,
+        mensaje: 'Debe indicar si realizó intervención para hiperglicemia'
+      },
+      {
+        condicion: !seguimiento.riesgoHipertension.dolorPecho &&
+                   !seguimiento.riesgoHipertension.dolorCabeza &&
+                   !seguimiento.riesgoHipertension.zumbidoOidos &&
+                   !seguimiento.riesgoHipertension.nauseaVomitos,
+        mensaje: 'Debe seleccionar al menos un síntoma o marcar que no presenta ninguno'
+      },
+      {
         condicion: seguimiento.adherencia.olvido === undefined,
+        mensaje: 'Debe completar el Test Morisky-Green'
+      },
+      {
+        condicion: seguimiento.adherencia.horaIndicada === undefined,
+        mensaje: 'Debe completar el Test Morisky-Green'
+      },
+      {
+        condicion: seguimiento.adherencia.dejaRemedio === undefined,
+        mensaje: 'Debe completar el Test Morisky-Green'
+      },
+      {
+        condicion: seguimiento.adherencia.dejaRemedioMal === undefined,
         mensaje: 'Debe completar el Test Morisky-Green'
       },
       {
@@ -143,21 +178,20 @@ const PrimerLlamado = ({
         mensaje: 'Debe completar la evaluación de autoeficacia'
       }
     ];
-
+ 
     const errorValidacion = validaciones.find(val => val.condicion);
-
+ 
     if (errorValidacion) {
       toast.error(errorValidacion.mensaje);
       return;
     }
-
+ 
     const dataToSubmit = {
       ...seguimiento,
-      estudiante_id: user.estudiante_id || null, // Esto debería ser null
-      usuario_id: user.id || null // Esto debería ser 1
+      estudiante_id: user.estudiante_id || null,
+      usuario_id: user.id || null
     };
-
-    // Si pasa validaciones, llamar a la función de completar
+ 
     onComplete(dataToSubmit);
   };
 

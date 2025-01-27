@@ -491,6 +491,35 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
   };
 
   const guardarSeguimiento = async () => {
+    // Obtener los hitos para el grupo de edad actual
+    const hitosEsperados = HITOS_DESARROLLO[seguimiento.grupoEdad] || {};
+
+    // Campos a validar basados en los hitos disponibles para este grupo de edad
+    const camposAValidar = Object.keys(hitosEsperados).map(area => {
+      const mapeoArea = {
+        'motorGrueso': 'Motor Grueso',
+        'motorFino': 'Motor Fino',
+        'cognoscitivo': 'Área Cognoscitiva',
+        'comunicacion': 'Comunicación',
+        'socioemocional': 'Área Socioemocional'
+      };
+      return {
+        campo: area,
+        mensaje: mapeoArea[area]
+      };
+    });
+
+    // Verificar campos no completados
+    const camposNoCompletados = camposAValidar.filter(
+      ({ campo }) => seguimiento.areaDPM[campo] === null
+    );
+
+    if (camposNoCompletados.length > 0) {
+      const camposFaltantes = camposNoCompletados.map(c => c.mensaje).join(', ');
+      toast.warning(`Por favor, complete los siguientes campos: ${camposFaltantes}`);
+      return;
+    }
+
     try {
       const token = getToken();
 
@@ -952,11 +981,11 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
         const sectionHeader = sections[i].querySelector('h5');
 
         if (sectionHeader && sectionHeader.textContent === 'Recomendaciones') {
-            await procesarRecomendaciones(selectedSeguimiento.recomendaciones);
+          await procesarRecomendaciones(selectedSeguimiento.recomendaciones);
         } else {
-            await procesarSeccion(sections[i]);
+          await procesarSeccion(sections[i]);
         }
-    }
+      }
 
       const fechaActual = obtenerFechaActual();
       pdf.save(`${seguimiento.paciente_infantil?.rut}_${fechaActual}_seguimiento_infantil_${seguimiento.numero_llamado || 'detalles'}.pdf`);
