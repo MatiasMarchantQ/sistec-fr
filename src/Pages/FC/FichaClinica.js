@@ -149,6 +149,13 @@ const FichaClinicaAdulto = ({ fichaClinica }) => {
 };
 
 const FichaClinicaInfantil = ({ fichaClinica }) => {
+  const tieneDatosTEPSI = (fichaClinica.evaluacionPsicomotora?.puntajeDPM &&
+    fichaClinica.evaluacionPsicomotora?.puntajeDPM !== 'N/A' &&
+    fichaClinica.evaluacionPsicomotora?.puntajeDPM !== '') ||
+    (fichaClinica.evaluacionPsicomotora?.diagnosticoTEPSI &&
+      fichaClinica.evaluacionPsicomotora?.diagnosticoTEPSI !== 'N/A' &&
+      fichaClinica.evaluacionPsicomotora?.diagnosticoTEPSI !== '');
+
   return (
     <>
       <div className="row mb-4">
@@ -170,11 +177,33 @@ const FichaClinicaInfantil = ({ fichaClinica }) => {
         </div>
 
         <div className="col-md-6">
-          <h5 className="border-bottom pb-2">Evaluación Psicomotora</h5>
+          <h5 className="border-bottom pb-2">Evaluación Psicomotora ({tieneDatosTEPSI ? 'TEPSI' : 'DSM'})</h5>
           <div className="row">
-            <div className="col-md-6">
-              <p><strong>Puntaje DPM:</strong> {fichaClinica.evaluacionPsicomotora?.puntajeDPM}</p>
-              <p><strong>Diagnóstico DSM:</strong> {fichaClinica.evaluacionPsicomotora?.diagnosticoDSM}</p>
+            <div className="col-md-12">
+              {tieneDatosTEPSI ? (
+                <>
+                  <p><strong>Puntaje DPM:</strong> {fichaClinica.evaluacionPsicomotora?.puntajeDPM ?? 'No especificado'}</p>
+                  <p><strong>Diagnóstico TEPSI:</strong> {fichaClinica.evaluacionPsicomotora?.diagnosticoTEPSI ?? 'No especificado'}</p>
+                </>
+              ) : (
+                <>
+                  <div className='row'>
+                    <div className="col-md-6">
+                      <p><strong>Edad Mental:</strong> {fichaClinica.evaluacionPsicomotora?.edadMental || 'No especificado'}</p>
+                      <p><strong>EM/EC:</strong> {fichaClinica.evaluacionPsicomotora?.emEc || 'No especificado'}</p>
+                      <p><strong>PE:</strong> {fichaClinica.evaluacionPsicomotora?.pe || 'No especificado'}</p>
+                      <p><strong>Coeficiente de Desarrollo:</strong> {fichaClinica.evaluacionPsicomotora?.coeficienteDesarrollo || 'No especificado'}</p>
+                      <p><strong>Diagnóstico DSM:</strong> {fichaClinica.evaluacionPsicomotora?.diagnosticoDSM || 'No especificado'}</p>
+                    </div>
+                    <div className="col-md-6">
+                      <p><strong>Área Coordinación:</strong> {fichaClinica.evaluacionPsicomotora?.areasEvaluacion?.areaCoordinacion || 'No especificado'}</p>
+                      <p><strong>Área Social:</strong> {fichaClinica.evaluacionPsicomotora?.areasEvaluacion?.areaSocial || 'No especificado'}</p>
+                      <p><strong>Área Lenguaje:</strong> {fichaClinica.evaluacionPsicomotora?.areasEvaluacion?.areaLenguaje || 'No especificado'}</p>
+                      <p><strong>Área Motora:</strong> {fichaClinica.evaluacionPsicomotora?.areasEvaluacion?.areaMotora || 'No especificado'}</p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -367,6 +396,17 @@ const formatearFichaInfantil = (fichaClinica) => {
     },
     evaluacionPsicomotora: {
       puntajeDPM: fichaClinica.evaluacionPsicomotora?.puntajeDPM || 'N/A',
+      diagnosticoTEPSI: fichaClinica.evaluacionPsicomotora?.diagnosticoTEPSI || 'N/A',
+      edadMental: fichaClinica.evaluacionPsicomotora?.edadMental || 'N/A',
+      emEc: fichaClinica.evaluacionPsicomotora?.emEc || 'N/A',
+      pe: fichaClinica.evaluacionPsicomotora?.pe || 'N/A',
+      coeficienteDesarrollo: fichaClinica.evaluacionPsicomotora?.coeficienteDesarrollo || 'N/A',
+      areasEvaluacion: {
+        areaCoordinacion: fichaClinica.evaluacionPsicomotora?.areasEvaluacion?.areaCoordinacion || 'N/A',
+        areaSocial: fichaClinica.evaluacionPsicomotora?.areasEvaluacion?.areaSocial || 'N/A',
+        areaLenguaje: fichaClinica.evaluacionPsicomotora?.areasEvaluacion?.areaLenguaje || 'N/A',
+        areaMotora: fichaClinica.evaluacionPsicomotora?.areasEvaluacion?.areaMotora || 'N/A',
+      },
       diagnosticoDSM: fichaClinica.evaluacionPsicomotora?.diagnosticoDSM || 'N/A'
     },
     informacionFamiliar: {
@@ -593,6 +633,18 @@ const FichaClinica = () => {
       'conectividad'
     ] : [
       'evaluacionPsicomotora.puntajeDPM',
+      'evaluacionPsicomotora.diagnosticoTEPSI',
+      // Campos DSM
+      'evaluacionPsicomotora.edadMental',
+      'evaluacionPsicomotora.emEc',
+      'evaluacionPsicomotora.pe',
+      'evaluacionPsicomotora.coeficienteDesarrollo',
+
+      // Áreas de evaluación
+      'evaluacionPsicomotora.areasEvaluacion.areaCoordinacion',
+      'evaluacionPsicomotora.areasEvaluacion.areaSocial',
+      'evaluacionPsicomotora.areasEvaluacion.areaLenguaje',
+      'evaluacionPsicomotora.areasEvaluacion.areaMotora',
       'evaluacionPsicomotora.diagnosticoDSM',
       'informacionFamiliar.conQuienVive',
       'informacionFamiliar.localidad',
@@ -630,6 +682,15 @@ const FichaClinica = () => {
         'horarioLlamada': 'Horario de Llamada',
         'conectividad': 'Conectividad',
         'evaluacionPsicomotora.puntajeDPM': 'Puntaje DPM',
+        'evaluacionPsicomotora.diagnosticoTEPSI': 'Diagnóstico DSM',
+        'evaluacionPsicomotora.edadMental': 'Edad Mental',
+        'evaluacionPsicomotora.emEc': 'EMEC',
+        'evaluacionPsicomotora.pe': 'PE',
+        'evaluacionPsicomotora.coeficienteDesarrollo': 'Coeficiente Desarrollo',
+        'evaluacionPsicomotora.areasEvaluacion.areaCoordinacion': 'Área Coordinación',
+        'evaluacionPsicomotora.areasEvaluacion.areaSocial': 'Área Social',
+        'evaluacionPsicomotora.areasEvaluacion.areaLenguaje': 'Área Lenguaje',
+        'evaluacionPsicomotora.areasEvaluacion.areaMotora': 'Área Motora',
         'evaluacionPsicomotora.diagnosticoDSM': 'Diagnóstico DSM',
         'informacionFamiliar.conQuienVive': 'Con Quién Vive',
         'informacionFamiliar.localidad': 'Localidad',
@@ -1068,9 +1129,28 @@ const FichaClinica = () => {
                                         </button>
                                       )
                                     )}
-                                    <h6 className="border-bottom pb-2">Evaluación Psicomotora</h6>
-                                    <p><strong>Puntaje DPM:</strong> {reevaluacion.evaluacionPsicomotora?.puntajeDPM || 'N/A'}</p>
-                                    <p><strong>Diagnóstico DSM:</strong> {reevaluacion.evaluacionPsicomotora?.diagnosticoDSM || 'N/A'}</p>
+                                    {/* Versión corregida - verificar si ambos campos TEPSI son null o "N/A" */}
+                                    {(reevaluacion.evaluacionPsicomotora?.puntajeDPM === null || reevaluacion.evaluacionPsicomotora?.puntajeDPM === "N/A") &&
+                                      (reevaluacion.evaluacionPsicomotora?.diagnosticoTEPSI === null || reevaluacion.evaluacionPsicomotora?.diagnosticoTEPSI === "N/A") ? (
+                                      <>
+                                        <h6 className='border-bottom pb-2'>Diagnóstico Clínico (DSM)</h6>
+                                        <p><strong>Edad Mental:</strong> {reevaluacion.evaluacionPsicomotora?.edadMental || 'N/A'}</p>
+                                        <p><strong>EM/EC:</strong> {reevaluacion.evaluacionPsicomotora?.emEc || 'N/A'}</p>
+                                        <p><strong>PE:</strong> {reevaluacion.evaluacionPsicomotora?.pe || 'N/A'}</p>
+                                        <p><strong>Coeficiente de Desarrollo:</strong> {reevaluacion.evaluacionPsicomotora?.coeficienteDesarrollo || 'N/A'}</p>
+                                        <p><strong>Área Coordinación:</strong> {reevaluacion.evaluacionPsicomotora?.areasEvaluacion?.areaCoordinacion || 'N/A'}</p>
+                                        <p><strong>Área Social:</strong> {reevaluacion.evaluacionPsicomotora?.areasEvaluacion?.areaSocial || 'N/A'}</p>
+                                        <p><strong>Área Lenguaje:</strong> {reevaluacion.evaluacionPsicomotora?.areasEvaluacion?.areaLenguaje || 'N/A'}</p>
+                                        <p><strong>Área Motora:</strong> {reevaluacion.evaluacionPsicomotora?.areasEvaluacion?.areaMotora || 'N/A'}</p>
+                                        <p><strong>Diagnóstico DSM:</strong> {reevaluacion.evaluacionPsicomotora?.diagnosticoDSM || 'N/A'}</p>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <h6 className='border-bottom pb-2'>Evaluación Psicomotora (TEPSI)</h6>
+                                        <p><strong>Puntaje DPM:</strong> {reevaluacion.evaluacionPsicomotora?.puntajeDPM || 'N/A'}</p>
+                                        <p><strong>Diagnóstico TEPSI:</strong> {reevaluacion.evaluacionPsicomotora?.diagnosticoTEPSI || 'N/A'}</p>
+                                      </>
+                                    )}
                                   </div>
                                   <div className="col-md-6">
                                     <h6 className="border-bottom pb-2 mt-4" style={{ 'paddingTop': '12px' }}>Información Familiar</h6>

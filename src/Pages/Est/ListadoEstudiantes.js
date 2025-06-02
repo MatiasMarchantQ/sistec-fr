@@ -943,11 +943,11 @@ const Estudiantes = () => {
                 value={nuevoEstudiante.rut}
                 onChange={handleInputChange}
                 required
-                placeholder="Ej: 12.345.678-9"
+                placeholder="Ej: 12345678"
                 pattern="\d{1,2}\.\d{3}\.\d{3}[-][0-9kK]{1}"
               />
               <Form.Text className="text-muted">
-                Ingrese RUT con formato: 12.345.678-9
+                Ingrese RUT sin puntos, ni guión ni dígito verificador
               </Form.Text>
             </Form.Group>
 

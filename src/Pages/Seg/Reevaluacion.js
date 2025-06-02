@@ -22,6 +22,7 @@ const Reevaluacion = () => {
   const [reevaluaciones, setReevaluaciones] = useState([]);
   const [reevaluacionSeleccionada, setReevaluacionSeleccionada] = useState(null);
   const [modoEdicion, setModoEdicion] = useState(false);
+  const [mostrandoFormulario, setMostrandoFormulario] = useState(false);
 
   const handleVolver = () => {
     navigate(-1);
@@ -91,8 +92,31 @@ const Reevaluacion = () => {
       evaluacionPsicomotora: {
         puntajeDPM: fichaClinica.evaluacionPsicomotora?.puntajeDPM ||
           fichaClinica.puntajeDPM || '',
+        diagnosticoTEPSI: fichaClinica.evaluacionPsicomotora?.diagnosticoTEPSI ||
+          fichaClinica.diagnosticoTEPSI || '',
+        // Campos DSM
         diagnosticoDSM: fichaClinica.evaluacionPsicomotora?.diagnosticoDSM ||
-          fichaClinica.diagnosticoDSM || ''
+          fichaClinica.diagnosticoDSM || '',
+        edadMental: fichaClinica.evaluacionPsicomotora?.edadMental ||
+          fichaClinica.edadMental || '',
+        emEc: fichaClinica.evaluacionPsicomotora?.emEc ||
+          fichaClinica.emEc || '',
+        pe: fichaClinica.evaluacionPsicomotora?.pe ||
+          fichaClinica.pe || '',
+        coeficienteDesarrollo: fichaClinica.evaluacionPsicomotora?.coeficienteDesarrollo ||
+          fichaClinica.coeficienteDesarrollo || '',
+
+        // Áreas de evaluación
+        areasEvaluacion: {
+          areaCoordinacion: fichaClinica.evaluacionPsicomotora?.areasEvaluacion?.areaCoordinacion ||
+            fichaClinica.areasEvaluacion?.areaCoordinacion || '',
+          areaSocial: fichaClinica.evaluacionPsicomotora?.areasEvaluacion?.areaSocial ||
+            fichaClinica.areasEvaluacion?.areaSocial || '',
+          areaLenguaje: fichaClinica.evaluacionPsicomotora?.areasEvaluacion?.areaLenguaje ||
+            fichaClinica.areasEvaluacion?.areaLenguaje || '',
+          areaMotora: fichaClinica.evaluacionPsicomotora?.areasEvaluacion?.areaMotora ||
+            fichaClinica.areasEvaluacion?.areaMotora || ''
+        }
       },
 
       // Información Familiar
@@ -422,8 +446,31 @@ const Reevaluacion = () => {
                   evaluacionPsicomotora: {
                     puntajeDPM: ultimaReevaluacion.evaluacionPsicomotora?.puntajeDPM ||
                       responseData.evaluacionPsicomotora?.puntajeDPM || '',
-                    diagnosticoDSM: ultimaReevaluacion.evaluacionPsicomotora?.diagnosticoDSM ||
-                      responseData.evaluacionPsicomotora?.diagnosticoDSM || ''
+                    diagnosticoTEPSI: ultimaReevaluacion.evaluacionPsicomotora?.diagnosticoTEPSI ||
+                      responseData.evaluacionPsicomotora?.diagnosticoTEPSI || '',
+                    // Campos DSM
+                    diagnosticoDSM: responseData.evaluacionPsicomotora?.diagnosticoDSM ||
+                      responseData.diagnosticoDSM || '',
+                    edadMental: responseData.evaluacionPsicomotora?.edadMental ||
+                      responseData.edadMental || '',
+                    emEc: responseData.evaluacionPsicomotora?.emEc ||
+                      responseData.emEc || '',
+                    pe: responseData.evaluacionPsicomotora?.pe ||
+                      responseData.pe || '',
+                    coeficienteDesarrollo: responseData.evaluacionPsicomotora?.coeficienteDesarrollo ||
+                      responseData.coeficienteDesarrollo || '',
+
+                    // Áreas de evaluación
+                    areasEvaluacion: {
+                      coordinacion: responseData.evaluacionPsicomotora?.areasEvaluacion?.coordinacion ||
+                        responseData.areasEvaluacion?.coordinacion || '',
+                      social: responseData.evaluacionPsicomotora?.areasEvaluacion?.social ||
+                        responseData.areasEvaluacion?.social || '',
+                      lenguaje: responseData.evaluacionPsicomotora?.areasEvaluacion?.lenguaje ||
+                        responseData.areasEvaluacion?.lenguaje || '',
+                      motora: responseData.evaluacionPsicomotora?.areasEvaluacion?.motora ||
+                        responseData.areasEvaluacion?.motora || ''
+                    }
                   },
 
                   // Información Familiar
@@ -528,7 +575,30 @@ const Reevaluacion = () => {
                 ...parseEdad(responseData.paciente?.edad),
                 evaluacionPsicomotora: {
                   puntajeDPM: responseData.evaluacionPsicomotora?.puntajeDPM || '',
-                  diagnosticoDSM: responseData.evaluacionPsicomotora?.diagnosticoDSM || ''
+                  diagnosticoTEPSI: responseData.evaluacionPsicomotora?.diagnosticoTEPSI || '',
+                  // Campos DSM
+                  diagnosticoDSM: responseData.evaluacionPsicomotora?.diagnosticoDSM ||
+                    responseData.diagnosticoDSM || '',
+                  edadMental: responseData.evaluacionPsicomotora?.edadMental ||
+                    responseData.edadMental || '',
+                  emEc: responseData.evaluacionPsicomotora?.emEc ||
+                    responseData.emEc || '',
+                  pe: responseData.evaluacionPsicomotora?.pe ||
+                    responseData.pe || '',
+                  coeficienteDesarrollo: responseData.evaluacionPsicomotora?.coeficienteDesarrollo ||
+                    responseData.coeficienteDesarrollo || '',
+
+                  // Áreas de evaluación
+                  areasEvaluacion: {
+                    areaCoordinacion: responseData.evaluacionPsicomotora?.areasEvaluacion?.areaCoordinacion ||
+                      responseData.areasEvaluacion?.areaCoordinacion || '',
+                    areaSocial: responseData.evaluacionPsicomotora?.areasEvaluacion?.areaSocial ||
+                      responseData.areasEvaluacion?.areaSocial || '',
+                    areaLenguaje: responseData.evaluacionPsicomotora?.areasEvaluacion?.areaLenguaje ||
+                      responseData.areasEvaluacion?.areaLenguaje || '',
+                    areaMotora: responseData.evaluacionPsicomotora?.areasEvaluacion?.areaMotora ||
+                      responseData.areasEvaluacion?.motora || ''
+                  }
                 },
                 informacionFamiliar: {
                   conQuienVive: responseData.informacionFamiliar?.conQuienVive || '',
@@ -565,7 +635,10 @@ const Reevaluacion = () => {
 
   const handleReevaluacionExitosa = (nuevaFicha) => {
     toast.success('Reevaluación registrada exitosamente', {
-        toastId: 'reevaluacion-success' // Esto evita duplicados
+      toastId: 'reevaluacion-success', // Esto evita duplicados
+    onClose: () => {
+        window.location.reload();
+      }
     });
     setUltimaReevaluacion(nuevaFicha); // Actualizar la última reevaluación
     // navigate('?component=listado-fichas-clinicas', {

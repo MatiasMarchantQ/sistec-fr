@@ -8,8 +8,8 @@ import { toast } from 'react-toastify';
 Chart.register(...registerables);
 
 // Componente de gráfico de barras optimizado
-const InstitucionesChart = React.memo(({ 
-  estadisticasPorInstitucion, 
+const InstitucionesChart = React.memo(({
+  estadisticasPorInstitucion,
   semestre,
   tipoInstitucion, // Nuevo prop
   institucionId    // Nuevo prop
@@ -20,8 +20,8 @@ const InstitucionesChart = React.memo(({
     const filteredInstituciones = estadisticasPorInstitucion.filter(i => {
       // Filtro de semestre
       const semestreFiltro = (semestre === 'primero' && i.tipoInstitucion === 'JARDÍN') ||
-                              (semestre === 'segundo' && i.tipoInstitucion !== 'JARDÍN') ||
-                              semestre === '';
+        (semestre === 'segundo' && i.tipoInstitucion !== 'JARDÍN') ||
+        semestre === '';
 
       // Filtro de tipo de institución
       const tipoInstitucionFiltro = !tipoInstitucion || i.tipoInstitucion === tipoInstitucion;
@@ -110,11 +110,11 @@ const InstitucionesChart = React.memo(({
       },
       title: {
         display: true,
-        text: semestre === 'primero' 
-          ? 'Instituciones de Jardín' 
-          : semestre === 'segundo' 
-          ? 'Instituciones CESFAM y Postas' 
-          : 'Todas las Instituciones'
+        text: semestre === 'primero'
+          ? 'Instituciones de Jardín'
+          : semestre === 'segundo'
+            ? 'Instituciones CESFAM y Postas'
+            : 'Todas las Instituciones'
       }
     },
     animation: {
@@ -133,9 +133,9 @@ const InstitucionesChart = React.memo(({
   }
 
   return (
-    <div 
-      style={{ 
-        height: '400px', 
+    <div
+      style={{
+        height: '400px',
         position: 'relative',
         width: '100%'
       }}
@@ -164,17 +164,17 @@ const useEstablePalette = (length) => {
       'rgba(210, 99, 132, 0.6)'    // Rosa oscuro
     ];
 
-    return Array.from({ length }, (_, index) => 
+    return Array.from({ length }, (_, index) =>
       paleta[index % paleta.length]
     );
   }, [length]);
 };
 
 // Componente de gráfico optimizado
-const DiagnosticosChart = ({ 
-  diagnosticos, 
-  tipo = 'pie', 
-  title 
+const DiagnosticosChart = ({
+  diagnosticos,
+  tipo = 'pie',
+  title
 }) => {
   // Generar colores estables
   const backgroundColor = useEstablePalette(diagnosticos.length);
@@ -201,7 +201,7 @@ const DiagnosticosChart = ({
         borderColor: 'gray',
         borderWidth: 1,
         callbacks: {
-          label: function(context) {
+          label: function (context) {
             const label = context.label || '';
             const value = context.parsed || 0;
             const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -244,13 +244,13 @@ const DiagnosticosChart = ({
   const ChartComponent = tipo === 'pie' ? Pie : Doughnut;
 
   return (
-    <div 
-      style={{ 
-        height: '300px', 
-        position: 'relative' 
+    <div
+      style={{
+        height: '300px',
+        position: 'relative'
       }}
     >
-      <ChartComponent 
+      <ChartComponent
         data={chartData}
         options={chartOptions}
         plugins={[
@@ -350,7 +350,7 @@ const Dashboard = () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/instituciones`, {
         headers: { 'Authorization': `Bearer ${token}` },
-        params: { 
+        params: {
           tipo: filters.tipoInstitucion,
           estado: 'activas'
         }
@@ -367,12 +367,12 @@ const Dashboard = () => {
     if (!token) return;
 
     const { year, semestre, tipoInstitucion, institucionId } = filters;
-    
+
     // Calcular fechas
-    const fechaInicio = semestre === 'primero' 
-      ? `${year}-01-01T00:00:00Z` 
+    const fechaInicio = semestre === 'primero'
+      ? `${year}-01-01T00:00:00Z`
       : `${year}-07-01T00:00:00Z`;
-    
+
     const fechaFin = semestre === 'primero'
       ? `${year}-06-30T23:59:59Z`
       : `${year}-12-31T23:59:59Z`;
@@ -381,10 +381,10 @@ const Dashboard = () => {
       setLoading(true);
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/reportes/dashboard`, {
         headers: { 'Authorization': `Bearer ${token}` },
-        params: { 
+        params: {
           year,
-          fechaInicio, 
-          fechaFin, 
+          fechaInicio,
+          fechaFin,
           institucionId,
           semestre: semestre === '' ? null : semestre,
           tipoInstitucion
@@ -398,7 +398,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-}, [token, filters]);
+  }, [token, filters]);
 
   // Efectos para cargar datos
   useEffect(() => {
@@ -418,15 +418,15 @@ const Dashboard = () => {
     setFilters(prev => {
       // Si cambia el tipo de institución, resetear institución
       if (key === 'tipoInstitucion') {
-        return { 
-          ...prev, 
+        return {
+          ...prev,
           [key]: value,
-          institucionId: '' 
+          institucionId: ''
         };
       }
-      return { 
-        ...prev, 
-        [key]: value 
+      return {
+        ...prev,
+        [key]: value
       };
     });
   }, []);
@@ -447,82 +447,131 @@ const Dashboard = () => {
     ];
 
     // Si se necesitan más colores, repetir la paleta
-    return Array.from({ length: cantidad }, (_, index) => 
+    return Array.from({ length: cantidad }, (_, index) =>
       paleta[index % paleta.length]
     );
   };
 
-  // Componente de resumen cuando no están todos los años
   const ResumenEvolucionPacientes = ({ tendencias, filters }) => {
-    // Función para determinar si es primer semestre (infantil) o segundo semestre (adulto)
     const esPrimerSemestre = ['primero', 'primer'].includes(filters.semestre);
-    
-    // Encontrar los datos del año específico
+
     const datosAno = tendencias.evolucionPacientes.find(item => item.year === filters.year);
-  
-    // Seleccionar datos según el semestre
-    const datosSemestre = esPrimerSemestre 
-      ? (datosAno?.infantiles || {})
-      : (datosAno?.adultos || {});
-  
+
+    const datosInfantiles = datosAno?.infantiles || {};
+    const datosAdultos = datosAno?.adultos || {};
+
     return (
-      <div className="row">
-        <div className="col-md-12">
-          <div className="card card-info">
-            <div className="card-header">
-              <h3 className="card-title">
-                Resumen {esPrimerSemestre ? 'Pacientes Infantiles' : 'Pacientes Adultos'} ({filters.year} - {esPrimerSemestre ? 'Primer Semestre' : 'Segundo Semestre'})
-              </h3>
-            </div>
-            <div className="card-body">
-              <div className="row">
-                <div className="col-md-4">
-                  <div className="info-box">
-                    <span className="info-box-icon bg-info">
-                      <i className={`fas ${esPrimerSemestre ? 'fa-child' : 'fa-users'}`}></i>
-                    </span>
-                    <div className="info-box-content">
-                      <span className="info-box-text">Total Pacientes</span>
-                      <span className="info-box-number">
-                        {datosSemestre.totalPacientes || 0}
-                      </span>
-                    </div>
+      <div className='container-fluid'>
+        <div className="row">
+          {/* Pacientes Infantiles */}
+          <div className="col-md-6 mb-4">
+            <div className="card border-left-info shadow h-100">
+              <div className="card-header text-center bg-info text-white">
+                <h5 className="card-title mb-0">
+                  <i className="fas fa-child mr-2"></i>Pacientes Infantiles
+                </h5>
+              </div>
+              <div className="card-body">
+                <div className="info-box mb-3">
+                  <span className="info-box-icon bg-info"><i className="fas fa-child"></i></span>
+                  <div className="info-box-content">
+                    <span className="info-box-text">Total Pacientes</span>
+                    <span className="info-box-number">{datosInfantiles.totalPacientes || 0}</span>
                   </div>
                 </div>
-                <div className="col-md-4">
-                  <div className="info-box">
-                    <span className="info-box-icon bg-success">
-                      <i className="fas fa-file-medical"></i>
-                    </span>
-                    <div className="info-box-content">
-                      <span className="info-box-text">Fichas Iniciales</span>
-                      <span className="info-box-number">
-                        {datosSemestre.fichasIniciales || 0}
-                      </span>
-                    </div>
+                <div className="info-box mb-3">
+                  <span className="info-box-icon bg-success"><i className="fas fa-file-medical"></i></span>
+                  <div className="info-box-content">
+                    <span className="info-box-text">Fichas Iniciales</span>
+                    <span className="info-box-number">{datosInfantiles.fichasIniciales || 0}</span>
                   </div>
                 </div>
-                <div className="col-md-4">
-                  <div className="info-box">
-                    <span className="info-box-icon bg-warning">
-                      <i className="fas fa-redo"></i>
-                    </span>
-                    <div className="info-box-content">
-                      <span className="info-box-text">Reevaluaciones</span>
-                      <span className="info-box-number">
-                        {datosSemestre.totalReevaluaciones || 0}
-                      </span>
-                    </div>
+                <div className="info-box">
+                  <span className="info-box-icon bg-warning"><i className="fas fa-redo"></i></span>
+                  <div className="info-box-content">
+                    <span className="info-box-text">Reevaluaciones</span>
+                    <span className="info-box-number">{datosInfantiles.totalReevaluaciones || 0}</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Pacientes Adultos */}
+          <div className="col-md-6 mb-4">
+            <div className="card border-left-success shadow h-100">
+              <div className="card-header text-center bg-danger text-white">
+                <h5 className="card-title mb-0">
+                  <i className="fas fa-users mr-2"></i>Pacientes Adultos
+                </h5>
+              </div>
+              <div className="card-body">
+                <div className="info-box mb-3">
+                  <span className="info-box-icon bg-info"><i className="fas fa-users"></i></span>
+                  <div className="info-box-content">
+                    <span className="info-box-text">Total Pacientes</span>
+                    <span className="info-box-number">{datosAdultos.totalPacientes || 0}</span>
+                  </div>
+                </div>
+                <div className="info-box mb-3">
+                  <span className="info-box-icon bg-success"><i className="fas fa-file-medical"></i></span>
+                  <div className="info-box-content">
+                    <span className="info-box-text">Fichas Iniciales</span>
+                    <span className="info-box-number">{datosAdultos.fichasIniciales || 0}</span>
+                  </div>
+                </div>
+                <div className="info-box">
+                  <span className="info-box-icon bg-warning"><i className="fas fa-redo"></i></span>
+                  <div className="info-box-content">
+                    <span className="info-box-text">Reevaluaciones</span>
+                    <span className="info-box-number">{datosAdultos.totalReevaluaciones || 0}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Diagnósticos Infantiles - YA NO HAY FILA ANIDADA */}
+          {dashboardData.pacientesInfantiles.diagnosticos.length > 0 && (
+            <div className="col-md-6 mb-4 d-flex">
+              <div className="card card-info flex-fill d-flex flex-column shadow h-100">
+                <div className="card-header">
+                  <h3 className="card-title text-light">Diagnósticos de Pacientes Infantiles</h3>
+                </div>
+                <div className="card-body flex-fill">
+                  <DiagnosticosChart
+                    diagnosticos={dashboardData.pacientesInfantiles.diagnosticos}
+                    tipo="doughnut"
+                    title="Diagnósticos Infantiles"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Diagnósticos Adultos */}
+          {dashboardData.pacientesAdultos.diagnosticos.length > 0 && (
+            <div className="col-md-6 mb-4 d-flex">
+              <div className="card card-danger flex-fill d-flex flex-column shadow h-100">
+                <div className="card-header">
+                  <h3 className="card-title text-light">Diagnósticos de Pacientes Adultos</h3>
+                </div>
+                <div className="card-body flex-fill">
+                  <DiagnosticosChart
+                    diagnosticos={dashboardData.pacientesAdultos.diagnosticos}
+                    tipo="pie"
+                    title="Diagnósticos Adultos"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
   };
-  
+
+
   // Estado de carga
   if (loading) {
     return (
@@ -533,7 +582,7 @@ const Dashboard = () => {
       </div>
     );
   }
-  
+
 
   return (
     <div className="content">
@@ -541,27 +590,27 @@ const Dashboard = () => {
         <div className="container-fluid">
           <div className="row mb-2">
             <div className="col-sm-6">
-              <h1 className='font-weight-bold' style={{ 'color': 'var(--color-accent)'}}>Dashboard General</h1>
+              <h1 className='font-weight-bold' style={{ 'color': 'var(--color-accent)' }}>Dashboard General</h1>
             </div>
             <div className="col-sm-6">
               <div className="float-right d-flex">
                 {/* Selector de Año */}
-                <select 
-                  value={filters.year} 
-                  onChange={(e) => handleFilterChange('year', Number(e.target.value))} 
+                <select
+                  value={filters.year}
+                  onChange={(e) => handleFilterChange('year', Number(e.target.value))}
                   className="form-control mr-2"
                 >
                   {[...Array(6)].map((_, index) => {
-                      const yearOption = currentYear - index;
-                      return <option key={yearOption} value={yearOption}>{yearOption}</option>;
+                    const yearOption = currentYear - index;
+                    return <option key={yearOption} value={yearOption}>{yearOption}</option>;
                   })}
                   <option value={0}>Todos los Años</option>
                 </select>
 
                 {/* Selector de Semestre */}
-                <select 
-                  value={filters.semestre} 
-                  onChange={(e) => handleFilterChange('semestre', e.target.value)} 
+                <select
+                  value={filters.semestre}
+                  onChange={(e) => handleFilterChange('semestre', e.target.value)}
                   className="form-control ml-2 mr-2"
                 >
                   <option value="">Ambos Semestres</option>
@@ -570,9 +619,9 @@ const Dashboard = () => {
                 </select>
 
                 {/* Selector de Tipo de Institución */}
-                <select 
-                  value={filters.tipoInstitucion} 
-                  onChange={(e) => handleFilterChange('tipoInstitucion', e.target.value)} 
+                <select
+                  value={filters.tipoInstitucion}
+                  onChange={(e) => handleFilterChange('tipoInstitucion', e.target.value)}
                   className="form-control mr-2"
                 >
                   <option value="">Todos los Tipos</option>
@@ -584,15 +633,15 @@ const Dashboard = () => {
                 </select>
 
                 {/* Selector de Institución */}
-                <select 
-                  value={filters.institucionId} 
-                  onChange={(e) => handleFilterChange('institucionId', e.target.value)} 
+                <select
+                  value={filters.institucionId}
+                  onChange={(e) => handleFilterChange('institucionId', e.target.value)}
                   className="form-control"
                   disabled={!filters.tipoInstitucion}
                 >
                   <option value="">
-                    {filters.tipoInstitucion 
-                      ? 'Seleccione una Institución' 
+                    {filters.tipoInstitucion
+                      ? 'Seleccione una Institución'
                       : 'Primero seleccione un Tipo de Institución'}
                   </option>
                   {instituciones.map(institucion => (
@@ -612,7 +661,7 @@ const Dashboard = () => {
           {/* Resumen de Estudiantes */}
           <div className="row">
             <div className="col-lg-6 col-6">
-              <div className="small-box bg-info">
+              <div className="small-box bg-success">
                 <div className="inner">
                   <h3>{dashboardData.estudiantes.total}</h3>
                   <p>Total de Estudiantes</p>
@@ -623,9 +672,9 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="col-lg-6 col-6">
-              <div className="small-box bg-success">
+              <div className="small-box bg-primary">
                 <div className="inner">
-                <h3>{dashboardData.estudiantes.asignados[0]?.total || 0}</h3>
+                  <h3>{dashboardData.estudiantes.asignados[0]?.total || 0}</h3>
                   <p>Estudiantes Asignados</p>
                 </div>
                 <div className="icon">
@@ -636,146 +685,101 @@ const Dashboard = () => {
           </div>
 
           {/* Gráficos de Tendencias */}
-           <div className="container-fluid"> 
-              <div className="row">
-                {/* Gráfico de Evolución de Pacientes Ingresados */}
-                <div className="col-md-12 mb-3">
-                  <div className="card card-info">
-                    <div className="card-header">
-                      <h3 className="card-title">Evolución de Pacientes Ingresados por Año</h3>
-                    </div>
-                    <div className="card-body">
-                        {(filters.year !== 0 && filters.semestre !== 'ambos') ? (
-                          <ResumenEvolucionPacientes 
-                            tendencias={tendencias} 
-                            filters={filters}
-                          />
-                        ) : (
-                          <Line
-                          data={{
-                            labels: tendencias.evolucionPacientes.map(item => item.year),
-                            datasets: [
-                              {
-                                label: 'Pacientes Adultos',
-                                data: tendencias.evolucionPacientes.map(item => 
-                                  item.adultos?.totalPacientes || 0
-                                ),
-                                backgroundColor: 'rgba(60,141,188,0.6)',
-                                borderColor: 'rgba(60,141,188,1)',
-                                borderWidth: 1,
-                                fill: true
-                              },
-                              {
-                                label: 'Pacientes Infantiles',
-                                data: tendencias.evolucionPacientes.map(item => 
-                                  item.infantiles?.totalPacientes || 0
-                                ),
-                                backgroundColor: 'rgba(255,99,132,0.6)',
-                                borderColor: 'rgba(255,99,132,1)',
-                                borderWidth: 1,
-                                fill: true
-                              }
-                            ]
-                          }}
-                          options={{
-                            responsive: true,
-                            plugins: {
-                              legend: {
-                                position: 'top',
-                              },
-                              title: {
-                                display: true,
-                                text: 'Evolución de Pacientes Ingresados'
-                              }
-                            },
-                            scales: {
-                              x: {
-                                title: {
-                                  display: true,
-                                  text: 'Año'
-                                }
-                              },
-                              y: {
-                                title: {
-                                  display: true,
-                                  text: 'Cantidad de Pacientes'
-                                },
-                                beginAtZero: true
-                              }
+          <div className="container-fluid">
+            <div className="row">
+              {/* Gráfico de Evolución de Pacientes Ingresados */}
+              <div className="col-md-12 mb-3">
+                <div className="card-body">
+                  {(filters.year !== 0 && filters.semestre !== 'ambos') ? (
+                    <ResumenEvolucionPacientes
+                      tendencias={tendencias}
+                      filters={filters}
+                    />
+                  ) : (
+                    <Line
+                      data={{
+                        labels: tendencias.evolucionPacientes.map(item => item.year),
+                        datasets: [
+                          {
+                            label: 'Pacientes Adultos',
+                            data: tendencias.evolucionPacientes.map(item =>
+                              item.adultos?.totalPacientes || 0
+                            ),
+                            backgroundColor: 'rgba(60,141,188,0.6)',
+                            borderColor: 'rgba(60,141,188,1)',
+                            borderWidth: 1,
+                            fill: true
+                          },
+                          {
+                            label: 'Pacientes Infantiles',
+                            data: tendencias.evolucionPacientes.map(item =>
+                              item.infantiles?.totalPacientes || 0
+                            ),
+                            backgroundColor: 'rgba(255,99,132,0.6)',
+                            borderColor: 'rgba(255,99,132,1)',
+                            borderWidth: 1,
+                            fill: true
+                          }
+                        ]
+                      }}
+                      options={{
+                        responsive: true,
+                        plugins: {
+                          legend: {
+                            position: 'top',
+                          },
+                          title: {
+                            display: true,
+                            text: 'Evolución de Pacientes Ingresados'
+                          }
+                        },
+                        scales: {
+                          x: {
+                            title: {
+                              display: true,
+                              text: 'Año'
                             }
-                          }}
-                        />
-                        )}
-                    </div>
-                  </div>
-                </div>
-          
-          {/* Gráficos de Diagnósticos */}
-          <div className="row">
-            {/* Diagnósticos de Pacientes Adultos */}
-            {(filters.semestre === '' || filters.semestre === 'segundo') && 
-              dashboardData.pacientesAdultos.diagnosticos.length > 0 && (
-                <div className={`${filters.semestre === '' ? 'col-md-6' : 'col-md-12'} mb-3`}>
-                  <div className="card card-primary">
-                    <div className="card-header">
-                      <h3 className="card-title">Diagnósticos de Pacientes Adultos</h3>
-                    </div>
-                    <div className="card-body">
-                      <DiagnosticosChart 
-                        diagnosticos={dashboardData.pacientesAdultos.diagnosticos} 
-                        tipo="pie"
-                        title="Diagnósticos Adultos"
-                      />
-                    </div>
-                  </div>
-                </div>
-            )}
-
-            {(filters.semestre === '' || filters.semestre === 'primero') && 
-                    dashboardData.pacientesInfantiles.diagnosticos.length > 0 && (
-                    <div className={`${filters.semestre === '' ? 'col-md-6' : 'col-md-12'} mb-3`}>
-                      <div className="card card-success">
-                        <div className="card-header">
-                          <h3 className="card-title">Diagnósticos de Pacientes Infantiles</h3>
-                        </div>
-                        <div className="card-body">
-                          <DiagnosticosChart 
-                            diagnosticos={dashboardData.pacientesInfantiles.diagnosticos} 
-                            tipo="doughnut"
-                            title="Diagnósticos Infantiles"
-                          />
-                        </div>
-                      </div>
-                    </div>
+                          },
+                          y: {
+                            title: {
+                              display: true,
+                              text: 'Cantidad de Pacientes'
+                            },
+                            beginAtZero: true
+                          }
+                        }
+                      }}
+                    />
                   )}
                 </div>
+              </div>
 
-                {/* Estadísticas por institución */}
-                {dashboardData.estadisticasPorInstitucion.length > 0 && (
-                  <div className="row">
-                    <div className="col-12">
-                      <div className="card card-warning">
-                        <div className="card-header">
-                          <h3 className="card-title">Distribución de Fichas por Institución</h3>
-                        </div>
-                        <div className="card-body">
-                          <InstitucionesChart 
-                            estadisticasPorInstitucion={dashboardData.estadisticasPorInstitucion}
-                            semestre={filters.semestre}
-                            tipoInstitucion={filters.tipoInstitucion}
-                            institucionId={filters.institucionId}
-                          />
-                        </div>
+              {/* Estadísticas por institución */}
+              {dashboardData.estadisticasPorInstitucion.length > 0 && (
+                <div className="row">
+                  <div className="col-12 ml-2">
+                    <div className="card card-warning shadow h-100">
+                      <div className="card-header">
+                        <h3 className="card-title">Distribución de Fichas por Institución</h3>
+                      </div>
+                      <div className="card-body">
+                        <InstitucionesChart
+                          estadisticasPorInstitucion={dashboardData.estadisticasPorInstitucion}
+                          semestre={filters.semestre}
+                          tipoInstitucion={filters.tipoInstitucion}
+                          institucionId={filters.institucionId}
+                        />
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
-        </section>
-      </div>
-    );
-  };
+        </div>
+      </section>
+    </div>
+  );
+};
 
 export default Dashboard;

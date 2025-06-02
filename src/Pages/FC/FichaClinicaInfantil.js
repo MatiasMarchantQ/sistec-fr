@@ -23,6 +23,15 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [puntajeDPM, setPuntajeDPM] = useState('');
+  const [diagnosticoTEPSI, setdiagnosticoTEPSI] = useState('');
+  const [edadMental, setEdadMental] = useState('');
+  const [emEc, setEmEc] = useState('');
+  const [pe, setPe] = useState('');
+  const [coeficienteDesarrollo, setCoeficienteDesarrollo] = useState('');
+  const [areaCoordinacion, setAreaCoordinacion] = useState('');
+  const [areaSocial, setAreaSocial] = useState('');
+  const [areaLenguaje, setAreaLenguaje] = useState('');
+  const [areaMotora, setAreaMotora] = useState('');
   const [diagnosticoDSM, setDiagnosticoDSM] = useState('');
   const [padres, setPadres] = useState([{ nombre: '', escolaridad: '', ocupacion: '' }]);
   const [conQuienVive, setConQuienVive] = useState('');
@@ -183,9 +192,63 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         datosBase.evaluacionPsicomotora?.puntajeDPM ||
         ''
       );
+      setdiagnosticoTEPSI(
+        datosBase.diagnosticoTEPSI ||
+        datosBase.evaluacionPsicomotora?.diagnosticoTEPSI ||
+        ''
+      );
+
+
+      // Campos DSM
       setDiagnosticoDSM(
         datosBase.diagnosticoDSM ||
         datosBase.evaluacionPsicomotora?.diagnosticoDSM ||
+        ''
+      );
+      setEdadMental(
+        datosBase.edadMental ||
+        datosBase.evaluacionPsicomotora?.edadMental ||
+        ''
+      );
+      setEmEc(
+        datosBase.emEc ||
+        datosBase.evaluacionPsicomotora?.emEc ||
+        ''
+      );
+      setPe(
+        datosBase.pe ||
+        datosBase.evaluacionPsicomotora?.pe ||
+        ''
+      );
+      setCoeficienteDesarrollo(
+        datosBase.coeficienteDesarrollo ||
+        datosBase.evaluacionPsicomotora?.coeficienteDesarrollo ||
+        ''
+      );
+
+      // Áreas de evaluación
+      setAreaCoordinacion(
+        datosBase.areaCoordinacion ||
+        datosBase.areasEvaluacion?.areaCoordinacion ||
+        datosBase.evaluacionPsicomotora?.areasEvaluacion?.areaCoordinacion ||
+        ''
+      );
+      setAreaSocial(
+        datosBase.areaSocial ||
+        datosBase.areasEvaluacion?.areaSocial ||
+        datosBase.evaluacionPsicomotora?.areasEvaluacion?.areaSocial ||
+        ''
+      );
+      setAreaLenguaje(
+        datosBase.areaLenguaje ||
+        datosBase.areasEvaluacion?.areaLenguaje ||
+        datosBase.evaluacionPsicomotora?.areasEvaluacion?.areaLenguaje ||
+        ''
+      );
+      setAreaMotora(
+        datosBase.areaMotora ||
+        datosBase.areasEvaluacion?.areaMotora ||
+        datosBase.evaluacionPsicomotora?.areasEvaluacion?.areaMotora ||
         ''
       );
 
@@ -374,6 +437,40 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
     cargarDatos();
   }, [user, getToken, datosCargados]);
 
+  const calcularEdad = useMemo(() => {
+    const edadTotal = (parseInt(datosNino.edadAnios) || 0) + (parseInt(datosNino.edadMeses) || 0) / 12;
+    return edadTotal;
+  }, [datosNino.edadAnios, datosNino.edadMeses]);
+  useEffect(() => {
+    // Aquí puedes calcular el diagnóstico TEPSI basado en el puntaje DPM
+    switch (puntajeDPM) {
+      case "Menor o igual a 29":
+        setdiagnosticoTEPSI("Retraso");
+        break;
+      case "Entre 30 y 39":
+        setdiagnosticoTEPSI("Riesgo");
+        break;
+      case "Mayor o igual a 40":
+        setdiagnosticoTEPSI("Normal");
+        break;
+      default:
+        setdiagnosticoTEPSI("");
+    }
+  }, [puntajeDPM]);
+
+  // Condición para ocultar Información Adicional y Factores de Riesgo
+  // Si el diagnóstico activo está en "Normal" se ocultan estas secciones
+  // Diagnóstico activo es DSM si edad >= 2 años, TEPSI si edad < 2 años
+  const mostrarSeccionesAdicionales = () => {
+    if (calcularEdad < 2) {
+      // Diagnóstico TEPSI activo
+      return diagnosticoTEPSI !== 'Normal';
+    } else {
+      // Diagnóstico DSM activo
+      return diagnosticoDSM !== 'Normal';
+    }
+  };
+
   if (!user) {
     return <div>Verificando...</div>;
   }
@@ -468,12 +565,21 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       telefonoPrincipal: datosNino.telefonoPrincipal,
       telefonoSecundario: datosNino.telefonoSecundario,
       puntajeDPM,
+      diagnosticoTEPSI,
+      edadMental,
+      emEc,
+      pe,
+      coeficienteDesarrollo,
+      areaCoordinacion,
+      areaSocial,
+      areaLenguaje,
+      areaMotora,
       diagnosticoDSM,
       padres,
       conQuienVive,
       tipoFamilia: tipoFamilia === 'Otras' ? null : tipoFamilia,
       tipoFamiliaOtro: tipoFamilia === 'Otras' ? otraTipoFamilia : '',
-      cicloVitalFamiliar: cicloVitalFamiliar || null,
+      cicloVitalFamiliar: cicloVitalFamiliar?.toString().trim() === '' ? null : cicloVitalFamiliar,
       localidad,
       factoresRiesgoNino: Object.keys(factoresRiesgoNino).filter(key => factoresRiesgoNino[key]),
       factoresRiesgoFamiliares: Object.keys(factoresRiesgoFamiliares)
@@ -518,9 +624,18 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
           telefonoSecundario: ''
         });
 
-        toast.success('Reevaluación actualizada exitosamente');
+        // toast.success('Reevaluación actualizada exitosamente');
 
         setPuntajeDPM('');
+        setdiagnosticoTEPSI('');
+        setEdadMental('');
+        setEmEc('');
+        setPe('');
+        setCoeficienteDesarrollo('');
+        setAreaCoordinacion('');
+        setAreaLenguaje('');
+        setAreaMotora('');
+        setAreaSocial('');
         setDiagnosticoDSM('');
 
         setPadres([{ nombre: '', escolaridad: '', ocupacion: '' }]);
@@ -591,6 +706,15 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       telefonoPrincipal: datosNino.telefonoPrincipal,
       telefonoSecundario: datosNino.telefonoSecundario,
       puntajeDPM,
+      diagnosticoTEPSI,
+      edadMental,
+      emEc,
+      pe,
+      coeficienteDesarrollo,
+      areaCoordinacion,
+      areaSocial,
+      areaLenguaje,
+      areaMotora,
       diagnosticoDSM,
       padres,
       conQuienVive,
@@ -635,6 +759,15 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         toast.success('Ficha clínica infantil creada exitosamente');
 
         setPuntajeDPM('');
+        setdiagnosticoTEPSI('');
+        setEdadMental('');
+        setEmEc('');
+        setPe('');
+        setCoeficienteDesarrollo('');
+        setAreaCoordinacion('');
+        setAreaLenguaje('');
+        setAreaMotora('');
+        setAreaSocial('');
         setDiagnosticoDSM('');
 
         setPadres([{ nombre: '', escolaridad: '', ocupacion: '' }]);
@@ -867,55 +1000,177 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         </div>
       </div>
 
-      <div className="card mb-4">
-        <div className="card-header custom-card text-light">Evaluación Psicomotora</div>
-        <div className="card-body">
-          <div className="row">
-            <div className="col-md-6">
-              <div className="form-group">
-                <label>Puntaje DPM o TEPSI</label>
-                <select
-                  className="form-control"
-                  value={puntajeDPM}
-                  onChange={(e) => {
-                    setPuntajeDPM(e.target.value);
-                    switch (e.target.value) {
-                      case "Menor a 30":
-                        setDiagnosticoDSM("Retraso");
-                        break;
-                      case "Entre 30 y 40":
-                        setDiagnosticoDSM("Riesgo");
-                        break;
-                      case "Mayor a 40":
-                        setDiagnosticoDSM("Normal");
-                        break;
-                      default:
-                        setDiagnosticoDSM("");
-                    }
-                  }}
-                >
-                  <option value="">Seleccione...</option>
-                  <option value="Menor a 30">Menor a 30</option>
-                  <option value="Entre 30 y 40">Entre 30 y 40</option>
-                  <option value="Mayor a 40">Mayor a 40</option>
-                </select>
+      {calcularEdad < 2 ? (
+        <div className="card mb-4">
+          <div className="card-header custom-card text-light">Evaluación Psicomotora (TEPSI)</div>
+          <div className="card-body">
+            <div className="row">
+              <div className="col-md-6">
+                <div className="form-group">
+                  <label>Puntaje DPM</label>
+                  <select
+                    className="form-control"
+                    value={puntajeDPM}
+                    onChange={(e) => setPuntajeDPM(e.target.value)}
+                  >
+                    <option value="">Seleccione...</option>
+                    <option value="Menor o igual a 29">Menor o igual a 29</option>
+                    <option value="Entre 30 y 39">Entre 30 y 39</option>
+                    <option value="Mayor o igual a 40">Mayor o igual a 40</option>
+                  </select>
+                </div>
               </div>
-            </div>
-            <div className="col-md-6">
-              <div className="form-group">
-                <label>Diagnóstico DSM</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={diagnosticoDSM}
-                  readOnly
-                  placeholder={puntajeDPM ? diagnosticoDSM : "Seleccione Puntaje DPM o TEPSI"}
-                />
+              <div className="col-md-6">
+                <div className="form-group">
+                  <label>Diagnóstico TEPSI</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={diagnosticoTEPSI}
+                    readOnly
+                    placeholder="Diagnóstico TEPSI"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="card mb-4">
+          <div className="card-header custom-card text-light">Evaluación DSM</div>
+          <div className="card-body">
+            <div className="row">
+              <div className="col-md-2">
+                <div className="form-group">
+                  <label>Edad Mental</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={edadMental}
+                    onChange={(e) => setEdadMental(e.target.value)}
+                    placeholder='Ej: 4 años 6 meses'
+                  />
+                </div>
+              </div>
+              <div className="col-md-2">
+                <div className="form-group">
+                  <label>EM/EC</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={emEc}
+                    onChange={(e) => setEmEc(e.target.value)}
+                    placeholder='Ej: 0.85'
+                  />
+                </div>
+              </div>
+              <div className="col-md-2">
+                <div className="form-group">
+                  <label>PE</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={pe}
+                    onChange={(e) => setPe(e.target.value)}
+                    placeholder='Ej: 85'
+                  />
+                </div>
+              </div>
+              <div className="col-md-6">
+                <div className="form-group">
+                  <label>Coeficiente de Desarrollo</label>
+                  <select
+                    className="form-control"
+                    value={coeficienteDesarrollo}
+                    onChange={(e) => setCoeficienteDesarrollo(e.target.value)}
+                  >
+                    <option value="">Seleccione...</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Riesgo">Riesgo</option>
+                    <option value="Retraso">Retraso</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="row">
+              <div className="col-md-3">
+                <div className="form-group">
+                  <label>Área Coordinación</label>
+                  <select
+                    className="form-control"
+                    value={areaCoordinacion}
+                    onChange={(e) => setAreaCoordinacion(e.target.value)}
+                  >
+                    <option value="">Seleccione...</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Déficit">Déficit</option>
+                  </select>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className="form-group">
+                  <label>Área Social</label>
+                  <select
+                    className="form-control"
+                    value={areaSocial}
+                    onChange={(e) => setAreaSocial(e.target.value)}
+                  >
+                    <option value="">Seleccione...</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Déficit">Déficit</option>
+                  </select>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className="form-group">
+                  <label>Área Lenguaje</label>
+                  <select
+                    className="form-control"
+                    value={areaLenguaje}
+                    onChange={(e) => setAreaLenguaje(e.target.value)}
+                  >
+                    <option value="">Seleccione...</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Déficit">Déficit</option>
+                  </select>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className="form-group">
+                  <label>Área Motora</label>
+                  <select
+                    className="form-control"
+                    value={areaMotora}
+                    onChange={(e) => setAreaMotora(e.target.value)}
+                  >
+                    <option value="">Seleccione...</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Déficit">Déficit</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="row">
+              <div className="col-md-12">
+                <div className="form-group">
+                  <label>Diagnóstico DSM</label>
+                  <select
+                    className="form-control"
+                    value={diagnosticoDSM}
+                    onChange={(e) => setDiagnosticoDSM(e.target.value)}
+                  >
+                    <option value="">Seleccione...</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Normal con rezago">Normal con rezago</option>
+                    <option value="Riesgo">Riesgo</option>
+                    <option value="Retraso">Retraso</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card mb-4">
         <div className="card-header custom-card text-light">Información Familiar (Puede ingresar más de uno)</div>
@@ -990,158 +1245,167 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         </div>
       </div>
 
-      <div className="card mb-4">
-        <div className="card-header custom-card text-light">Información Adicional</div>
-        <div className="card-body">
-          <div className="row">
-            <div className="col-md-6">
-              <div className="form-group">
-                <label>Con quién vive el menor</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={conQuienVive}
-                  onChange={(e) => setConQuienVive(e.target.value)}
-                  placeholder="Ingrese con quién vive el menor. Ejemplo: Padre, madre o tutor legal"
-                />
+
+      {mostrarSeccionesAdicionales() && (
+        <>
+          <div className="card mb-4">
+            <div className="card-header custom-card text-light">Información Adicional</div>
+            <div className="card-body">
+              <div className="row">
+                <div className="col-md-6">
+                  <div className="form-group">
+                    <label>Con quién vive el menor</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={conQuienVive}
+                      onChange={(e) => setConQuienVive(e.target.value)}
+                      placeholder="Ingrese con quién vive el menor. Ejemplo: Padre, madre o tutor legal"
+                    />
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="form-group">
+                    <label>Tipo de familia</label>
+                    <select
+                      className="form-control"
+                      value={tipoFamilia}
+                      onChange={(e) => {
+                        setTipoFamilia(e.target.value);
+                        if (e.target.value !== 'Otra') {
+                          setOtraTipoFamilia('');
+                        }
+                      }}
+                    >
+                      <option value="">Seleccione...</option>
+                      {tiposFamilia.map(tipo => (
+                        <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>
+                      ))}
+                      <option value="Otras">Otra</option>
+                    </select>
+                  </div>
+                  {tipoFamilia === 'Otras' && (
+                    <div className="form-group">
+                      <label>Especifique</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={otraTipoFamilia}
+                        onChange={(e) => setOtraTipoFamilia(e.target.value)}
+                        placeholder="Especifique el tipo de familia"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="row">
+                <div className="col-md-6">
+                  <div className="form-group">
+                    <label>Ciclo vital familiar</label>
+                    <select
+                      className="form-control"
+                      value={cicloVitalFamiliar}
+                      onChange={(e) => setCicloVitalFamiliar(e.target.value)}
+                    >
+                      <option value="">Seleccione...</option>
+                      {ciclosVitalesFamiliares.map(ciclo => (
+                        <option key={ciclo.id} value={ciclo.id}>{ciclo.ciclo}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="form-group">
+                    <label>Localidad</label>
+                    <select
+                      className="form-control"
+                      value={localidad}
+                      onChange={(e) => setLocalidad(e.target.value)}
+                    >
+                      <option value="">Seleccione...</option>
+                      <option value="Urbano">Urbano</option>
+                      <option value="Rural">Rural</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="col-md-6">
-              <div className="form-group">
-                <label>Tipo de familia</label>
-                <select
-                  className="form-control"
-                  value={tipoFamilia}
-                  onChange={(e) => {
-                    setTipoFamilia(e.target.value);
-                    if (e.target.value !== 'Otra') {
-                      setOtraTipoFamilia('');
-                    }
-                  }}
-                >
-                  <option value="">Seleccione...</option>
-                  {tiposFamilia.map(tipo => (
-                    <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>
-                  ))}
-                  <option value="Otras">Otra</option>
-                </select>
+          </div>
+        </>
+      )}
+
+      {mostrarSeccionesAdicionales() && (
+        <>
+          <div className="card mb-4">
+            <div className="card-header custom-card text-light">Factores de Riesgo</div>
+            <div className="card-body">
+              <h5>Factores de Riesgo del Niño/a</h5>
+              <div className="row mb-3">
+                {factoresRiesgoNinoDisponibles.map(factor => (
+                  <div className="col-md-3" key={factor.id}>
+                    <div className="form-check">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id={`nino-${factor.id}`}
+                        checked={factoresRiesgoNino[factor.nombre] || false}
+                        onChange={(e) => setFactoresRiesgoNino({ ...factoresRiesgoNino, [factor.nombre]: e.target.checked })}
+                      />
+                      <label className="form-check-label" htmlFor={`nino-${factor.id}`}>{factor.nombre}</label>
+                    </div>
+                  </div>
+                ))}
               </div>
-              {tipoFamilia === 'Otras' && (
-                <div className="form-group">
-                  <label>Especifique</label>
+            </div>
+
+            <h5>Factores de Riesgo Familiar</h5>
+            <div className="row mb-3 pl-2">
+              {factoresRiesgoFamiliaresDisponibles.map(factor => (
+                factor.nombre !== 'Otras' ? (
+                  <div className="col-md-3" key={factor.id}>
+                    <div className="form-check">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id={`familiar-${factor.id}`}
+                        checked={factoresRiesgoFamiliares[factor.nombre] || false}
+                        onChange={(e) => setFactoresRiesgoFamiliares({ ...factoresRiesgoFamiliares, [factor.nombre]: e.target.checked })}
+                      />
+                      <label className="form-check-label" htmlFor={`familiar-${factor.id}`}>{factor.nombre}</label>
+                    </div>
+                  </div>
+                ) : null
+              ))}
+              <div className="col-md-3">
+                <div className="form-check">
                   <input
-                    type="text"
-                    className="form-control"
-                    value={otraTipoFamilia}
-                    onChange={(e) => setOtraTipoFamilia(e.target.value)}
-                    placeholder="Especifique el tipo de familia"
+                    type="checkbox"
+                    className="form-check-input"
+                    id="otrasRiesgos"
+                    checked={factoresRiesgoFamiliares.otras !== ''}
+                    onChange={(e) => setFactoresRiesgoFamiliares({ ...factoresRiesgoFamiliares, otras: e.target.checked ? ' ' : '' })}
                   />
+                  <label className="form-check-label" htmlFor="otrasRiesgos">Otras</label>
+                </div>
+              </div>
+              {factoresRiesgoFamiliares.otras !== '' && (
+                <div className="col-md-12 mt-3">
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="otrosRiesgosFamiliaresTexto"
+                      placeholder="Especifique otros riesgos familiares"
+                      value={factoresRiesgoFamiliares.otras}
+                      onChange={(e) => setFactoresRiesgoFamiliares({ ...factoresRiesgoFamiliares, otras: e.target.value })}
+                    />
+                  </div>
                 </div>
               )}
             </div>
           </div>
-          <div className="row">
-            <div className="col-md-6">
-              <div className="form-group">
-                <label>Ciclo vital familiar</label>
-                <select
-                  className="form-control"
-                  value={cicloVitalFamiliar}
-                  onChange={(e) => setCicloVitalFamiliar(e.target.value)}
-                >
-                  <option value="">Seleccione...</option>
-                  {ciclosVitalesFamiliares.map(ciclo => (
-                    <option key={ciclo.id} value={ciclo.id}>{ciclo.ciclo}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="col-md-6">
-              <div className="form-group">
-                <label>Localidad</label>
-                <select
-                  className="form-control"
-                  value={localidad}
-                  onChange={(e) => setLocalidad(e.target.value)}
-                >
-                  <option value="">Seleccione...</option>
-                  <option value="Urbano">Urbano</option>
-                  <option value="Rural">Rural</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card mb-4">
-        <div className="card-header custom-card text-light">Factores de Riesgo</div>
-        <div className="card-body">
-          <h5>Factores de Riesgo del Niño/a</h5>
-          <div className="row mb-3">
-            {factoresRiesgoNinoDisponibles.map(factor => (
-              <div className="col-md-3" key={factor.id}>
-                <div className="form-check">
-                  <input
-                    type="checkbox"
-                    className="form-check-input"
-                    id={`nino-${factor.id}`}
-                    checked={factoresRiesgoNino[factor.nombre] || false}
-                    onChange={(e) => setFactoresRiesgoNino({ ...factoresRiesgoNino, [factor.nombre]: e.target.checked })}
-                  />
-                  <label className="form-check-label" htmlFor={`nino-${factor.id}`}>{factor.nombre}</label>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <h5>Factores de Riesgo Familiar</h5>
-        <div className="row mb-3 pl-2">
-          {factoresRiesgoFamiliaresDisponibles.map(factor => (
-            factor.nombre !== 'Otras' ? (
-              <div className="col-md-3" key={factor.id}>
-                <div className="form-check">
-                  <input
-                    type="checkbox"
-                    className="form-check-input"
-                    id={`familiar-${factor.id}`}
-                    checked={factoresRiesgoFamiliares[factor.nombre] || false}
-                    onChange={(e) => setFactoresRiesgoFamiliares({ ...factoresRiesgoFamiliares, [factor.nombre]: e.target.checked })}
-                  />
-                  <label className="form-check-label" htmlFor={`familiar-${factor.id}`}>{factor.nombre}</label>
-                </div>
-              </div>
-            ) : null
-          ))}
-          <div className="col-md-3">
-            <div className="form-check">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                id="otrasRiesgos"
-                checked={factoresRiesgoFamiliares.otras !== ''}
-                onChange={(e) => setFactoresRiesgoFamiliares({ ...factoresRiesgoFamiliares, otras: e.target.checked ? ' ' : '' })}
-              />
-              <label className="form-check-label" htmlFor="otrasRiesgos">Otras</label>
-            </div>
-          </div>
-          {factoresRiesgoFamiliares.otras !== '' && (
-            <div className="col-md-12 mt-3">
-              <div className="form-group">
-                <input
-                  type="text"
-                  className="form-control"
-                  id="otrosRiesgosFamiliaresTexto"
-                  placeholder="Especifique otros riesgos familiares"
-                  value={factoresRiesgoFamiliares.otras}
-                  onChange={(e) => setFactoresRiesgoFamiliares({ ...factoresRiesgoFamiliares, otras: e.target.value })}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+        </>
+      )}
 
       <div className="d-flex justify-content-center mt-5 mb-5">
         {!modoEdicion && (

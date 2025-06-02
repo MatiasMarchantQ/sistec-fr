@@ -443,7 +443,7 @@ const ListadoFichasClinicas = () => {
                   : (tieneOtroDiagnostico ? 'Otro' : 'No especificado');
               } else {
                 // Mantener lógica original para fichas infantiles
-                diagnostico = ficha.diagnostico_dsm;
+                diagnostico = ficha.diagnostico_tepsi || ficha.diagnostico_dsm;
               }
 
               const cantidadReevaluaciones = ficha.reevaluaciones || 'No aplicado';
