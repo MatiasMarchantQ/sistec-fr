@@ -280,7 +280,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
           setOtraTipoFamilia(
             primerTipoFamilia.tipoFamiliaOtro ||
             datosBase.tipoFamiliaOtro ||
-            'PRUEBAAA'
+            ''
           );
         } else {
           // Establecer el tipo de familia con su ID
@@ -462,7 +462,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
   // Si el diagnóstico activo está en "Normal" se ocultan estas secciones
   // Diagnóstico activo es DSM si edad >= 2 años, TEPSI si edad < 2 años
   const mostrarSeccionesAdicionales = () => {
-    if (calcularEdad < 2) {
+    if (calcularEdad > 2) {
       // Diagnóstico TEPSI activo
       return diagnosticoTEPSI !== 'Normal';
     } else {
@@ -1000,7 +1000,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         </div>
       </div>
 
-      {calcularEdad < 2 ? (
+      {calcularEdad >= 2 ? (
         <div className="card mb-4">
           <div className="card-header custom-card text-light">Evaluación Psicomotora (TEPSI)</div>
           <div className="card-body">
