@@ -1000,7 +1000,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         </div>
       </div>
 
-      {calcularEdad >= 2 ? (
+      {calcularEdad >= 3 ? (
         <div className="card mb-4">
           <div className="card-header custom-card text-light">Evaluación Psicomotora (TEPSI)</div>
           <div className="card-body">
