@@ -1172,78 +1172,82 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         </div>
       )}
 
-      <div className="card mb-4">
-        <div className="card-header custom-card text-light">Información Familiar (Puede ingresar más de uno)</div>
-        <div className="card-body">
-          {padres.map((padre, index) => (
-            <div key={index} className="border p-3 mb-3">
-              <div className="row">
-                <div className="col-md-4">
-                  <div className="form-group">
-                    <label>Nombre Padre/Madre/Tutor</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={padre.nombre}
-                      onChange={(e) => {
-                        const newPadres = [...padres];
-                        newPadres[index].nombre = e.target.value;
-                        setPadres(newPadres);
-                      }}
-                      placeholder="Ingrese el nombre y el/los apellido(s)"
-                    />
+      {mostrarSeccionesAdicionales() && (
+        <>
+          <div className="card mb-4">
+            <div className="card-header custom-card text-light">Información Familiar (Puede ingresar más de uno)</div>
+            <div className="card-body">
+              {padres.map((padre, index) => (
+                <div key={index} className="border p-3 mb-3">
+                  <div className="row">
+                    <div className="col-md-4">
+                      <div className="form-group">
+                        <label>Nombre Padre/Madre/Tutor</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={padre.nombre}
+                          onChange={(e) => {
+                            const newPadres = [...padres];
+                            newPadres[index].nombre = e.target.value;
+                            setPadres(newPadres);
+                          }}
+                          placeholder="Ingrese el nombre y el/los apellido(s)"
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-4">
+                      <div className="form-group">
+                        <label>Escolaridad</label>
+                        <select
+                          className="form-control"
+                          value={padre.escolaridad}
+                          onChange={(e) => {
+                            const newPadres = [...padres];
+                            newPadres[index].escolaridad = e.target.value;
+                            setPadres(newPadres);
+                          }}
+                        >
+                          <option value="">Seleccione...</option>
+                          {nivelesEscolaridad.map(nivel => (
+                            <option key={nivel.id} value={nivel.id}>{nivel.nivel}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="col-md-4">
+                      <div className="form-group">
+                        <label>Ocupación</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={padre.ocupacion}
+                          onChange={(e) => {
+                            const newPadres = [...padres];
+                            newPadres[index].ocupacion = e.target.value;
+                            setPadres(newPadres);
+                          }}
+                          placeholder="Ingrese la ocupación"
+                        />
+                      </div>
+                    </div>
                   </div>
+                  {index > 0 && (
+                    <div className="text-right">
+                      <button className="btn btn-danger btn-sm" onClick={() => handleRemovePadre(index)}>
+                        Quitar
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="col-md-4">
-                  <div className="form-group">
-                    <label>Escolaridad</label>
-                    <select
-                      className="form-control"
-                      value={padre.escolaridad}
-                      onChange={(e) => {
-                        const newPadres = [...padres];
-                        newPadres[index].escolaridad = e.target.value;
-                        setPadres(newPadres);
-                      }}
-                    >
-                      <option value="">Seleccione...</option>
-                      {nivelesEscolaridad.map(nivel => (
-                        <option key={nivel.id} value={nivel.id}>{nivel.nivel}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="col-md-4">
-                  <div className="form-group">
-                    <label>Ocupación</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={padre.ocupacion}
-                      onChange={(e) => {
-                        const newPadres = [...padres];
-                        newPadres[index].ocupacion = e.target.value;
-                        setPadres(newPadres);
-                      }}
-                      placeholder="Ingrese la ocupación"
-                    />
-                  </div>
-                </div>
-              </div>
-              {index > 0 && (
-                <div className="text-right">
-                  <button className="btn btn-danger btn-sm" onClick={() => handleRemovePadre(index)}>
-                    Quitar
-                  </button>
-                </div>
-              )}
+              ))}
+              <button className="btn btn-primary" onClick={handleAddPadre}>
+                Añadir Padre/Tutor
+              </button>
             </div>
-          ))}
-          <button className="btn btn-primary" onClick={handleAddPadre}>
-            Añadir Padre/Tutor
-          </button>
-        </div>
-      </div>
+          </div>
+        </>
+      )}
 
 
       {mostrarSeccionesAdicionales() && (
