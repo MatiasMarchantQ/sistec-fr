@@ -460,7 +460,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
 
   useEffect(() => {
     // Limpiar diagnósticos al cambiar la edad
-    if (calcularEdad > 2) {
+    if (calcularEdad > 1) {
       // Si la edad es mayor a 2, limpiar TEPSI
       setdiagnosticoTEPSI('');
       setPuntajeDPM('');
@@ -482,7 +482,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
   // Si el diagnóstico activo está en "Normal" se ocultan estas secciones
   // Diagnóstico activo es DSM si edad >= 2 años, TEPSI si edad < 2 años
   const mostrarSeccionesAdicionales = () => {
-    if (calcularEdad > 2) {
+    if (calcularEdad > 1) {
       // Diagnóstico TEPSI activo
       return diagnosticoTEPSI !== 'Normal';
     } else {
@@ -523,7 +523,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
       case 'apellidos':
         return /^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]{2,50}$/.test(valor) ? '' : `Debe contener solo letras y tener entre 2 y 50 caracteres`;
       case 'rut':
-        return /^\d{7,8}[-][0-9kK]{1}$/.test(valor) ? '' : 'RUT inválido. Debe estar en el formato XXXXXXXX-X';
+        return /^\d{7,9}[-][0-9kK]{1}$/.test(valor) ? '' : 'RUT inválido. Debe estar en el formato XXXXXXXX-X';
       case 'telefonoPrincipal':
       case 'telefonoSecundario':
         return /^\d{8,9}$/.test(valor) ? '' : 'Formato de teléfono inválido. Debe estar en el formato 9XXXXXXXX';
@@ -1023,7 +1023,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
         </div>
       </div>
 
-      {calcularEdad >= 3 ? (
+      {calcularEdad >= 2 ? (
         <div className="card mb-4">
           <div className="card-header custom-card text-light">Evaluación Psicomotora (TEPSI)</div>
           <div className="card-body">
