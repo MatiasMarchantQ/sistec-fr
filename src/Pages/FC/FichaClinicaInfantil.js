@@ -458,6 +458,26 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
     }
   }, [puntajeDPM]);
 
+  useEffect(() => {
+    // Limpiar diagnósticos al cambiar la edad
+    if (calcularEdad > 2) {
+      // Si la edad es mayor a 2, limpiar TEPSI
+      setdiagnosticoTEPSI('');
+      setPuntajeDPM('');
+    } else {
+      // Si la edad es 2 o menor, limpiar DSM
+      setDiagnosticoDSM('');
+      setEdadMental('');
+      setEmEc('');
+      setPe('');
+      setCoeficienteDesarrollo('');
+      setAreaCoordinacion('');
+      setAreaSocial('');
+      setAreaLenguaje('');
+      setAreaMotora('');
+    }
+  }, [calcularEdad]);
+
   // Condición para ocultar Información Adicional y Factores de Riesgo
   // Si el diagnóstico activo está en "Normal" se ocultan estas secciones
   // Diagnóstico activo es DSM si edad >= 2 años, TEPSI si edad < 2 años
@@ -756,7 +776,10 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
           telefonoSecundario: ''
         });
 
-        toast.success('Ficha clínica infantil creada exitosamente');
+        const isReevaluacion = datosIniciales ? true : false;
+        if (!isReevaluacion) {
+          toast.success('Ficha clínica infantil creada exitosamente');
+        }
 
         setPuntajeDPM('');
         setdiagnosticoTEPSI('');
@@ -925,7 +948,7 @@ const FichaClinicaInfantil = ({ onVolver, onIngresar, institucionId, datosInicia
 
                           setDatosNino({
                             ...datosNino,
-                            edadMeses: valor > 23 ? 23 : valor
+                            edadMeses: valor > 11 ? 11 : valor
                           });
                         }}
                         min="0"

@@ -59,66 +59,68 @@ const Home = () => {
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const componentFromURL = searchParams.get('component');
-  
+
     let shouldShowErrorToast = false;
     let componentToSet = 'agenda'; // Valor por defecto seguro
-  
+
     // Verificación de permisos con lógica más específica
     const checkComponentPermission = (component) => {
       // Si no hay usuario, considerar sin permisos
       if (!user) return false;
-  
+
       // Si el componente no está en la lista de permisos, asumir permitido
       if (!componentPermissions[component]) return true;
-  
+
       // Verificar si el rol actual tiene permiso
       return componentPermissions[component].includes(user.rol_id);
     };
-  
-    if (componentFromURL) {
-      if (location.state && location.state.fichaId) {
-        // Manejo de tabs con state
-        if (checkComponentPermission(componentFromURL)) {
-          componentToSet = componentFromURL;
-          setSelectedFichaId(location.state.fichaId);
-          setSelectedTipo(location.state.tipo);
-        } else {
+
+    if (user) {
+      if (componentFromURL) {
+        if (location.state && location.state.fichaId) {
+          // Manejo de tabs con state
+          if (checkComponentPermission(componentFromURL)) {
+            componentToSet = componentFromURL;
+            setSelectedFichaId(location.state.fichaId);
+            setSelectedTipo(location.state.tipo);
+          } else {
+            shouldShowErrorToast = !isInitialLoad;
+          }
+        } else if (!checkComponentPermission(componentFromURL)) {
           shouldShowErrorToast = !isInitialLoad;
+        } else {
+          componentToSet = componentFromURL;
         }
-      } else if (!checkComponentPermission(componentFromURL)) {
-        shouldShowErrorToast = !isInitialLoad;
-      } else {
-        componentToSet = componentFromURL;
-      }
-    } else if (location.state && location.state.component) {
-      const { component, fichaId, tipo } = location.state;
-  
-      if (component === 'ficha-clinica' || component === 'reevaluacion') {
-        if (!fichaId || !tipo) {
-          componentToSet = 'listado-fichas-clinicas';
+      } else if (location.state && location.state.component) {
+        const { component, fichaId, tipo } = location.state;
+
+        if (component === 'ficha-clinica' || component === 'reevaluacion') {
+          if (!fichaId || !tipo) {
+            componentToSet = 'listado-fichas-clinicas';
+          } else if (checkComponentPermission(component)) {
+            componentToSet = component;
+            setSelectedFichaId(fichaId);
+            setSelectedTipo(tipo);
+          } else {
+            shouldShowErrorToast = !isInitialLoad;
+          }
         } else if (checkComponentPermission(component)) {
           componentToSet = component;
-          setSelectedFichaId(fichaId);
-          setSelectedTipo(tipo);
         } else {
           shouldShowErrorToast = !isInitialLoad;
         }
-      } else if (checkComponentPermission(component)) {
-        componentToSet = component;
-      } else {
-        shouldShowErrorToast = !isInitialLoad;
+      }
+
+      // Mostrar toast solo una vez y no en la carga inicial
+      if (shouldShowErrorToast) {
+        toast.error('No tienes autorización para acceder a esta sección');
       }
     }
-  
-    // Mostrar toast solo una vez y no en la carga inicial
-    if (shouldShowErrorToast) {
-      toast.error('No tienes autorización para acceder a esta sección');
-    }
-  
+
     // Establecer el componente activo
     setActiveComponent(componentToSet);
     setLastValidComponent(componentToSet);
-  
+
     // Marcar carga inicial como completada
     if (isInitialLoad) {
       setIsInitialLoad(false);
@@ -129,7 +131,7 @@ const Home = () => {
     const handleResize = () => {
       const mobile = window.innerWidth < 992;
       setIsMobile(mobile);
-      
+
       if (mobile) {
         setIsSidebarOpen(false);
       } else {
@@ -169,15 +171,15 @@ const Home = () => {
     if (!hasPermission(activeComponent)) {
       switch (lastValidComponent) {
         case 'agenda':
-          return <Agenda 
-            onFichaSelect={setSelectedFichaId} 
+          return <Agenda
+            onFichaSelect={setSelectedFichaId}
             setActiveComponent={setActiveComponent}
           />;
         case 'ficha-clinica':
           return <FichaClinica id={selectedFichaId} />;
         case 'reevaluacion':
           return <Reevaluacion id={selectedFichaId}
-          tipo={selectedTipo} />;
+            tipo={selectedTipo} />;
         case 'instituciones':
           return <Instituciones />;
         case 'usuarios':
@@ -195,8 +197,8 @@ const Home = () => {
         case 'dashboard':
           return <Dashboard />;
         default:
-          return <Agenda 
-            onFichaSelect={setSelectedFichaId} 
+          return <Agenda
+            onFichaSelect={setSelectedFichaId}
             setActiveComponent={setActiveComponent}
           />;
       }
@@ -205,15 +207,15 @@ const Home = () => {
     // Renderizar el componente solicitado si tiene permisos
     switch (activeComponent) {
       case 'agenda':
-        return <Agenda 
-          onFichaSelect={setSelectedFichaId} 
+        return <Agenda
+          onFichaSelect={setSelectedFichaId}
           setActiveComponent={setActiveComponent}
         />;
       case 'ficha-clinica':
         return <FichaClinica id={selectedFichaId} />;
       case 'reevaluacion':
         return <Reevaluacion id={selectedFichaId}
-        tipo={selectedTipo}/>;
+          tipo={selectedTipo} />;
       case 'instituciones':
         return <Instituciones />;
       case 'usuarios':
@@ -231,8 +233,8 @@ const Home = () => {
       case 'dashboard':
         return <Dashboard />;
       default:
-        return <Agenda 
-          onFichaSelect={setSelectedFichaId} 
+        return <Agenda
+          onFichaSelect={setSelectedFichaId}
           setActiveComponent={setActiveComponent}
         />;
     }
@@ -241,23 +243,23 @@ const Home = () => {
 
   return (
     <div className={`wrapper ${isSidebarOpen ? 'sidebar-open' : 'sidebar-mini'}`}>
-      <Header 
-        toggleSidebar={toggleSidebar} 
+      <Header
+        toggleSidebar={toggleSidebar}
         isSidebarOpen={isSidebarOpen}
         isMobile={isMobile}
       />
-      <Sidebar 
+      <Sidebar
         isOpen={isSidebarOpen}
         isMobile={isMobile}
         toggleSidebar={toggleSidebar}
-        setActiveComponent={setActiveComponent} 
+        setActiveComponent={setActiveComponent}
       />
       <div className={`content-wrapper ${isMobile && !isSidebarOpen ? 'ml-0' : ''}`}>
         <Content>
           {renderContent()}
         </Content>
       </div>
-      <Footer 
+      <Footer
         isSidebarOpen={isSidebarOpen}
         isMobile={isMobile}
       />

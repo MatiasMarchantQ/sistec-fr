@@ -365,7 +365,7 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
       ...datosAdulto,
       diagnosticos_id: diagnosticosSeleccionados
         .filter(diag => diag !== 'otro')
-        .map(id => parseInt(id)), 
+        .map(id => parseInt(id)),
       diagnostico_otro: diagnosticosSeleccionados.includes('otro')
         ? diagnosticoOtro
         : null,
@@ -392,10 +392,12 @@ const FichaClinicaAdulto = ({ onVolver, onIngresar, institucionId, datosIniciale
       });
 
       if (response.data.success) {
-        if (method === 'post') {
-          toast.success('Ficha clínica creada exitosamente');
-        } else {
-          toast.success('Ficha clínica actualizada exitosamente');
+        if (!datosIniciales) { // <-- Usar directamente datosIniciales
+          if (method === 'post') {
+            toast.success('Ficha clínica creada exitosamente');
+          } else {
+            toast.success('Ficha clínica actualizada exitosamente');
+          }
         }
         onIngresar(response.data.data);
         limpiarFormulario();
