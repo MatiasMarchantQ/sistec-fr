@@ -158,14 +158,13 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
             const response = await axios.get(`${apiUrl}/instituciones/${institucionId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            return response.data.tipo_id; // Asegúrate de que esto sea el campo correcto
+            return response.data.tipo_id;
         } catch (error) {
             console.error("Error al obtener el tipo de institución:", error);
             throw new Error("No se pudo obtener el tipo de institución");
         }
     }, [getToken]);
 
-    // Actualiza la función fetchAsignaciones para manejar mejor los datos
     const fetchAsignaciones = async () => {
         try {
             setLoading(true);
@@ -192,7 +191,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
 
             if (response.data && Array.isArray(response.data.asignaciones)) {
                 const asignacionesGrupadas = agruparAsignacionesPorPeriodo(response.data.asignaciones);
-                
+
                 const asignacionesConFichas = asignacionesGrupadas.map(rotacion => ({
                     ...rotacion,
                     instituciones: rotacion.instituciones.map(inst => ({
@@ -258,14 +257,14 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
 
     const handleCentroClick = async (periodoId, centroId) => {
         const uniqueId = `${periodoId}-${centroId}`;
-    
+
         if (selectedCentro === uniqueId) {
             setSelectedCentro(null);
         } else {
             setLoading(true);
             try {
                 let fichas = fichasPorInstitucion[centroId];
-    
+
                 // Si las fichas no están cargadas, obtenerlas de forma inmediata
                 if (!fichas) {
                     fichas = await fetchFichasClinicas(centroId);
@@ -274,7 +273,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                         [centroId]: fichas
                     }));
                 }
-    
+
                 // Actualizar asignaciones con las fichas obtenidas
                 setAsignaciones(prevAsignaciones =>
                     prevAsignaciones.map(rotacion => ({
@@ -286,7 +285,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                         )
                     }))
                 );
-    
+
                 // Actualizar el estado del centro seleccionado después de cargar
                 setSelectedCentro(uniqueId);
             } catch (error) {
@@ -296,7 +295,7 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
             }
         }
     };
-    
+
 
     const handleIngresarFicha = useCallback(async (institucionId) => {
         try {
@@ -816,10 +815,11 @@ const Agenda = ({ onFichaSelect, setActiveComponent }) => {
                                         <div className="mt-2 text-muted small">
                                             {ficha.diagnosticos && ficha.diagnosticos.length > 0
                                                 ? ficha.diagnosticos.map(d => d.nombre).join(', ')
-                                                : (ficha.diagnostico && ficha.diagnostico.nombre
-                                                    ? ficha.diagnostico.nombre
-                                                    : 'Sin diagnóstico')}
+                                                : (typeof ficha.diagnostico === 'string' && ficha.diagnostico
+                                                    ? ficha.diagnostico
+                                                    : (ficha.diagnostico?.nombre || 'Sin diagnóstico'))}
                                         </div>
+
                                     </div>
                                 ))}
                             </div>

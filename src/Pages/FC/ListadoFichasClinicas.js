@@ -104,7 +104,7 @@ const ListadoFichasClinicas = () => {
       if (error.response) {
         switch (error.response.status) {
           case 400:
-            alert('Debe seleccionar un tipo de ficha válido (adulto o infantil).');
+            alert('Debe seleccionar un tipo de ficha válido (adulto, infantil o dependencia).');
             break;
           case 404:
             alert('No se encontraron fichas clínicas para exportar.');
@@ -284,7 +284,7 @@ const ListadoFichasClinicas = () => {
         <Row className="mt-3">
           <Col md={3}>
             <Form.Group>
-              <Form.Label> Fecha Inicial</Form.Label>
+              <Form.Label>Fecha Inicial</Form.Label>
               <Form.Control
                 type="date"
                 name="fechaInicial"
@@ -307,7 +307,38 @@ const ListadoFichasClinicas = () => {
               />
             </Form.Group>
           </Col>
+          <Col md={3}>
+            <Form.Group>
+              <Form.Label>Tipo de Ficha</Form.Label>
+              <Form.Control
+                as="select"
+                name="tipoFicha"
+                value={filtros.tipoFicha}
+                onChange={handleChangeFiltro}
+              >
+                <option value="">Todos los Tipos</option>
+                <option value="adulto">Adulto</option>
+                <option value="infantil">Infantil</option>
+                <option value="dependencia">Dependencia</option>
+              </Form.Control>
+            </Form.Group>
+          </Col>
+          {/* Botón de Exportar - En desktop aparece aquí, en móvil se oculta */}
+          <Col md={3} className="d-none d-md-block">
+            <Form.Group>
+              <Form.Label className="invisible">Exportar</Form.Label>
+              <div className="d-grid">
+                <Button
+                  variant="success"
+                  onClick={exportarFichas}
+                >
+                  Exportar Fichas Clínicas
+                </Button>
+              </div>
+            </Form.Group>
+          </Col>
         </Row>
+
         <Row>
           <Col md={3}>
             <Form.Group>
@@ -327,6 +358,7 @@ const ListadoFichasClinicas = () => {
               </Form.Control>
             </Form.Group>
           </Col>
+
           <Col md={3}>
             <Form.Group>
               <Form.Label>Institución</Form.Label>
@@ -345,22 +377,8 @@ const ListadoFichasClinicas = () => {
               </Form.Control>
             </Form.Group>
           </Col>
-          <Col md={3}>
-            <Form.Group>
-              <Form.Label>Tipo de Ficha</Form.Label>
-              <Form.Control
-                as="select"
-                name="tipoFicha"
-                value={filtros.tipoFicha}
-                onChange={handleChangeFiltro}
-              >
-                <option value="">Todos los Tipos</option>
-                <option value="adulto">Adulto</option>
-                <option value="infantil">Infantil</option>
-              </Form.Control>
-            </Form.Group>
-          </Col>
-          <Col md={3}>
+
+          <Col md={3} className="mb-3">
             <Form.Group>
               <Form.Label>Buscar</Form.Label>
               <Form.Control
@@ -373,32 +391,68 @@ const ListadoFichasClinicas = () => {
               />
             </Form.Group>
           </Col>
-        </Row>
-        <Row className="mt-3">
-          <Col>
-            <Button
-              type="submit"
-              variant="primary"
-              className="me-2"
-            >
-              {'Buscar'}
-            </Button>
-            {hayFiltrosActivos && (
-              <Button
-                variant="secondary"
-                onClick={limpiarFiltros}
-              >
-                Limpiar Filtros
-              </Button>
-            )}
-            <Button
-              variant="success"
-              onClick={exportarFichas}
-              className="ms-2"
-            >
-              {'Exportar Fichas Clínicas'}
-            </Button>
+
+          {/* Botón de Buscar - En desktop aparece aquí */}
+          <Col md={3} className="d-none d-md-block">
+            <Form.Group>
+              <Form.Label className="invisible">Buscar</Form.Label>
+              <div className="d-grid gap-2">
+                <Button
+                  type="submit"
+                  variant="primary"
+                >
+                  Buscar
+                </Button>
+                {hayFiltrosActivos && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={limpiarFiltros}
+                  >
+                    Limpiar Filtros
+                  </Button>
+                )}
+              </div>
+            </Form.Group>
           </Col>
+        </Row>
+
+        {/* Botones para móvil - Solo aparecen en pantallas pequeñas */}
+        <Row className="d-md-none mt-4">
+          <Col xs={12} className="mb-3">
+            <div className="d-grid">
+              <Button
+                type="submit"
+                variant="primary"
+                size="l"
+              >
+                Buscar
+              </Button>
+            </div>
+          </Col>
+          <Col xs={12} className="mb-3">
+            <div className="d-grid">
+              <Button
+                variant="success"
+                size="l"
+                onClick={exportarFichas}
+              >
+                Exportar Fichas Clínicas
+              </Button>
+            </div>
+          </Col>
+          {hayFiltrosActivos && (
+            <Col xs={12}>
+              <div className="d-grid">
+                <Button
+                  variant="secondary"
+                  onClick={limpiarFiltros}
+                >
+                  Limpiar Filtros
+                </Button>
+              </div>
+            </Col>
+          )}
         </Row>
       </Form>
 
@@ -424,40 +478,71 @@ const ListadoFichasClinicas = () => {
             {fichas.map(ficha => {
               const esInfantil = ficha.PacienteInfantil !== undefined;
               const paciente = esInfantil ? ficha.PacienteInfantil : ficha.PacienteAdulto;
+              const esDependencia = !esInfantil && !paciente; // Si no es infantil ni adulto, es dependencia
+
               const fecha = new Date(ficha.createdAt).toLocaleDateString('es-CL');
 
-              // Lógica de diagnósticos para adultos
+              // Lógica para mostrar el nombre completo del paciente
+              let nombreCompleto = 'No disponible';
+              if (esDependencia) {
+                nombreCompleto = `${ficha.nombre_paciente} ${ficha.apellido_paciente}`;
+              } else if (paciente) {
+                nombreCompleto = `${paciente.nombres} ${paciente.apellidos}`;
+              }
+
+              // Lógica de diagnósticos mejorada
               let diagnostico = 'No especificado';
-              if (!esInfantil) {
-                // Filtrar diagnósticos predefinidos
-                const diagnosticosPredefinidos = ficha.diagnosticos
-                  .filter(d => !d.esOtro)
-                  .map(d => d.nombre);
 
-                // Verificar si hay diagnóstico personalizado
-                const tieneOtroDiagnostico = ficha.diagnosticos.some(d => d.esOtro);
+              // Verificar si es ficha de dependencia
+              if (esDependencia) {
+                // Obtener los nombres de los diagnósticos
+                const nombresDiagnosticos = ficha.diagnosticos.map(d => d.nombre).filter(Boolean);
 
-                // Construir string de diagnósticos
+                // Concatenar los diagnósticos
+                if (nombresDiagnosticos.length > 0) {
+                  diagnostico = nombresDiagnosticos.join(', ');
+
+                  // Agregar otroDiagnostico si existe
+                  if (ficha.otroDiagnostico && ficha.otroDiagnostico.trim() !== '') {
+                    diagnostico += `, y ${ficha.otroDiagnostico.trim()}`;
+                  }
+                } else {
+                  diagnostico = 'Sin diagnóstico';
+                }
+              } else if (!esInfantil) {
+                // Lógica para adultos
+                const diagnosticosPredefinidos = Array.isArray(ficha.diagnosticos) ?
+                  ficha.diagnosticos.filter(d => !d.esOtro).map(d => d.nombre) : [];
+                const tieneOtroDiagnostico = Array.isArray(ficha.diagnosticos) ?
+                  ficha.diagnosticos.some(d => d.esOtro) : false;
+
                 diagnostico = diagnosticosPredefinidos.length > 0
                   ? diagnosticosPredefinidos.join(', ') + (tieneOtroDiagnostico ? ' y Otro' : '')
                   : (tieneOtroDiagnostico ? 'Otro' : 'No especificado');
               } else {
-                // Mantener lógica original para fichas infantiles
-                diagnostico = ficha.diagnostico_tepsi || ficha.diagnostico_dsm;
+                // Lógica para infantiles
+                diagnostico = ficha.diagnostico_tepsi || ficha.diagnostico_dsm || 'No especificado';
               }
 
-              const cantidadReevaluaciones = ficha.reevaluaciones || 'No aplicado';
+
+              // Lógica de reevaluaciones diferenciada
+              let cantidadReevaluaciones;
+              if (esDependencia) {
+                cantidadReevaluaciones = 'No aplica'; // Para dependencia
+              } else {
+                cantidadReevaluaciones = ficha.reevaluaciones || '0'; // Para adulto e infantil
+              }
 
               return (
                 <tr key={ficha.id}>
                   <td>{fecha}</td>
-                  <td>{esInfantil ? 'Infantil' : 'Adulto'}</td>
-                  <td>{`${paciente.nombres} ${paciente.apellidos}`}</td>
+                  <td>{esDependencia ? 'Dependencia' : (esInfantil ? 'Infantil' : 'Adulto')}</td>
+                  <td>{nombreCompleto}</td>
                   <td>{ficha.Institucion.TipoInstitucion?.tipo} {ficha.Institucion.nombre}</td>
                   <td>{diagnostico}</td>
                   <td>{cantidadReevaluaciones}</td>
                   <td>
-                    <Button variant="info" size="sm" onClick={() => verDetallesFicha(ficha.id, esInfantil ? 'infantil' : 'adulto')}>
+                    <Button variant="info" size="sm" onClick={() => verDetallesFicha(ficha.id, esDependencia ? 'dependencia' : (esInfantil ? 'infantil' : 'adulto'))}>
                       Ver Detalles
                     </Button>
                   </td>

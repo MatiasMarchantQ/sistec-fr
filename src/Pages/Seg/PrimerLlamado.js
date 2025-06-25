@@ -959,7 +959,6 @@ const PrimerLlamado = ({
                         }
                       }))}
                       style={{
-                        // Asegurar que el slider sea responsivo
                         width: '100%',
                         height: '10px'
                       }}
@@ -1069,7 +1068,7 @@ const PrimerLlamado = ({
         { label: 'Nombre', value: `${paciente.nombres} ${paciente.apellidos}` },
         { label: 'RUT', value: paciente.rut },
         // { label: 'Fecha de Nacimiento', value: formatFecha(paciente.fecha_nacimiento) },
-        { label: 'Edad', value: String(paciente.edad) }, // Asegúrate de que sea un string
+        { label: 'Edad', value: String(paciente.edad) },
         { label: 'Teléfono Principal', value: paciente.telefono_principal || 'No registrado' },
         { label: 'Teléfono Secundario', value: paciente.telefono_secundario || 'No registrado' }
       ];
@@ -1082,7 +1081,7 @@ const PrimerLlamado = ({
 
         pdf.setFillColor(255, 255, 255);
         pdf.rect(startX + cellWidth, startY + index * cellHeight, cellWidth, cellHeight, 'F');
-        pdf.text(String(item.value), startX + cellWidth + 2, startY + index * cellHeight + lineHeight); // Asegúrate de que sea un string
+        pdf.text(String(item.value), startX + cellWidth + 2, startY + index * cellHeight + lineHeight);
       });
     };
 

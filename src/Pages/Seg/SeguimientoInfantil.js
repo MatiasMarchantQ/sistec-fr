@@ -405,7 +405,6 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
     setSeguimiento(prev => ({
       ...prev,
       recomendaciones: {
-        // Usar recomendaciones del rango o dejar vacío si no hay
         areaMotora: recomendacionesEdad.areaMotora || '',
         areaLenguaje: recomendacionesEdad.areaLenguaje || '',
         areaSocioemocional: recomendacionesEdad.areaSocioemocional || '',
@@ -545,7 +544,7 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
           `${process.env.REACT_APP_API_URL}/seguimientos/infantil/${seguimientoOriginal.id}`,
           {
             ...seguimientoParaEnviar,
-            id: seguimientoOriginal.id,  // Incluir el ID original
+            id: seguimientoOriginal.id,
             numero_llamado: seguimientoOriginal.numero_llamado
           },
           { headers: { Authorization: `Bearer ${token}` } }
@@ -759,7 +758,7 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
   const obtenerFechaActual = () => {
     const fecha = new Date();
     const opciones = { year: 'numeric', month: '2-digit', day: '2-digit' };
-    return fecha.toLocaleDateString('es-ES', opciones).replace(/\//g, '-'); // Cambia las barras por guiones
+    return fecha.toLocaleDateString('es-ES', opciones).replace(/\//g, '-');
   };
 
   const exportarDetallesPDF = async (seguimiento) => {
@@ -966,7 +965,6 @@ const SeguimientoInfantil = ({ pacienteId, fichaId, fichaClinica }) => {
           return [label, contenido];
         });
 
-        // Usar autoTable para crear la tabla
         pdf.autoTable({
           head: [['Recomendación', 'Descripción']],
           body: rows,

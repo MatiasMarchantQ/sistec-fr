@@ -1,0 +1,9 @@
+.modal-extra-wide {
+    max-width: 90% !important;
+    width: 80% !important;
+    margin-top: 2rem !important;
+}
+
+.modal-extra-wide .modal-content {
+    width: 100% !important;
+}

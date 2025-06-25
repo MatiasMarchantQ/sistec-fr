@@ -4,6 +4,7 @@ import { Button } from 'react-bootstrap';
 import axios from 'axios';
 import FichaClinicaInfantil from '../FC/FichaClinicaInfantil';
 import FichaClinicaAdulto from '../FC/FichaClinicaAdulto';
+import FichaDependencia from '../FC/FichaDependencia';
 import { useAuth } from '../../contexts/AuthContext';
 
 const IngresarFichaClinica = () => {
@@ -22,23 +23,23 @@ const IngresarFichaClinica = () => {
   const [institucionSeleccionada, setInstitucionSeleccionada] = useState(institucionId);
 
   useEffect(() => {
-    if (!isFromAgenda) {
-      const obtenerTiposInstituciones = async () => {
-        try {
-          const token = getToken();
-          const response = await axios.get(`${process.env.REACT_APP_API_URL}/obtener/tipos-instituciones`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
-          setTiposInstituciones(response.data);
-        } catch (error) {
-          console.error('Error al obtener tipos de instituciones:', error);
-        }
-      };
-      obtenerTiposInstituciones();
-    }
-  }, [getToken, isFromAgenda]);
+    // Siempre obtener tipos de instituciones, incluso cuando viene de agenda
+    // para que el dropdown de tipo de ficha funcione correctamente
+    const obtenerTiposInstituciones = async () => {
+      try {
+        const token = getToken();
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/obtener/tipos-instituciones`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setTiposInstituciones(response.data);
+      } catch (error) {
+        console.error('Error al obtener tipos de instituciones:', error);
+      }
+    };
+    obtenerTiposInstituciones();
+  }, [getToken]);
 
   useEffect(() => {
     if (!isFromAgenda && tipoInstitucionSeleccionado) {
@@ -62,29 +63,35 @@ const IngresarFichaClinica = () => {
 
   // Efecto para determinar tipo de ficha basado en tipo de institución
   useEffect(() => {
-    if (isFromAgenda && tipoInstitucionFromAgenda) {
-      // Si viene de agenda, establecer directamente el tipo de ficha basado en el tipoInstitucion
-      const tipoFichaInicial = Number(tipoInstitucionFromAgenda) === 1 ? 'infantil' : 'adulto';
-      setTipoFicha(tipoFichaInicial);
+    if (isFromAgenda && tipoInstitucionFromAgenda && tiposInstituciones.length > 0) {
+      // Si viene de agenda, establecer el tipoInstitucionSeleccionado
       setTipoInstitucionSeleccionado(tipoInstitucionFromAgenda.toString());
+      
+      // Buscar el tipo de institución para determinar si es JARDÍN
+      const tipoInstitucion = tiposInstituciones.find(tipo => tipo.id === Number(tipoInstitucionFromAgenda));
+      
+      if (tipoInstitucion && tipoInstitucion.tipo.toUpperCase() === 'JARDÍN') {
+        setTipoFicha('infantil');
+      }
+      // Para otros tipos de institución, dejar que el usuario elija entre adulto y dependencia
     }
-  }, [isFromAgenda, tipoInstitucionFromAgenda]);
+  }, [isFromAgenda, tipoInstitucionFromAgenda, tiposInstituciones]);
 
   // Y modificar el useEffect que maneja el cambio de tipo de institución
   useEffect(() => {
-    if (tipoInstitucionSeleccionado) {
-      // Para el caso de selección manual o cuando viene de agenda
+    if (tipoInstitucionSeleccionado && !isFromAgenda) {
+      // Solo para el caso de selección manual (no cuando viene de agenda)
       const tipoInstitucion = tiposInstituciones.find(tipo => tipo.id === Number(tipoInstitucionSeleccionado));
 
       if (tipoInstitucion) {
         if (tipoInstitucion.tipo.toUpperCase() === 'JARDÍN') {
           setTipoFicha('infantil');
         } else {
-          setTipoFicha('adulto');
+          setTipoFicha('');
         }
       }
     }
-  }, [tipoInstitucionSeleccionado, tiposInstituciones]);
+  }, [tipoInstitucionSeleccionado, tiposInstituciones, isFromAgenda]);
 
   const handleVolver = () => {
     // Obtener el estado de navegación original
@@ -166,7 +173,6 @@ const IngresarFichaClinica = () => {
   };
 
   const handleIngresar = (data) => {
-    console.log('Ficha ingresada');
   };
 
   return (
@@ -232,11 +238,18 @@ const IngresarFichaClinica = () => {
         <select
           className="form-control"
           value={tipoFicha}
-          disabled={true}
+          disabled={tipoInstitucionSeleccionado === ''}
+          onChange={(e) => setTipoFicha(e.target.value)}
         >
           <option value="">Seleccione...</option>
-          <option value="adulto">Adulto</option>
-          <option value="infantil">Infantil</option>
+          {tiposInstituciones.find(tipo => tipo.id === Number(tipoInstitucionSeleccionado))?.tipo.toUpperCase() === 'JARDÍN' ? (
+            <option value="infantil">Infantil</option>
+          ) : (
+            <>
+              <option value="adulto">Adulto</option>
+              <option value="dependencia">Dependencia</option>
+            </>
+          )}
         </select>
       </div>
 
@@ -250,6 +263,13 @@ const IngresarFichaClinica = () => {
       )}
       {tipoFicha === 'adulto' && (
         <FichaClinicaAdulto
+          onVolver={handleVolver}
+          onIngresar={handleIngresar}
+          institucionId={institucionSeleccionada}
+        />
+      )}
+      {tipoFicha === 'dependencia' && (
+        <FichaDependencia
           onVolver={handleVolver}
           onIngresar={handleIngresar}
           institucionId={institucionSeleccionada}

@@ -72,7 +72,7 @@ const InstitucionesChart = React.memo(({
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
-      mode: 'index', // Cambiar a 'index' para mostrar tooltip por columna
+      mode: 'index',
       intersect: false
     },
     scales: {
@@ -272,11 +272,10 @@ const DiagnosticosChart = ({
 };
 
 const Dashboard = () => {
-  const { token } = useAuth(); // Cambiar de getToken a token directo
+  const { token } = useAuth();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
-  // Usar useMemo para el estado inicial
   const initialDashboardData = useMemo(() => ({
     pacientesAdultos: {
       diagnosticos: [],

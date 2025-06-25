@@ -221,7 +221,6 @@ const Instituciones = () => {
 
   const handleRemoveReceptorInput = (index) => {
     const newReceptores = nuevaInstitucion.receptores.filter((_, i) => i !== index);
-    // Asegúrate de que siempre haya al menos un receptor
     if (newReceptores.length === 0) {
       newReceptores.push({ nombre: '', cargo: '' });
     }
@@ -335,7 +334,7 @@ const Instituciones = () => {
             await handleUpdateReceptor(receptor.id, {
               nombre: receptor.nombre,
               cargo: receptor.cargo,
-              estado: receptor.estado // Asegúrate de que el estado se incluya
+              estado: receptor.estado
             });
           } else {
             // Agregar nuevo receptor
@@ -508,9 +507,7 @@ const Instituciones = () => {
                                     name={`receptorSwitch${receptor.id}`}
                                     checked={receptor.estado}
                                     onChange={() => {
-                                      // Cambia el estado localmente
                                       receptor.estado = !receptor.estado;
-                                      // Actualiza el estado en editedFields
                                       handleReceptorChange(index, 'estado', receptor.estado);
                                     }}
                                   />

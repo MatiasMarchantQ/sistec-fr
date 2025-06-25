@@ -293,7 +293,6 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
 
         setSeguimientosAnteriores(procesados);
 
-        // Actualiza el seguimiento combinado como antes
         const seguimientoCombinado = {
           pacienteId,
           fichaId,
@@ -351,7 +350,7 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
 
       const seguimientoProcesado = procesarSeguimiento(response.data);
 
-      const pacienteData = response.data.paciente_adulto; // Asegúrate de que esta propiedad existe
+      const pacienteData = response.data.paciente_adulto;
 
       // Determinar el índice del acordeón basado en el seguimiento procesado
       const indiceAcordeon = determinarIndiceAcordeon(seguimientoProcesado);
@@ -363,7 +362,7 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
         comentario_primer_llamado: response.data.comentario_primer_llamado || '',
         comentario_segundo_llamado: response.data.comentario_segundo_llamado || '',
         comentario_tercer_llamado: response.data.comentario_tercer_llamado || '',
-        id: seguimientoProcesado.id // Asegúrate de almacenar el ID
+        id: seguimientoProcesado.id
       }));
 
       setPaciente(pacienteData);
@@ -586,7 +585,6 @@ const SeguimientoAdulto = ({ pacienteId, fichaId }) => {
         ));
       };
 
-      // Usar antes de enviar
       datosParaEnviar = limpiarDatos(datosParaEnviar);
 
       const url = esActualizacion

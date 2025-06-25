@@ -226,8 +226,9 @@ export const AuthProvider = ({ children }) => {
         id: response.data.id,
         rol_id: response.data.rol_id,
         nombres: response.data.nombres,
+        apellidos: response.data.apellidos,
         estudiante_id: response.data.estudiante_id,
-        es_estudiante: response.data.rol_id === 3 // Agregar una bandera para identificar estudiantes
+        es_estudiante: response.data.rol_id === 3
       };
 
       const storage = localStorage.getItem('accessToken') ? localStorage : sessionStorage;
@@ -235,7 +236,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
     } catch (error) {
       console.error('Error al obtener datos del usuario:', error);
-      alert('Error al obtener datos del usuario: ' + error.message); // Usar alert
+      alert('Error al obtener datos del usuario: ' + error.message);
       logout();
     }
   };
@@ -253,7 +254,7 @@ export const AuthProvider = ({ children }) => {
         rememberMe
       });
 
-      const { accessToken, nombres, estudiante_id, rol_id } = response.data;
+      const { accessToken, nombres, apellidos, estudiante_id, rol_id } = response.data;
       const storage = rememberMe ? localStorage : sessionStorage;
 
       storage.setItem('accessToken', accessToken);
@@ -264,6 +265,7 @@ export const AuthProvider = ({ children }) => {
         id: rol_id === 3 ? null : (decoded.id || null), // Si es rol de estudiante, id será null
         rol_id: rol_id || decoded.rol_id,
         nombres: nombres || decoded.nombres,
+        apellidos: apellidos || decoded.apellidos,
         estudiante_id: estudiante_id || decoded.estudiante_id,
         es_estudiante: rol_id === 3 // Agregar una bandera para identificar estudiantes
       };

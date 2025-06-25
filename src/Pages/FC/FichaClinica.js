@@ -8,8 +8,11 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 import SeguimientoInfantil from '../Seg/SeguimientoInfantil';
 import SeguimientoAdulto from '../Seg/SeguimientoAdulto';
+import SeguimientoDependencia from '../Seg/SeguimientoDependencia';
 import ModalEditarFichaAdulto from './ModalEditarFichaAdulto';
 import ModalEditarFichaInfantil from './ModalEditarFichaInfantil';
+import ModalEditarFichaDependencia from './ModalEditarFichaDependencia';
+import TabVisitaDomiciliaria from './TabVisitaDomiciliaria';
 
 const FichaClinicaAdulto = ({ fichaClinica }) => {
   const navigate = useNavigate();
@@ -305,6 +308,246 @@ const FichaClinicaInfantil = ({ fichaClinica }) => {
   );
 };
 
+const FichaClinicaDependencia = ({ fichaClinica }) => {
+  if (!fichaClinica || !fichaClinica.paciente) {
+    return <div>No hay información disponible.</div>;
+  }
+
+  const formatearDiagnosticos = () => {
+    const diagnosticos = fichaClinica.diagnosticos || [];
+    const otroDiagnostico = fichaClinica.otroDiagnostico;
+
+    let textoCompleto = '';
+
+    // Agregar diagnósticos predefinidos
+    if (diagnosticos.length > 0) {
+      const nombresDiagnosticos = diagnosticos.map(d => d.nombre).join(', ');
+      textoCompleto = nombresDiagnosticos;
+    }
+
+    // Agregar diagnóstico personalizado si existe
+    if (otroDiagnostico && otroDiagnostico.trim() !== '') {
+      if (textoCompleto) {
+        textoCompleto += ', y ' + otroDiagnostico;
+      } else {
+        textoCompleto = otroDiagnostico;
+      }
+    }
+
+    return textoCompleto || 'N/A';
+  };
+
+  return (
+    <>
+      <div className="row mb-4">
+        <div className="col-md-6">
+          <h5 className="border-bottom pb-2">Datos Personales</h5>
+          <div className="row">
+            <div className="col-md-6">
+              <p><strong>Nombre:</strong> {fichaClinica.paciente?.nombre || 'N/A'}</p>
+              <p><strong>Apellido:</strong> {fichaClinica.paciente?.apellido || 'N/A'}</p>
+              <p><strong>RUT:</strong> {fichaClinica.paciente.rut || 'N/A'}</p>
+              <p><strong>Edad:</strong> {fichaClinica.paciente.edad || 'N/A'} Años</p>
+              <p><strong>Fecha de Nacimiento:</strong> {fichaClinica.paciente.fechaNacimiento || 'N/A'}</p>
+              <p><strong>Dirección:</strong> {fichaClinica.direccionPaciente || 'N/A'}</p>
+              <p><strong>Tipo de beneficio:</strong> {fichaClinica.tipoBeneficio || 'N/A'}</p>
+            </div>
+            <div className="col-md-6">
+              <p><strong>Teléfono 1:</strong> {fichaClinica.telefono1 || 'N/A'}</p>
+              <p><strong>Teléfono 2:</strong> {fichaClinica.telefono2 || 'N/A'}</p>
+              <p>
+                <strong>Estado Civil: </strong>
+                {fichaClinica.estadoCivil || 'N/A'}
+              </p>
+              <p>
+                <strong>Escolaridad: </strong>
+                {fichaClinica.escolaridad?.nivel || 'N/A'}
+              </p>
+              <p><strong>Convivencia:</strong> {fichaClinica.convivencia || 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-md-6">
+          <h5 className="border-bottom pb-2">Información Médica</h5>
+          <div className="row">
+            <div className="col-md-6">
+              <p>
+                <strong>Diagnósticos: </strong>
+                {formatearDiagnosticos()}
+              </p>
+              <p>
+                <strong>Índice Barthel: </strong>
+                {fichaClinica.indiceBarthel || 'N/A'}
+              </p>
+              <p>
+                <strong>Grado de Dependencia: </strong>
+                {fichaClinica.gradoDependencia || 'N/A'}
+              </p>
+            </div>
+            <div className="col-md-6">
+              <p>
+                <strong>Causa de Dependencia(Tiempo): </strong>
+                {fichaClinica.causaDependenciaTiempo || 'N/A'}
+              </p>
+              <p>
+                <strong>Posee Carné de Discapacidad: </strong>
+                {fichaClinica.poseeCarneDiscapacidad ? 'Sí' : 'No' || 'N/A'}
+              </p>
+              <p>
+                <strong>Recibe Pensión/Subsidio/Jubilación: </strong>
+                {fichaClinica.recibePensionSubsidioJubilacion ? 'Sí' : 'No' || 'N/A'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Información del Cuidador */}
+      <div className="row">
+        <div className="col-md-6">
+          <h5 className="border-bottom pb-2">Información del Cuidador Principal</h5>
+          <div className="row">
+            <div className="col-md-6">
+              <p>
+                <strong>Nombre: </strong>
+                {fichaClinica.nombreCuidador || 'N/A'}
+              </p>
+              <p>
+                <strong>RUT: </strong>
+                {fichaClinica.rutCuidador || 'N/A'}
+              </p>
+              <p>
+                <strong>Edad: </strong>
+                {fichaClinica.edadCuidador || 'N/A'} Años
+              </p>
+              <p>
+                <strong>Fecha de Nacimiento: </strong>
+                {fichaClinica.fechaNacimientoCuidador || 'N/A'}
+              </p>
+              <p>
+                <strong>Dirección: </strong>
+                {fichaClinica.direccionCuidador || 'N/A'}
+              </p>
+              <p>
+                <strong>Teléfono: </strong>
+                {fichaClinica.telefono1 || 'N/A'}
+              </p>
+            </div>
+            <div className="col-md-6">
+              <p>
+                <strong>Ocupación: </strong>
+                {fichaClinica.ocupacionCuidador || 'N/A'}
+              </p>
+              <p>
+                <strong>Parentesco: </strong>
+                {fichaClinica.parentescoCuidador || 'N/A'}
+              </p>
+              <p>
+                <strong>Recibe Estipendio: </strong>
+                {fichaClinica.cuidadorRecibeEstipendio ? 'Sí' : 'No'}
+              </p>
+              <p>
+                <strong>Puntaje Escala Zarit: </strong>
+                {fichaClinica.puntajeEscalaZarit || 'N/A'}
+              </p>
+              <p>
+                <strong>Nivel Sobrecarga Zarit: </strong><br/>
+                {fichaClinica.nivelSobrecargaZarit || 'N/A'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-md-6">
+          <h5 className="border-bottom pb-2">Antecedentes familiares</h5>
+          <div className="row">
+            <div className="col-md-6">
+              <p>
+                <strong>Tipo de Familia: </strong>
+                {fichaClinica.tipoFamilia?.nombre
+                  ? fichaClinica.tipoFamilia.nombre
+                  : fichaClinica.otroTipoFamilia
+                    ? fichaClinica.otroTipoFamilia
+                    : 'N/A'}
+              </p>
+
+              <p>
+                <strong>Ciclo Vital Familiar: </strong><br/>
+                {fichaClinica.cicloVitalFamiliar?.ciclo || 'N/A'}
+              </p>
+            </div>
+            <div className="col-md-6">
+              <p>
+                <strong>Puntaje de Factores de Riesgo Familiar: </strong>
+                {fichaClinica.factoresRiesgo || 'N/A'}
+              </p>
+            </div>
+          </div>
+
+          <h5 className="border-bottom pb-2 mt-4">Información adicional</h5>
+          <div className="row">
+            <div className="col-md-4">
+              <p>
+                <strong>Horario de llamada: </strong>
+                {fichaClinica.horarioLlamada || 'N/A'}
+              </p>
+            </div>
+            <div className="col-md-6">
+              <p>
+                <strong>Conectividad: </strong>
+                {fichaClinica.conectividad || 'N/A'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="col-mt-4 mt-4">
+        <h5 className="border-bottom pb-2">Salud en los últimos 6 meses</h5>
+        <div className="row">
+          <div className="col-md-4">
+            <p>
+              <strong>Control CESFAM: </strong>
+              {fichaClinica.controlCesfamDependencia || 'N/A'}
+            </p>
+          </div>
+          <div className="col-md-6">
+            <p>
+              <strong>Consulta en Servicio de Urgencia: </strong>
+              {fichaClinica.consultaServicioUrgencia || 'N/A'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Información */}
+      < div className="row mt-4" >
+        <div className="col-12">
+          <h5 className="border-bottom pb-2">Información</h5>
+          <div className="d-flex gap-4">
+            {fichaClinica.estudiante && fichaClinica.estudiante.id && (
+              <p className="mb-0">
+                <strong>Estudiante:</strong> {`${fichaClinica.estudiante.nombres || ''} ${fichaClinica.estudiante.apellidos || ''}`.trim()}
+              </p>
+            )}
+            {fichaClinica.usuario && fichaClinica.usuario.id && (
+              <p className="mb-0">
+                <strong>Usuario:</strong> {`${fichaClinica.usuario.nombres || ''} ${fichaClinica.usuario.apellidos || ''}`.trim()}
+              </p>
+            )}
+            {fichaClinica.institucion && fichaClinica.institucion.id && (
+              <p className="mb-0">
+                <strong>Institución:</strong> {fichaClinica.institucion.nombre || ''}
+              </p>
+            )}
+          </div>
+        </div>
+      </div >
+    </>
+  );
+};
+
 const formatearFichaAdulto = (fichaClinica) => {
   return {
     id: fichaClinica.id || null,
@@ -463,6 +706,84 @@ const formatearFichaInfantil = (fichaClinica) => {
   };
 };
 
+const formatearFichaDependencia = (fichaClinica) => {
+  return {
+    id: fichaClinica.id || null,
+    fechaIngreso: fichaClinica.fechaIngreso || null,
+    paciente: {
+      nombre: fichaClinica.paciente?.nombre || 'N/A',
+      apellido: fichaClinica.paciente?.apellido || 'N/A',
+      rut: fichaClinica.paciente?.rut || 'N/A',
+      edad: fichaClinica.paciente?.edad || 'N/A',
+      fechaNacimiento: fichaClinica.paciente?.fechaNacimiento || 'N/A',
+    },
+    diagnosticos: Array.isArray(fichaClinica.diagnosticos)
+      ? fichaClinica.diagnosticos.map(diagnostico => ({
+        id: diagnostico.id || null,
+        nombre: diagnostico.nombre || 'N/A',
+      }))
+      : [],
+    otroDiagnostico: fichaClinica.otroDiagnostico || null,
+    indiceBarthel: fichaClinica.indiceBarthel || 'N/A',
+    gradoDependencia: fichaClinica.gradoDependencia || 'N/A',
+    causaDependenciaTiempo: fichaClinica.causaDependenciaTiempo || 'N/A',
+    escolaridad: {
+      id: fichaClinica.escolaridad?.id || null,
+      nivel: fichaClinica.escolaridad?.nivel || 'No especificado',
+    },
+    estadoCivil: fichaClinica.estadoCivil || 'N/A',
+    direccionPaciente: fichaClinica.direccionPaciente || 'N/A',
+    convivencia: fichaClinica.convivencia || 'N/A',
+    poseeCarneDiscapacidad: fichaClinica.poseeCarneDiscapacidad || false,
+    recibePensionSubsidioJubilacion: fichaClinica.recibePensionSubsidioJubilacion || false,
+    tipoBeneficio: fichaClinica.tipoBeneficio || 'N/A',
+    nombreCuidador: fichaClinica.nombreCuidador || 'N/A',
+    rutCuidador: fichaClinica.rutCuidador || 'N/A',
+    edadCuidador: fichaClinica.edadCuidador || 'N/A',
+    fechaNacimientoCuidador: fichaClinica.fechaNacimientoCuidador || 'N/A',
+    direccionCuidador: fichaClinica.direccionCuidador || 'N/A',
+    ocupacionCuidador: fichaClinica.ocupacionCuidador || 'N/A',
+    parentescoCuidador: fichaClinica.parentescoCuidador || 'N/A',
+    cuidadorRecibeEstipendio: fichaClinica.cuidadorRecibeEstipendio || false,
+    puntajeEscalaZarit: fichaClinica.puntajeEscalaZarit || 'N/A',
+    nivelSobrecargaZarit: fichaClinica.nivelSobrecargaZarit || 'N/A',
+    controlCesfamDependencia: fichaClinica.controlCesfamDependencia || 'N/A',
+    consultaServicioUrgencia: fichaClinica.consultaServicioUrgencia || 'N/A',
+    cicloVitalFamiliar: {
+      id: fichaClinica.cicloVitalFamiliar?.id || null,
+      ciclo: fichaClinica.cicloVitalFamiliar?.ciclo || 'N/A',
+    },
+    tipoFamilia: {
+      id: fichaClinica.tipoFamilia?.id || null,
+      nombre: fichaClinica.tipoFamilia?.nombre || null,
+    },
+    otroTipoFamilia: fichaClinica.otroTipoFamilia || null,
+    estudiante: {
+      id: fichaClinica.estudiante?.id || null,
+      nombres: fichaClinica.estudiante?.nombres || '',
+      apellidos: fichaClinica.estudiante?.apellidos || '',
+      email: fichaClinica.estudiante?.email || '',
+    },
+    usuario: {
+      id: fichaClinica.usuario?.id || null,
+      nombres: fichaClinica.usuario?.nombres || '',
+      apellidos: fichaClinica.usuario?.apellidos || '',
+      correo: fichaClinica.usuario?.correo || '',
+    },
+    institucion: {
+      id: fichaClinica.institucion?.id || null,
+      nombre: fichaClinica.institucion?.nombre || '',
+    },
+    factoresRiesgo: fichaClinica.factoresRiesgo || 'N/A',
+    telefono1: fichaClinica.telefono1 || 'N/A',
+    telefono2: fichaClinica.telefono2 || 'N/A',
+    horarioLlamada: fichaClinica.horarioLlamada || 'N/A',
+    conectividad: fichaClinica.conectividad || 'N/A',
+    createdAt: fichaClinica.createdAt || null,
+    updatedAt: fichaClinica.updatedAt || null,
+  };
+};
+
 const FichaClinica = () => {
   const { user, getToken, handleSessionExpired } = useAuth();
   const location = useLocation();
@@ -491,6 +812,27 @@ const FichaClinica = () => {
     fetchReevaluaciones();
   };
 
+  // Función para formatear diagnósticos
+  const formatearDiagnosticos = () => {
+    const diagnosticos = fichaClinica.diagnosticos || [];
+    const otroDiagnostico = fichaClinica.otroDiagnostico;
+    let textoCompleto = '';
+    // Agregar diagnósticos predefinidos
+    if (diagnosticos.length > 0) {
+      const nombresDiagnosticos = diagnosticos.map(d => d.nombre).join(', ');
+      textoCompleto = nombresDiagnosticos;
+    }
+    // Agregar diagnóstico personalizado si existe
+    if (otroDiagnostico && otroDiagnostico.trim() !== '') {
+      if (textoCompleto) {
+        textoCompleto += ', y ' + otroDiagnostico;
+      } else {
+        textoCompleto = otroDiagnostico;
+      }
+    }
+    return textoCompleto || 'N/A';
+  };
+
   const esEditable = fichaClinica && user && (
     (fichaClinica.estudiante?.id === user.estudiante_id) ||
     (!fichaClinica.estudiante?.id && (user.rol_id === 1 || user.rol_id === 2)) ||
@@ -505,7 +847,6 @@ const FichaClinica = () => {
   const fetchFichaClinica = async () => {
     setLoading(true);
     try {
-      setLoading(true);
       const token = getToken();
       if (!token) {
         handleSessionExpired();
@@ -520,10 +861,11 @@ const FichaClinica = () => {
 
       const formattedData = tipo === 'adulto'
         ? formatearFichaAdulto(response.data.data)
-        : formatearFichaInfantil(response.data.data);
+        : tipo === 'infantil'
+          ? formatearFichaInfantil(response.data.data)
+          : formatearFichaDependencia(response.data.data);
 
       setFichaClinica(formattedData);
-      setLoading(false);
     } catch (err) {
       console.error('Error al obtener la ficha clínica:', err);
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
@@ -535,6 +877,7 @@ const FichaClinica = () => {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     if (fichaId && tipo) {
@@ -580,6 +923,12 @@ const FichaClinica = () => {
   };
 
   const fetchReevaluaciones = async (pagina = 1, fechaInicio = '', fechaFin = '') => {
+    // Skip fetching reevaluations if the type is 'dependencia'
+    if (tipo === 'dependencia') {
+      setReevaluaciones([]); // Clear any existing reevaluations
+      return; // Exit the function early
+    }
+
     try {
       const token = getToken();
       const response = await axios.get(
@@ -854,10 +1203,28 @@ const FichaClinica = () => {
           fichaClinica={fichaClinica}
           onActualizar={handleActualizarFicha}
         />
+      ) : tipo === 'dependencia' ? (
+        <ModalEditarFichaDependencia
+          show={mostrarModalEdicion}
+          onHide={() => setMostrarModalEdicion(false)}
+          fichaClinica={fichaClinica}
+          onActualizar={handleActualizarFicha}
+        />
       ) : null}
 
       <h2 className="text-center mb-1 pb-2" style={{ 'color': 'var(--color-accent)', 'fontWeight': 'bold' }}>
-        Ficha Clínica {tipo === 'adulto' ? 'Adulto' : 'Infantil'} - {fichaClinica.paciente?.nombres} {fichaClinica.paciente?.apellidos}
+        Ficha Clínica {tipo === 'adulto' ? 'Adulto' : tipo === 'infantil' ? 'Infantil' : 'Dependencia'} -
+        {tipo === 'dependencia' ? (
+          <span> {fichaClinica.paciente?.nombre && fichaClinica.paciente?.apellido
+              ? `${fichaClinica.paciente.nombre} ${fichaClinica.paciente.apellido}`
+              : 'N/A'}
+          </span>
+        ) : (
+          <span> {fichaClinica.paciente?.nombres && fichaClinica.paciente?.apellidos
+              ? `${fichaClinica.paciente.nombres} ${fichaClinica.paciente.apellidos}`
+              : 'N/A'}
+          </span>
+        )}
       </h2>
       <Tabs
         id="ficha-clinica-tabs"
@@ -882,12 +1249,20 @@ const FichaClinica = () => {
               )}
               {tipo === 'adulto' ? (
                 <FichaClinicaAdulto fichaClinica={fichaClinica} />
-              ) : (
+              ) : tipo === 'infantil' ? (
                 <FichaClinicaInfantil fichaClinica={fichaClinica} />
-              )}
+              ) : tipo === 'dependencia' ? (
+                <FichaClinicaDependencia fichaClinica={fichaClinica} />
+              ) : null}
             </div>
           </div>
         </Tab>
+
+        {tipo === 'dependencia' && (
+          <Tab eventKey="tabvisitaDomiciliaria" title="Visita Domiciliaria">
+            <TabVisitaDomiciliaria pacienteId={fichaClinica.id} />
+          </Tab>
+        )}
 
         <Tab eventKey="seguimiento" title="Seguimiento">
           {tipo === 'infantil' ? (
@@ -896,379 +1271,395 @@ const FichaClinica = () => {
               fichaId={fichaId}
               fichaClinica={fichaClinica}
             />
-          ) : (
+          ) : tipo === 'adulto' ? (
             <SeguimientoAdulto
               pacienteId={fichaClinica.paciente.id}
               fichaId={fichaId}
             />
-          )}
+          ) : tipo === 'dependencia' ? (
+            <SeguimientoDependencia
+              pacienteId={fichaClinica.id}
+              fichaId={fichaId}
+              pacienteDependencia={{
+                nombre: fichaClinica.paciente.nombre,
+                apellido: fichaClinica.paciente.apellido,
+                edad: fichaClinica.paciente.edad,
+                telefonos: fichaClinica.telefono1,
+                telefonos2: fichaClinica.telefono2,
+                diagnosticos: formatearDiagnosticos(),
+                gradoDependencia: fichaClinica.gradoDependencia
+              }}
+            />
+          ) : null}
         </Tab>
 
-        <Tab eventKey="reevaluacion" title="Reevaluación">
-          <div className="card mb-4">
-            <div className="card-header custom-card text-light">
-              <i className="fas fa-refresh me-2"></i>Reevaluación del Paciente
-            </div>
-            <div className="card-body">
-              <div className="text-center mb-4">
-                <button
-                  className="btn btn-primary"
-                  onClick={() => navigate('?component=reevaluacion', {
-                    state: {
-                      fichaId: fichaClinica.id,
-                      tipo: tipo,
-                      paciente: fichaClinica.paciente
-                    }
-                  })}
-                >
-                  Nueva Reevaluación
-                </button>
+        {tipo !== 'dependencia' && (
+          <Tab eventKey="reevaluacion" title="Reevaluación">
+            <div className="card mb-4">
+              <div className="card-header custom-card text-light">
+                <i className="fas fa-refresh me-2"></i>Reevaluación del Paciente
               </div>
-
-              <div className="row mb-4">
-                <div className="col-md-4">
-                  <label>Fecha Inicio</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={fechaInicio}
-                    onChange={(e) => setFechaInicio(e.target.value)}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <label>Fecha Fin</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={fechaFin}
-                    onChange={(e) => setFechaFin(e.target.value)}
-                  />
-                </div>
-                <div className="col-md-4 d-flex align-items-end">
+              <div className="card-body">
+                <div className="text-center mb-4">
                   <button
                     className="btn btn-primary"
-                    onClick={handleFiltrar}
+                    onClick={() => navigate('?component=reevaluacion', {
+                      state: {
+                        fichaId: fichaClinica.id,
+                        tipo: tipo,
+                        paciente: fichaClinica.paciente
+                      }
+                    })}
                   >
-                    Filtrar
+                    Nueva Reevaluación
                   </button>
-                  {filtrosAplicados && (
-                    <button className="btn btn-secondary" onClick={limpiarFiltros}>
-                      Limpiar Filtros
-                    </button>
-                  )}
                 </div>
-              </div>
 
-              {reevaluaciones && reevaluaciones.length > 0 ? (
-                <div>
-                  <h5 className="border-bottom pb-2">Reevaluaciones Previas</h5>
-                  {reevaluaciones.map((reevaluacion, index) => {
-                    // Calcular el número total de reevaluaciones
-                    const numeroReevaluacion = (totalRegistros - (paginaActual - 1) * reevaluacionesPorPagina) - index;
+                <div className="row mb-4">
+                  <div className="col-md-4">
+                    <label>Fecha Inicio</label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={fechaInicio}
+                      onChange={(e) => setFechaInicio(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <label>Fecha Fin</label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={fechaFin}
+                      onChange={(e) => setFechaFin(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-4 d-flex align-items-end">
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleFiltrar}
+                    >
+                      Filtrar
+                    </button>
+                    {filtrosAplicados && (
+                      <button className="btn btn-secondary" onClick={limpiarFiltros}>
+                        Limpiar Filtros
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-                    return (
-                      <div key={reevaluacion.id} className="card mb-3">
-                        <div
-                          className="card-header d-flex justify-content-between align-items-center custom-card text-light"
-                          onClick={() => setExpandido(index === expandido ? null : index)}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <div className="me-auto">
-                            <strong>Reevaluación {numeroReevaluacion}</strong>
+                {reevaluaciones && reevaluaciones.length > 0 ? (
+                  <div>
+                    <h5 className="border-bottom pb-2">Reevaluaciones Previas</h5>
+                    {reevaluaciones.map((reevaluacion, index) => {
+                      // Calcular el número total de reevaluaciones
+                      const numeroReevaluacion = (totalRegistros - (paginaActual - 1) * reevaluacionesPorPagina) - index;
+
+                      return (
+                        <div key={reevaluacion.id} className="card mb-3">
+                          <div
+                            className="card-header d-flex justify-content-between align-items-center custom-card text-light"
+                            onClick={() => setExpandido(index === expandido ? null : index)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <div className="me-auto">
+                              <strong>Reevaluación {numeroReevaluacion}</strong>
+                            </div>
+                            <div className="d-flex align-items-center">
+                              <span>{new Date(reevaluacion.fecha).toLocaleDateString()}</span>
+                              <i className={`fas fa-chevron-${expandido === index ? 'up' : 'down'} ms-2`}></i>
+                            </div>
                           </div>
-                          <div className="d-flex align-items-center">
-                            <span>{new Date(reevaluacion.fecha).toLocaleDateString()}</span>
-                            <i className={`fas fa-chevron-${expandido === index ? 'up' : 'down'} ms-2`}></i>
-                          </div>
-                        </div>
 
-                        {expandido === index && (
-                          <>
-                            {cambiosDetectados[reevaluacion.id] ? (
-                              <div className="card-body border-bottom" style={{
-                                backgroundColor: '#e3f0fb',
-                                borderWidth: '2px'
-                              }}>
-                                <div
-                                  className="d-flex justify-content-between align-items-center"
-                                  style={{ cursor: 'pointer' }}
-                                  onClick={() => setCambiosExpandidos(!cambiosExpandidos)}
-                                >
-                                  <h6 className="text-muted mb-0">
-                                    Cambios Detectados
-                                    {cambiosDetectados[reevaluacion.id].tipo === 'original'
-                                      ? ' (respecto a ficha original)'
-                                      : ' (respecto a reevaluación anterior)'}
-                                  </h6>
-                                  <i className={`fas fa-chevron-${cambiosExpandidos ? 'up' : 'down'}`}></i>
-                                </div>
-
-                                {cambiosExpandidos && (
-                                  <div className="mt-3">
-                                    {renderCambiosDetectados(cambiosDetectados[reevaluacion.id].cambios)}
+                          {expandido === index && (
+                            <>
+                              {cambiosDetectados[reevaluacion.id] ? (
+                                <div className="card-body border-bottom" style={{
+                                  backgroundColor: '#e3f0fb',
+                                  borderWidth: '2px'
+                                }}>
+                                  <div
+                                    className="d-flex justify-content-between align-items-center"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => setCambiosExpandidos(!cambiosExpandidos)}
+                                  >
+                                    <h6 className="text-muted mb-0">
+                                      Cambios Detectados
+                                      {cambiosDetectados[reevaluacion.id].tipo === 'original'
+                                        ? ' (respecto a ficha original)'
+                                        : ' (respecto a reevaluación anterior)'}
+                                    </h6>
+                                    <i className={`fas fa-chevron-${cambiosExpandidos ? 'up' : 'down'}`}></i>
                                   </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="card-body border-bottom" style={{
-                                backgroundColor: '#f8d7da',
-                                borderWidth: '2px',
-                                color: '#721c24'
-                              }}>
-                                <h6 className="text-muted mb-0">No hay cambios detectados.</h6>
-                              </div>
-                            )}
-                            {tipo === 'adulto' ? (
-                              <div className="card-body">
-                                {fichaClinica && (
-                                  (user.estudiante_id ?
-                                    (reevaluacion.estudiante?.id === user.estudiante_id) :
-                                    (user.rol_id === 1 || user.rol_id === 2) ||
-                                    (reevaluacion.usuario?.id === user.id)
-                                  ) && (
-                                    <button
-                                      className="btn btn-primary"
-                                      onClick={() => {
-                                        navigate('?component=reevaluacion', {
-                                          state: {
-                                            fichaId: fichaClinica.id,
-                                            tipo: tipo,
-                                            reevaluacionId: reevaluacion.id,
-                                            modoEdicion: true
-                                          }
-                                        });
-                                      }}
-                                    >
-                                      <i className="fas fa-edit me-2"></i>Editar
-                                    </button>
-                                  )
-                                )}
-                                <div className="row">
-                                  <div className="col-md-6">
-                                    <h6 className="border-bottom pb-2">Información Personal</h6>
-                                    <p><strong>Rut:</strong> {reevaluacion.paciente?.rut || 'N/A'}</p>
-                                    <p><strong>Edad:</strong> {reevaluacion.paciente?.edad || 'N/A'}</p>
-                                    <p><strong>Teléfono Principal:</strong> {reevaluacion.paciente?.telefonoPrincipal || 'N/A'}</p>
-                                    <p>
-                                      <strong>Diagnóstico:</strong> {
-                                        reevaluacion.diagnosticos && reevaluacion.diagnosticos.length > 0
-                                          ? reevaluacion.diagnosticos.map((diag, index) => (
-                                            <span key={index}>
-                                              {diag.esOtro ? diag.diagnosticoOtro : diag.nombre}
-                                              {index < reevaluacion.diagnosticos.length - 1 ? ', ' : ''}
-                                            </span>
+
+                                  {cambiosExpandidos && (
+                                    <div className="mt-3">
+                                      {renderCambiosDetectados(cambiosDetectados[reevaluacion.id].cambios)}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="card-body border-bottom" style={{
+                                  backgroundColor: '#f8d7da',
+                                  borderWidth: '2px',
+                                  color: '#721c24'
+                                }}>
+                                  <h6 className="text-muted mb-0">No hay cambios detectados.</h6>
+                                </div>
+                              )}
+                              {tipo === 'adulto' ? (
+                                <div className="card-body">
+                                  {fichaClinica && (
+                                    (user.estudiante_id ?
+                                      (reevaluacion.estudiante?.id === user.estudiante_id) :
+                                      (user.rol_id === 1 || user.rol_id === 2) ||
+                                      (reevaluacion.usuario?.id === user.id)
+                                    ) && (
+                                      <button
+                                        className="btn btn-primary"
+                                        onClick={() => {
+                                          navigate('?component=reevaluacion', {
+                                            state: {
+                                              fichaId: fichaClinica.id,
+                                              tipo: tipo,
+                                              reevaluacionId: reevaluacion.id,
+                                              modoEdicion: true
+                                            }
+                                          });
+                                        }}
+                                      >
+                                        <i className="fas fa-edit me-2"></i>Editar
+                                      </button>
+                                    )
+                                  )}
+                                  <div className="row">
+                                    <div className="col-md-6">
+                                      <h6 className="border-bottom pb-2">Información Personal</h6>
+                                      <p><strong>Rut:</strong> {reevaluacion.paciente?.rut || 'N/A'}</p>
+                                      <p><strong>Edad:</strong> {reevaluacion.paciente?.edad || 'N/A'}</p>
+                                      <p><strong>Teléfono Principal:</strong> {reevaluacion.paciente?.telefonoPrincipal || 'N/A'}</p>
+                                      <p>
+                                        <strong>Diagnóstico:</strong> {
+                                          reevaluacion.diagnosticos && reevaluacion.diagnosticos.length > 0
+                                            ? reevaluacion.diagnosticos.map((diag, index) => (
+                                              <span key={index}>
+                                                {diag.esOtro ? diag.diagnosticoOtro : diag.nombre}
+                                                {index < reevaluacion.diagnosticos.length - 1 ? ', ' : ''}
+                                              </span>
+                                            ))
+                                            : 'N/A'
+                                        }
+                                      </p>
+                                      <p><strong>Ocupación:</strong> {reevaluacion.ocupacion || 'N/A'}</p>
+                                      <p><strong>Escolaridad:</strong> {reevaluacion.escolaridad?.nivel || 'N/A'}</p>
+                                      <p><strong>Con quién vive:</strong> {reevaluacion.conQuienVive || 'N/A'}</p>
+                                    </div>
+                                    <div className="col-md-6">
+                                      <h6 className="border-bottom pb-2">Factores de Riesgo</h6>
+                                      <p><strong>Valor HbA1c:</strong> {reevaluacion.factoresRiesgo?.valorHbac1 || 'N/A'}%</p>
+                                      <ul>
+                                        <li>Alcohol/Drogas: {reevaluacion.factoresRiesgo?.alcoholDrogas ? 'Sí' : 'No'}</li>
+                                        <li>Tabaquismo: {reevaluacion.factoresRiesgo?.tabaquismo ? 'Sí' : 'No'}</li>
+                                        <li>Otros: {reevaluacion.factoresRiesgo?.otros || 'N/A'}</li>
+                                      </ul>
+                                    </div>
+                                  </div>
+                                  <div className="row mt-3">
+                                    <div className="col-md-6">
+                                      <h6 className="border-bottom pb-2">Información Familiar</h6>
+                                      <p><strong>Ciclo Vital Familiar:</strong> {reevaluacion.ciclosVitalesFamiliares && reevaluacion.ciclosVitalesFamiliares.length > 0
+                                        ? reevaluacion.ciclosVitalesFamiliares[0].ciclo
+                                        : 'N/A'}
+                                      </p>
+                                      <p><strong>Tipos de Familia:</strong></p>
+                                      <ul>
+                                        {reevaluacion.tiposFamilia && reevaluacion.tiposFamilia.length > 0 ? (
+                                          reevaluacion.tiposFamilia.map((tipo, idx) => (
+                                            <li key={idx}>{tipo.nombre || tipo.tipoFamiliaOtro}</li>
                                           ))
-                                          : 'N/A'
-                                      }
-                                    </p>
-                                    <p><strong>Ocupación:</strong> {reevaluacion.ocupacion || 'N/A'}</p>
-                                    <p><strong>Escolaridad:</strong> {reevaluacion.escolaridad?.nivel || 'N/A'}</p>
-                                    <p><strong>Con quién vive:</strong> {reevaluacion.conQuienVive || 'N/A'}</p>
-                                  </div>
-                                  <div className="col-md-6">
-                                    <h6 className="border-bottom pb-2">Factores de Riesgo</h6>
-                                    <p><strong>Valor HbA1c:</strong> {reevaluacion.factoresRiesgo?.valorHbac1 || 'N/A'}%</p>
-                                    <ul>
-                                      <li>Alcohol/Drogas: {reevaluacion.factoresRiesgo?.alcoholDrogas ? 'Sí' : 'No'}</li>
-                                      <li>Tabaquismo: {reevaluacion.factoresRiesgo?.tabaquismo ? 'Sí' : 'No'}</li>
-                                      <li>Otros: {reevaluacion.factoresRiesgo?.otros || 'N/A'}</li>
-                                    </ul>
+                                        ) : (
+                                          <li>No hay tipos de familia registrados</li>
+                                        )}
+                                      </ul>
+                                    </div>
+                                    <div className="col-md-6">
+                                      <h6 className="border-bottom pb-2">Información Adicional</h6>
+                                      <p><strong>Dirección:</strong> {reevaluacion.direccion || 'N/A'}</p>
+                                      <p><strong>Horario de Llamada:</strong> {reevaluacion.horarioLlamada || 'N/A'}</p>
+                                      <p><strong>Conectividad:</strong> {reevaluacion.conectividad || 'N/A'}</p>
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="row mt-3">
-                                  <div className="col-md-6">
-                                    <h6 className="border-bottom pb-2">Información Familiar</h6>
-                                    <p><strong>Ciclo Vital Familiar:</strong> {reevaluacion.ciclosVitalesFamiliares && reevaluacion.ciclosVitalesFamiliares.length > 0
-                                      ? reevaluacion.ciclosVitalesFamiliares[0].ciclo
-                                      : 'N/A'}
-                                    </p>
-                                    <p><strong>Tipos de Familia:</strong></p>
-                                    <ul>
-                                      {reevaluacion.tiposFamilia && reevaluacion.tiposFamilia.length > 0 ? (
-                                        reevaluacion.tiposFamilia.map((tipo, idx) => (
-                                          <li key={idx}>{tipo.nombre || tipo.tipoFamiliaOtro}</li>
+                              ) : (
+                                // Contenido para reevaluación infantil
+                                <>
+                                  <div className="row m-1  mt-3">
+                                    <div className="col-md-6">
+                                      {fichaClinica && (
+                                        (user.estudiante_id ?
+                                          (reevaluacion.estudiante?.id === user.estudiante_id) :
+                                          (user.rol_id === 1 || user.rol_id === 2) ||
+                                          (reevaluacion.usuario?.id === user.id)
+                                        ) && (
+                                          <button
+                                            className="btn btn-primary"
+                                            onClick={() => {
+                                              navigate('?component=reevaluacion', {
+                                                state: {
+                                                  fichaId: fichaClinica.id,
+                                                  tipo: tipo,
+                                                  reevaluacionId: reevaluacion.id,
+                                                  modoEdicion: true
+                                                }
+                                              });
+                                            }}
+                                          >
+                                            <i className="fas fa-edit me-2"></i>Editar
+                                          </button>
+                                        )
+                                      )}
+                                      {/* Versión corregida - verificar si ambos campos TEPSI son null o "N/A" */}
+                                      {(reevaluacion.evaluacionPsicomotora?.puntajeDPM === null || reevaluacion.evaluacionPsicomotora?.puntajeDPM === "N/A") &&
+                                        (reevaluacion.evaluacionPsicomotora?.diagnosticoTEPSI === null || reevaluacion.evaluacionPsicomotora?.diagnosticoTEPSI === "N/A") ? (
+                                        <>
+                                          <h6 className='border-bottom pb-2'>Diagnóstico Clínico (DSM)</h6>
+                                          <p><strong>Edad Mental:</strong> {reevaluacion.evaluacionPsicomotora?.edadMental || 'N/A'}</p>
+                                          <p><strong>EM/EC:</strong> {reevaluacion.evaluacionPsicomotora?.emEc || 'N/A'}</p>
+                                          <p><strong>PE:</strong> {reevaluacion.evaluacionPsicomotora?.pe || 'N/A'}</p>
+                                          <p><strong>Coeficiente de Desarrollo:</strong> {reevaluacion.evaluacionPsicomotora?.coeficienteDesarrollo || 'N/A'}</p>
+                                          <p><strong>Área Coordinación:</strong> {reevaluacion.evaluacionPsicomotora?.areasEvaluacion?.areaCoordinacion || 'N/A'}</p>
+                                          <p><strong>Área Social:</strong> {reevaluacion.evaluacionPsicomotora?.areasEvaluacion?.areaSocial || 'N/A'}</p>
+                                          <p><strong>Área Lenguaje:</strong> {reevaluacion.evaluacionPsicomotora?.areasEvaluacion?.areaLenguaje || 'N/A'}</p>
+                                          <p><strong>Área Motora:</strong> {reevaluacion.evaluacionPsicomotora?.areasEvaluacion?.areaMotora || 'N/A'}</p>
+                                          <p><strong>Diagnóstico DSM:</strong> {reevaluacion.evaluacionPsicomotora?.diagnosticoDSM || 'N/A'}</p>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <h6 className='border-bottom pb-2'>Evaluación Psicomotora (TEPSI)</h6>
+                                          <p><strong>Puntaje DPM:</strong> {reevaluacion.evaluacionPsicomotora?.puntajeDPM || 'N/A'}</p>
+                                          <p><strong>Diagnóstico TEPSI:</strong> {reevaluacion.evaluacionPsicomotora?.diagnosticoTEPSI || 'N/A'}</p>
+                                        </>
+                                      )}
+                                    </div>
+                                    <div className="col-md-6">
+                                      <h6 className="border-bottom pb-2 mt-4" style={{ 'paddingTop': '12px' }}>Información Familiar</h6>
+                                      <p><strong>Con quién vive:</strong> {reevaluacion.informacionFamiliar?.conQuienVive || 'N/A'}</p>
+                                      <p><strong>Localidad:</strong> {reevaluacion.informacionFamiliar?.localidad || 'N/A'}</p>
+                                    </div>
+                                  </div>
+                                  <div className="row m-1">
+                                    <div className="col-md-6">
+                                      <h6 className="border-bottom pb-2">Tipos de Familia</h6>
+                                      {reevaluacion.informacionFamiliar?.tiposFamilia && reevaluacion.informacionFamiliar.tiposFamilia.length > 0 ? (
+                                        reevaluacion.informacionFamiliar.tiposFamilia.map((tipo, idx) => (
+                                          <p key={idx}>{tipo.nombre || tipo.tipoFamiliaOtro}</p>
                                         ))
                                       ) : (
-                                        <li>No hay tipos de familia registrados</li>
+                                        <p>No hay tipos de familia registrados</p>
                                       )}
-                                    </ul>
+                                    </div>
+                                    <div className="col-md-6">
+                                      <h6 className="border-bottom pb-2">Ciclo Vital Familiar</h6>
+                                      <p>{reevaluacion.informacionFamiliar?.cicloVitalFamiliar?.ciclo || 'No especificado'}</p>
+                                    </div>
                                   </div>
-                                  <div className="col-md-6">
-                                    <h6 className="border-bottom pb-2">Información Adicional</h6>
-                                    <p><strong>Dirección:</strong> {reevaluacion.direccion || 'N/A'}</p>
-                                    <p><strong>Horario de Llamada:</strong> {reevaluacion.horarioLlamada || 'N/A'}</p>
-                                    <p><strong>Conectividad:</strong> {reevaluacion.conectividad || 'N/A'}</p>
+                                  <div className="row m-1">
+                                    <div className="col-md-6">
+                                      <h6 className="border-bottom pb-2">Factores de Riesgo del Niño</h6>
+                                      <ul>
+                                        {reevaluacion.factoresRiesgo?.nino?.length > 0 ? (
+                                          reevaluacion.factoresRiesgo.nino.map((factor, idx) => (
+                                            <li key={idx}>{factor.nombre}</li>
+                                          ))
+                                        ) : (
+                                          <li>No hay factores de riesgo registrados</li>
+                                        )}
+                                      </ul>
+                                    </div>
+                                    <div className="col-md-6">
+                                      <h6 className="border-bottom pb-2">Factores de Riesgo Familiares</h6>
+                                      <ul>
+                                        {reevaluacion.factoresRiesgo?.familiares?.length > 0 ? (
+                                          reevaluacion.factoresRiesgo.familiares.map((factor, idx) => (
+                                            <li key={idx}>
+                                              {factor.nombre} {factor.otras ? `(${factor.otras})` : ''}
+                                            </li>
+                                          ))
+                                        ) : (
+                                          <li>No hay factores de riesgo familiares registrados</li>
+                                        )}
+                                      </ul>
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
-                            ) : (
-                              // Contenido para reevaluación infantil
-                              <>
-                                <div className="row m-1  mt-3">
-                                  <div className="col-md-6">
-                                    {fichaClinica && (
-                                      (user.estudiante_id ?
-                                        (reevaluacion.estudiante?.id === user.estudiante_id) :
-                                        (user.rol_id === 1 || user.rol_id === 2) ||
-                                        (reevaluacion.usuario?.id === user.id)
-                                      ) && (
-                                        <button
-                                          className="btn btn-primary"
-                                          onClick={() => {
-                                            navigate('?component=reevaluacion', {
-                                              state: {
-                                                fichaId: fichaClinica.id,
-                                                tipo: tipo,
-                                                reevaluacionId: reevaluacion.id,
-                                                modoEdicion: true
-                                              }
-                                            });
-                                          }}
-                                        >
-                                          <i className="fas fa-edit me-2"></i>Editar
-                                        </button>
-                                      )
-                                    )}
-                                    {/* Versión corregida - verificar si ambos campos TEPSI son null o "N/A" */}
-                                    {(reevaluacion.evaluacionPsicomotora?.puntajeDPM === null || reevaluacion.evaluacionPsicomotora?.puntajeDPM === "N/A") &&
-                                      (reevaluacion.evaluacionPsicomotora?.diagnosticoTEPSI === null || reevaluacion.evaluacionPsicomotora?.diagnosticoTEPSI === "N/A") ? (
-                                      <>
-                                        <h6 className='border-bottom pb-2'>Diagnóstico Clínico (DSM)</h6>
-                                        <p><strong>Edad Mental:</strong> {reevaluacion.evaluacionPsicomotora?.edadMental || 'N/A'}</p>
-                                        <p><strong>EM/EC:</strong> {reevaluacion.evaluacionPsicomotora?.emEc || 'N/A'}</p>
-                                        <p><strong>PE:</strong> {reevaluacion.evaluacionPsicomotora?.pe || 'N/A'}</p>
-                                        <p><strong>Coeficiente de Desarrollo:</strong> {reevaluacion.evaluacionPsicomotora?.coeficienteDesarrollo || 'N/A'}</p>
-                                        <p><strong>Área Coordinación:</strong> {reevaluacion.evaluacionPsicomotora?.areasEvaluacion?.areaCoordinacion || 'N/A'}</p>
-                                        <p><strong>Área Social:</strong> {reevaluacion.evaluacionPsicomotora?.areasEvaluacion?.areaSocial || 'N/A'}</p>
-                                        <p><strong>Área Lenguaje:</strong> {reevaluacion.evaluacionPsicomotora?.areasEvaluacion?.areaLenguaje || 'N/A'}</p>
-                                        <p><strong>Área Motora:</strong> {reevaluacion.evaluacionPsicomotora?.areasEvaluacion?.areaMotora || 'N/A'}</p>
-                                        <p><strong>Diagnóstico DSM:</strong> {reevaluacion.evaluacionPsicomotora?.diagnosticoDSM || 'N/A'}</p>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <h6 className='border-bottom pb-2'>Evaluación Psicomotora (TEPSI)</h6>
-                                        <p><strong>Puntaje DPM:</strong> {reevaluacion.evaluacionPsicomotora?.puntajeDPM || 'N/A'}</p>
-                                        <p><strong>Diagnóstico TEPSI:</strong> {reevaluacion.evaluacionPsicomotora?.diagnosticoTEPSI || 'N/A'}</p>
-                                      </>
-                                    )}
-                                  </div>
-                                  <div className="col-md-6">
-                                    <h6 className="border-bottom pb-2 mt-4" style={{ 'paddingTop': '12px' }}>Información Familiar</h6>
-                                    <p><strong>Con quién vive:</strong> {reevaluacion.informacionFamiliar?.conQuienVive || 'N/A'}</p>
-                                    <p><strong>Localidad:</strong> {reevaluacion.informacionFamiliar?.localidad || 'N/A'}</p>
-                                  </div>
-                                </div>
-                                <div className="row m-1">
-                                  <div className="col-md-6">
-                                    <h6 className="border-bottom pb-2">Tipos de Familia</h6>
-                                    {reevaluacion.informacionFamiliar?.tiposFamilia && reevaluacion.informacionFamiliar.tiposFamilia.length > 0 ? (
-                                      reevaluacion.informacionFamiliar.tiposFamilia.map((tipo, idx) => (
-                                        <p key={idx}>{tipo.nombre || tipo.tipoFamiliaOtro}</p>
-                                      ))
-                                    ) : (
-                                      <p>No hay tipos de familia registrados</p>
-                                    )}
-                                  </div>
-                                  <div className="col-md-6">
-                                    <h6 className="border-bottom pb-2">Ciclo Vital Familiar</h6>
-                                    <p>{reevaluacion.informacionFamiliar?.cicloVitalFamiliar?.ciclo || 'No especificado'}</p>
-                                  </div>
-                                </div>
-                                <div className="row m-1">
-                                  <div className="col-md-6">
-                                    <h6 className="border-bottom pb-2">Factores de Riesgo del Niño</h6>
-                                    <ul>
-                                      {reevaluacion.factoresRiesgo?.nino?.length > 0 ? (
-                                        reevaluacion.factoresRiesgo.nino.map((factor, idx) => (
-                                          <li key={idx}>{factor.nombre}</li>
-                                        ))
-                                      ) : (
-                                        <li>No hay factores de riesgo registrados</li>
-                                      )}
-                                    </ul>
-                                  </div>
-                                  <div className="col-md-6">
-                                    <h6 className="border-bottom pb-2">Factores de Riesgo Familiares</h6>
-                                    <ul>
-                                      {reevaluacion.factoresRiesgo?.familiares?.length > 0 ? (
-                                        reevaluacion.factoresRiesgo.familiares.map((factor, idx) => (
-                                          <li key={idx}>
-                                            {factor.nombre} {factor.otras ? `(${factor.otras})` : ''}
-                                          </li>
-                                        ))
-                                      ) : (
-                                        <li>No hay factores de riesgo familiares registrados</li>
-                                      )}
-                                    </ul>
-                                  </div>
-                                </div>
-                              </>
-                            )}
+                                </>
+                              )}
 
-                            <div className="row m-1">
-                              <div className="col-md-6">
-                                <h6 className="border-bottom pb-2">
-                                  {reevaluacion.estudiante && reevaluacion.estudiante.nombres ? 'Estudiante' : 'Responsable'}
-                                </h6>
-                                <p>
-                                  <strong>Nombre:</strong> {
-                                    reevaluacion.estudiante && reevaluacion.estudiante.nombres
-                                      ? `${reevaluacion.estudiante.nombres} ${reevaluacion.estudiante.apellidos}`
-                                      : reevaluacion.usuario && reevaluacion.usuario.nombres
-                                        ? `${reevaluacion.usuario.nombres} ${reevaluacion.usuario.apellidos}`
-                                        : 'N/A'
-                                  }
-                                </p>
-                                {(reevaluacion.estudiante || reevaluacion.usuario) && (
+                              <div className="row m-1">
+                                <div className="col-md-6">
+                                  <h6 className="border-bottom pb-2">
+                                    {reevaluacion.estudiante && reevaluacion.estudiante.nombres ? 'Estudiante' : 'Responsable'}
+                                  </h6>
                                   <p>
-                                    <strong>Correo:</strong> {
-                                      reevaluacion.estudiante && reevaluacion.estudiante.correo
-                                        ? reevaluacion.estudiante.correo
-                                        : reevaluacion.usuario && reevaluacion.usuario.correo
-                                          ? reevaluacion.usuario.correo
+                                    <strong>Nombre:</strong> {
+                                      reevaluacion.estudiante && reevaluacion.estudiante.nombres
+                                        ? `${reevaluacion.estudiante.nombres} ${reevaluacion.estudiante.apellidos}`
+                                        : reevaluacion.usuario && reevaluacion.usuario.nombres
+                                          ? `${reevaluacion.usuario.nombres} ${reevaluacion.usuario.apellidos}`
                                           : 'N/A'
                                     }
                                   </p>
-                                )}
+                                  {(reevaluacion.estudiante || reevaluacion.usuario) && (
+                                    <p>
+                                      <strong>Correo:</strong> {
+                                        reevaluacion.estudiante && reevaluacion.estudiante.correo
+                                          ? reevaluacion.estudiante.correo
+                                          : reevaluacion.usuario && reevaluacion.usuario.correo
+                                            ? reevaluacion.usuario.correo
+                                            : 'N/A'
+                                      }
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="col-md-6">
+                                  <h6 className="border-bottom pb-2">Institución</h6>
+                                  <p><strong>Nombre:</strong> {reevaluacion.institucion?.nombre || 'N/A'}</p>
+                                </div>
                               </div>
-                              <div className="col-md-6">
-                                <h6 className="border-bottom pb-2">Institución</h6>
-                                <p><strong>Nombre:</strong> {reevaluacion.institucion?.nombre || 'N/A'}</p>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
 
-                  {/* Componente de paginación */}
-                  <nav>
-                    <ul className="pagination justify-content-center">
-                      {[...Array(totalPaginas)].map((_, index) => (
-                        <li
-                          key={index}
-                          className={`page-item ${paginaActual === index + 1 ? 'active' : ''}`}
-                        >
-                          <button
-                            className="page-link"
-                            onClick={() => cambiarPagina(index + 1)}
+                    {/* Componente de paginación */}
+                    <nav>
+                      <ul className="pagination justify-content-center">
+                        {[...Array(totalPaginas)].map((_, index) => (
+                          <li
+                            key={index}
+                            className={`page-item ${paginaActual === index + 1 ? 'active' : ''}`}
                           >
-                            {index + 1}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </nav>
-                </div>
-              ) : (
-                <div className="alert alert-info text-center">
-                  {filtrosAplicados ? 'No se encontraron reevaluaciones con los filtros aplicados.' : 'No se han realizado reevaluaciones previas.'}
-                </div>
-              )}
+                            <button
+                              className="page-link"
+                              onClick={() => cambiarPagina(index + 1)}
+                            >
+                              {index + 1}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </nav>
+                  </div>
+                ) : (
+                  <div className="alert alert-info text-center">
+                    {filtrosAplicados ? 'No se encontraron reevaluaciones con los filtros aplicados.' : 'No se han realizado reevaluaciones previas.'}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </Tab>
+          </Tab>
+        )}
       </Tabs>
     </Container>
   );
