@@ -283,7 +283,7 @@ const FichaDependencia = ({ onVolver, onIngresar, institucionId }) => {
 
         const datosParaEnviar = {
             institucion_id: institucionId,
-            usuario_id: user?.id,
+            usuario_id: user?.id || null,
             estudiante_id: user?.estudiante_id || null,
 
             // Datos del paciente

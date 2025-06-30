@@ -413,6 +413,12 @@ const VisitaDomiciliaria = ({ pacienteId, institucionId }) => {
             return; // Si el usuario cancela, no continúa
         }
 
+        const sanitizeNumber = (value) => {
+            if (value === '' || value === null || value === undefined) return null;
+            const num = parseInt(value);
+            return isNaN(num) ? null : num;
+        };
+
         try {
             const token = getToken();
 
@@ -475,7 +481,7 @@ const VisitaDomiciliaria = ({ pacienteId, institucionId }) => {
                     miccion_cual: datosVisita.miccionCual,
                     orina_oscura: datosVisita.orinaOscura,
                     estreñimiento: datosVisita.estreñimiento,
-                    dias_estreñimiento: datosVisita.diasEstreñimiento,
+                    dias_estreñimiento: sanitizeNumber(datosVisita.diasEstreñimiento),
                     intervencion: datosVisita.intervencion,
                     intervencion_cual: datosVisita.intervencionCual,
                 },
